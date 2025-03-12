@@ -3,7 +3,7 @@ import { View, TouchableOpacity, ImageBackground, StyleSheet, Text } from 'react
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Dimensions } from 'react-native';
-import Pagina_principal from '../app/pagina_principal';
+import Pagina_principal from '../app/pagina_principal/pagina_principal';
 import Pagina_movimentos from '../app/pagina_movimentos';
 import Pagina_metas from '../app/pagina_metas';
 import Pagina_perfil from '../app/pagina_perfil';
@@ -44,10 +44,10 @@ const TabNavigator = () => {
             screenOptions={({ route }) => ({
                 tabBarShowLabel: false,
                 tabBarStyle: styles.tabBar,
-                
+
                 tabBarItemStyle: { marginHorizontal: 3 },
                 animationEnable: false,
-                headerShown:false,
+                headerShown: false,
                 tabBarBackground: () => (
                     <ImageBackground source={FundoImagem} style={styles.tabBarBackground} />
                 ),
@@ -64,7 +64,11 @@ const TabNavigator = () => {
                     }
                     return (
                         <View style={{ alignItems: 'center', justifyContent: 'center', marginTop: altura * 0.030 }}>
-                            <IconComponent width={27} height={27} fill={focused ? '#FFA500' : '#BFBFBF'} />
+                            {IconComponent ? (
+                                <IconComponent width={27} height={27} fill={focused ? '#FFA500' : '#BFBFBF'} />
+                            ) : (
+                                <Ionicons name="alert-circle-outline" size={27} color="red" /> // Ícone de fallback
+                            )}
                         </View>
                     );
                 },
@@ -99,10 +103,10 @@ const styles = StyleSheet.create({
     tabBarBackground: {
         width: '100%',
         height: '100%',
-        position: 'absolute', 
-        top: 0, 
-        borderRadius: 25, 
-        overflow: 'hidden', 
+        position: 'absolute',
+        top: 0,
+        borderRadius: 25,
+        overflow: 'hidden',
     },
     tabBar: {
         position: 'absolute',
