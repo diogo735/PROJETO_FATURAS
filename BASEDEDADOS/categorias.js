@@ -17,7 +17,18 @@ async function criarTabelaCategorias() {
     console.error('❌ Erro ao criar tabela "categorias":', error);
   }
 }
+async function resetarCategorias() {
+  try {
+    const db = await SQLite.openDatabaseAsync('app.db');
 
+    await db.runAsync(`DELETE FROM categorias;`); // Apaga todas as categorias
+    await db.runAsync(`UPDATE SQLITE_SEQUENCE SET seq = 0 WHERE name = 'categorias';`); // Reseta o ID
+
+    console.log("🔄 IDs da tabela 'categorias' resetados com sucesso!");
+  } catch (error) {
+    console.error('❌ Erro ao resetar IDs da tabela "categorias":', error);
+  }
+}
 
 async function inserirCategoria(img_cat, cor_cat, nome_cat) {
     try {
@@ -52,7 +63,7 @@ async function inserirCategoria(img_cat, cor_cat, nome_cat) {
         //console.log('🛑 Nenhuma categoria encontrada. Inserindo categorias...');
         await inserirVariasCategorias(); // Agora garantimos que a inserção só ocorre quando necessário
       } else {
-        console.log('✅ Categorias já existem. Nenhuma inserção necessária.');
+        //console.log('✅ Categorias já existem. Nenhuma inserção necessária.');
       }
     } catch (error) {
       console.error('❌ Erro ao verificar categorias:', error);
@@ -61,21 +72,22 @@ async function inserirCategoria(img_cat, cor_cat, nome_cat) {
   
   async function inserirVariasCategorias() {
     const categorias = [
-        { img_cat: require('../assets/imagens/categorias/compras_pessoais.png'), cor_cat: '#FA6FE0', nome_cat: 'Compras Pessoais' },
-        { img_cat: require('../assets/imagens/categorias/contas_e_servicos.png'), cor_cat: '#7FCACF', nome_cat: 'Contas e Serviços' },
-        { img_cat: require('../assets/imagens/categorias/despesas_gerais.png'), cor_cat: '#61C98D', nome_cat: 'Despesas Gerais' },
-        { img_cat: require('../assets/imagens/categorias/educacao.png'), cor_cat: '#7FC5F3', nome_cat: 'Educação' },
-        { img_cat: require('../assets/imagens/categorias/estimacao.png'), cor_cat: '#CF866C', nome_cat: 'Estimação' },
-        { img_cat: require('../assets/imagens/categorias/financas.png'), cor_cat: '#B4CE61', nome_cat: 'Finanças' },
-        { img_cat: require('../assets/imagens/categorias/habitacao.png'), cor_cat: '#60A0E0', nome_cat: 'Habitação' },
-        { img_cat: require('../assets/imagens/categorias/lazer.png'), cor_cat: '#C370E5', nome_cat: 'Lazer' },
-        { img_cat: require('../assets/imagens/categorias/outros.png'), cor_cat: '#B0C5C6', nome_cat: 'Outros' },
-        { img_cat: require('../assets/imagens/categorias/restauracao.png'), cor_cat: '#E8CE62', nome_cat: 'Restauração e Alojamento' },
-        { img_cat: require('../assets/imagens/categorias/saude.png'), cor_cat: '#FA6C5D', nome_cat: 'Saúde' },
-        { img_cat: require('../assets/imagens/categorias/transportes.png'), cor_cat: '#E39F62', nome_cat: 'Transportes' }
-      ];
+      { img_cat: 'compras_pessoais.png', cor_cat: '#FA6FE0', nome_cat: 'Compras Pessoais' },
+      { img_cat: 'contas_e_servicos.png', cor_cat: '#7FCACF', nome_cat: 'Contas e Serviços' },
+      { img_cat: 'despesas_gerais.png', cor_cat: '#61C98D', nome_cat: 'Despesas Gerais' },
+      { img_cat: 'educacao.png', cor_cat: '#7FC5F3', nome_cat: 'Educação' },
+      { img_cat: 'estimacao.png', cor_cat: '#CF866C', nome_cat: 'Estimação' },
+      { img_cat: 'financas.png', cor_cat: '#B4CE61', nome_cat: 'Finanças' },
+      { img_cat: 'habitacao.png', cor_cat: '#60A0E0', nome_cat: 'Habitação' },
+      { img_cat: 'lazer.png', cor_cat: '#C370E5', nome_cat: 'Lazer' },
+      { img_cat: 'outros.png', cor_cat: '#B0C5C6', nome_cat: 'Outros' },
+      { img_cat: 'restauracao.png', cor_cat: '#E8CE62', nome_cat: 'Restauração e Alojamento' },
+      { img_cat: 'saude.png', cor_cat: '#FA6C5D', nome_cat: 'Saúde' },
+      { img_cat: 'transportes.png', cor_cat: '#E39F62', nome_cat: 'Transportes' }
+  ];
+  
       
-
+      /*console.log("Categorias antes de inserir:", categorias);*/
     try {
       const db = await SQLite.openDatabaseAsync('app.db');
   
@@ -93,12 +105,30 @@ async function inserirCategoria(img_cat, cor_cat, nome_cat) {
   }
   
  async function listarCategorias() {
+  const imagensCategorias = {
+    "compras_pessoais.png": require("../assets/imagens/categorias/compras_pessoais.png"),
+    "contas_e_servicos.png": require("../assets/imagens/categorias/contas_e_servicos.png"),
+    "despesas_gerais.png": require("../assets/imagens/categorias/despesas_gerais.png"),
+    "educacao.png": require("../assets/imagens/categorias/educacao.png"),
+    "estimacao.png": require("../assets/imagens/categorias/estimacao.png"),
+    "financas.png": require("../assets/imagens/categorias/financas.png"),
+    "habitacao.png": require("../assets/imagens/categorias/habitacao.png"),
+    "lazer.png": require("../assets/imagens/categorias/lazer.png"),
+    "outros.png": require("../assets/imagens/categorias/outros.png"),
+    "restauracao.png": require("../assets/imagens/categorias/restauracao.png"),
+    "saude.png": require("../assets/imagens/categorias/saude.png"),
+    "transportes.png": require("../assets/imagens/categorias/transportes.png"),
+  };
+  
   try {
     const db = await SQLite.openDatabaseAsync('app.db');
     const result = await db.getAllAsync('SELECT * FROM categorias;');
 
     //console.log('📌 Categorias encontradas:', result);
-    return result;
+    return result.map((cat) => ({
+      ...cat,
+      img_cat: imagensCategorias[cat.img_cat] || require("../assets/imagens/default.png"), 
+    }));
   } catch (error) {
     console.error('❌ Erro ao buscar categorias:', error);
   }
@@ -116,4 +146,4 @@ async function apagarTodasCategorias() {
   }
   
 // Exporta as operações para serem usadas no app
-export { criarTabelaCategorias, inserirCategoria, listarCategorias , verificarEInserirCategorias, inserirVariasCategorias,apagarTodasCategorias};
+export { criarTabelaCategorias, resetarCategorias,inserirCategoria, listarCategorias , verificarEInserirCategorias, inserirVariasCategorias,apagarTodasCategorias};

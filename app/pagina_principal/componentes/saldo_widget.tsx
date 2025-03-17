@@ -39,9 +39,9 @@ const styles = StyleSheet.create({
   container: {
     borderRadius: scale(15), // Mantém o arredondamento
     width: '95%',
-    height: '13%',
+    height: '15%',
     alignSelf: 'center',
-    marginVertical: '4%',
+    marginTop: "4%",
     justifyContent: 'center',
     paddingHorizontal: scale(20),
   },
