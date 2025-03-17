@@ -2,11 +2,39 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Animated, Easing, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+
+import Logo from '../assets/imagens/icon_app_porco.svg';
+import { useFonts, Nokora_400Regular, Nokora_900Black } from '@expo-google-fonts/nokora';
 import IconeRotativo from '../assets/imagens/wallpaper.svg';
+import { inicializarBaseDeDados } from '../BASEDEDADOS/database';
+import EnovoSVG from '../assets/imagens/by_enovo.svg';
 
 const { width, height } = Dimensions.get('window');
 
+type RootStackParamList = {
+  MainApp: undefined;
+};
+
 const PagLoadingEntrar = () => {
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+  useEffect(() => {
+    const carregarBD = async () => {
+      try {
+        await inicializarBaseDeDados();
+         setTimeout(() => {
+           navigation.reset({
+             index: 0,
+             routes: [{ name: 'MainApp' }],
+           });
+         }, 3000);
+      } catch (error) {
+        console.error('Erro ao carregar o banco de dados:', error);
+      }
+    };
+
+    carregarBD();
+  }, []);
   const rotateValues = [
     useRef(new Animated.Value(0)).current,
     useRef(new Animated.Value(0)).current,
@@ -14,10 +42,6 @@ const PagLoadingEntrar = () => {
     useRef(new Animated.Value(0)).current,
     useRef(new Animated.Value(0)).current,
   ];
-
-
-  const initialRotations = [45, 120, 80, 20,160];
-
   useEffect(() => {
     rotateValues.forEach((rotateValue) => {
       const animateRotation = () => {
@@ -35,8 +59,21 @@ const PagLoadingEntrar = () => {
       animateRotation();
     });
   }, []);
+  const [fontsLoaded] = useFonts({
+    Nokora_Regular: Nokora_400Regular,
+    Nokora_Black: Nokora_900Black,
+  });
 
-  // Criar a interpolação com rotação inicial diferente
+  if (!fontsLoaded) {
+    return <ActivityIndicator size="large" color="white" />;
+  }
+
+
+
+  const initialRotations = [45, 120, 80, 20, 160];
+
+
+
   const rotateInterpolations = rotateValues.map((rotateValue, index) =>
     rotateValue.interpolate({
       inputRange: [0, 1],
@@ -46,7 +83,6 @@ const PagLoadingEntrar = () => {
 
   return (
     <View style={styles.container}>
-
       <LinearGradient
         colors={['#022B4C', '#2985DE']}
         start={{ x: 0, y: 0 }}
@@ -54,7 +90,22 @@ const PagLoadingEntrar = () => {
         style={StyleSheet.absoluteFillObject}
       />
 
-      {/* Ícone 1 */}
+      <View style={styles.logoContainer}>
+        <Logo width={width * 0.67} height={height * 0.17} />
+      </View>
+
+      <View style={styles.textContainer}>
+        <Text style={styles.logoText}>
+          <Text style={styles.logoTextBold}>Piggy</Text>Wallet
+        </Text>
+        <View style={{ width: '100%', alignItems: 'flex-end', paddingRight: 0 }}>
+          <View style={styles.byEnoycContainer}>
+            <EnovoSVG width={width * 0.23} height={height * 0.03} />
+          </View>
+        </View>
+      </View>
+
+      {/* Ícones animados */}
       <Animated.View style={[styles.iconContainer, {
         top: -height * 0.04, left: -width * 0.18,
         transform: [{ rotate: rotateInterpolations[0] }]
@@ -62,7 +113,6 @@ const PagLoadingEntrar = () => {
         <IconeRotativo width={width * 0.8} height={width * 0.8} fill="rgba(255,255,255,0.08)" />
       </Animated.View>
 
-      {/* Ícone 2 */}
       <Animated.View style={[styles.iconContainer, {
         top: height * 0.31, left: width * 0.8,
         transform: [{ rotate: rotateInterpolations[1] }]
@@ -70,7 +120,6 @@ const PagLoadingEntrar = () => {
         <IconeRotativo width={width * 0.3} height={width * 0.3} fill="rgba(255,255,255,0.08)" />
       </Animated.View>
 
-      {/* Ícone 3 */}
       <Animated.View style={[styles.iconContainer, {
         top: height * 0.56, left: -width * 0.19,
         transform: [{ rotate: rotateInterpolations[2] }]
@@ -78,7 +127,6 @@ const PagLoadingEntrar = () => {
         <IconeRotativo width={width * 0.5} height={width * 0.5} fill="rgba(255,255,255,0.08)" />
       </Animated.View>
 
-      {/* Ícone 4 */}
       <Animated.View style={[styles.iconContainer, {
         top: height * 0.67, left: width * 0.7,
         transform: [{ rotate: rotateInterpolations[3] }]
@@ -86,21 +134,16 @@ const PagLoadingEntrar = () => {
         <IconeRotativo width={width * 0.6} height={width * 0.6} fill="rgba(255,255,255,0.08)" />
       </Animated.View>
 
-      {/* Ícone 5 */}
       <Animated.View style={[styles.iconContainer, {
         top: height * 0.96, left: width * 0.06,
         transform: [{ rotate: rotateInterpolations[4] }]
       }]}>
         <IconeRotativo width={width * 0.75} height={width * 0.75} fill="rgba(255,255,255,0.08)" />
       </Animated.View>
-
-      <View style={styles.content}>
-        <Text style={styles.text}>Carregando...</Text>
-        <ActivityIndicator size="large" color="white" />
-      </View>
     </View>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {
@@ -111,17 +154,42 @@ const styles = StyleSheet.create({
   iconContainer: {
     position: 'absolute',
   },
-  content: {
-    flex: 1,
+
+  logoContainer: {
+    position: 'absolute',
+    top: '40%',
+    left: '50%',
+    transform: [{ translateX: -width * 0.3 }],
     alignItems: 'center',
     justifyContent: 'center',
+    width: width * 0.6,
   },
-  text: {
-    fontSize: 24,
+  textContainer: {
+    marginTop: "7.5%",
+    position: 'absolute',
+    top: '55%',
+    left: '50%',
+    transform: [{ translateX: -width * 0.25 }],
+    alignItems: 'center',
+  },
+
+  logoText: {
+    fontSize: 30.55,
     color: 'white',
-    fontWeight: 'bold',
-    marginBottom: 20,
+    fontFamily: 'Nokora_Regular',
+    textAlign: 'center',
   },
+
+  logoTextBold: {
+    fontFamily: 'Nokora_Black',
+  },
+
+  byEnoycContainer: {
+    marginTop: -width*0.02,
+
+  },
+
+
 });
 
 export default PagLoadingEntrar;
