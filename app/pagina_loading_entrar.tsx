@@ -27,7 +27,7 @@ const PagLoadingEntrar = () => {
              index: 0,
              routes: [{ name: 'MainApp' }],
            });
-         }, 10);
+         }, 1000);
       } catch (error) {
         console.error('Erro ao carregar o banco de dados:', error);
       }

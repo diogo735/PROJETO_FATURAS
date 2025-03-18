@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { View, StyleSheet, Image } from 'react-native';
-import Svg, { Circle, Line, G, Text } from 'react-native-svg';
+import Svg, { Circle, Line, G, } from 'react-native-svg';
 import { Dimensions } from 'react-native';
 import { red } from 'react-native-reanimated/lib/typescript/Colors';
 import ImagemCentral from '../../../assets/imagens/porco_grafico.svg';
@@ -8,8 +8,9 @@ import { Image as ImageSVG } from 'react-native-svg'; // Importe SVG diretamente
 const { width } = Dimensions.get('window');
 const outerCircleRadius = width * 0.085;
 const { height } = Dimensions.get('window');
-import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, useAnimatedProps, interpolate, useDerivedValue } from 'react-native-reanimated';
 import { Easing } from 'react-native-reanimated';
+import { Text } from "react-native";
 // 📌 Definição da interface baseada na tabela `movimentos`
 interface DadosGrafico {
   categoria_id: number;
@@ -50,28 +51,6 @@ const Grafico_Circular: React.FC<GraficoCircularProps> = ({ categorias, tipoSele
   const circumference = 2 * Math.PI * radius;
 
 
-
-  
-  const rotation = useSharedValue(0);
-
-
-
-  useEffect(() => {
-
-    rotation.value = 0;
-
-
-    //  Animação da rotação do gráfico (2s)
-    rotation.value = withTiming(360, { duration: 2000, easing: Easing.out(Easing.exp) }, () => {
-
-    });
-  }, [categorias, tipoSelecionado]);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${rotation.value}deg` }],
-  }));
-
-
   if (!categorias.length) {
     return (
       <View style={styles.container}>
@@ -87,16 +66,20 @@ const Grafico_Circular: React.FC<GraficoCircularProps> = ({ categorias, tipoSele
           />
           {/* Texto dentro do SVG */}
           <Text
-            x={size / 2 - width * 0.2}
-            y={size / 2 - radius - height * 0.08}
-            fontSize={width * 0.05}
-            fontWeight="bold"
-            fill={tipoSelecionado === 'despesas' ? '#F2A0A0' : '#7CD47C'}
-            textAnchor="middle"
-            alignmentBaseline="middle"
+            style={{
+              position: "absolute",
+              alignSelf: "center",
+              top: size / 2 - radius - height * 0.1, // Equivalente ao y
+              fontSize: width * 0.05,
+              fontWeight: "bold",
+              color: tipoSelecionado === 'despesas' ? '#F2A0A0' : '#7CD47C',
+              textAlign: "center",
+              width: "100%",
+            }}
           >
-            Nenhuma{tipoSelecionado === 'despesas' ? 'despesa' : 'Receita'}            registrada !
+            Nenhuma {tipoSelecionado === 'despesas' ? 'Despesa' : 'Receita'} registrada!
           </Text>
+
         </Svg>
         {tipoSelecionado === "receitas" ? (
           <View style={styles.imagemCentro}>
@@ -111,9 +94,14 @@ const Grafico_Circular: React.FC<GraficoCircularProps> = ({ categorias, tipoSele
       </View>
     );
   }
+
+
+
+
+
   const tamanhoMinimo = circumference / 12;
-  // 📌 Calculando o valor total para normalizar os tamanhos dos segmentos
-  const totalGeral = categorias.reduce((acc, categoria) => acc + categoria.total_valor, 0);
+  //  Calculando o valor total para normalizar os tamanhos dos segmentos
+  const totalGeral = categorias.length > 0 ? categorias.reduce((acc, categoria) => acc + (categoria.total_valor || 0), 0) : 1;
   // Ajuste de valores para garantir o tamanho mínimo
   let valoresAjustados: CategoriaAjustada[] = categorias.map(categoria => ({
     ...categoria,
@@ -131,98 +119,136 @@ const Grafico_Circular: React.FC<GraficoCircularProps> = ({ categorias, tipoSele
   let acumulado = 0;
 
 
+  const animatedProgress = useSharedValue(0);
+
+  useEffect(() => {
+    //animatedProgress.value = withTiming(1, { duration: 1000, easing: Easing.out(Easing.ease) });
+    animatedProgress.value = withTiming(1, { duration: 1000 });
+  }, []);
+
+
+
+
   return (
 
     <View style={[styles.container]}>
-      <Animated.View style={animatedStyle}>
-        <Svg width={size} height={size}>
-          <G originX={size / 2} originY={size / 2}>
-            {valoresAjustados.map((categoria, index) => {
-              const segmento = categoria.valorFinal;
-              const offset = -acumulado;
-              const espacoEntreSegmentos = strokeWidth * 1.15;
-              // Encontrar o centro do segmento
-              const centroSegmento = (acumulado + (segmento - espacoEntreSegmentos) / 2) / circumference * 2 * Math.PI - Math.PI / 2;
 
-          
-              // sair do centro exato do segmento
-              const ajusteLinha = strokeWidth * 0.5;
-          
-              const xInner = (size / 2) + (radius - ajusteLinha) * Math.cos(centroSegmento);
-              const yInner = (size / 2) + (radius - ajusteLinha) * Math.sin(centroSegmento);
-              const xOuter = (size / 2) + (radius + strokeWidth + 30) * Math.cos(centroSegmento);
-              const yOuter = (size / 2) + (radius + strokeWidth + 30) * Math.sin(centroSegmento);
+      <Svg width={size} height={size}>
+        <G originX={size / 2} originY={size / 2}>
+          {valoresAjustados.map((categoria, index) => {
+            const segmento = categoria.valorFinal;
+            const offset = -acumulado;
+            const espacoEntreSegmentos = strokeWidth * 1.15;
+            // Encontrar o centro do segmento
+            const centroSegmento = (acumulado + (segmento - espacoEntreSegmentos) / 2) / circumference * 2 * Math.PI - Math.PI / 2;
 
-              acumulado += segmento;
-              
+            const ajusteLinha = strokeWidth * 0.5;
 
-              return (
-                <React.Fragment key={`segmento-${categoria.categoria_id}`}>
-                  {/* Segmento do gráfico */}
-                  <Circle
-                    cx={size / 2}
-                    cy={size / 2}
-                    r={radius}
-                    stroke={categoria.cor_cat}
-                    strokeWidth={strokeWidth}
-                    fill="none"
-                    strokeDasharray={`${Math.max(0, segmento - espacoEntreSegmentos)} ${circumference}`}
-                    strokeDashoffset={offset}
-                    strokeLinecap="round"
-                    rotation={-90}
-                    originX={size / 2}
-                    originY={size / 2}
-                  />
+            acumulado += segmento;
 
-                  {/* Linha tracejada alinhada ao meio do segmento */}
-                  <Line
-                    x1={xInner}
-                    y1={yInner}
-                    x2={xOuter}
-                    y2={yOuter}
-                    stroke={categoria.cor_cat}
-                    strokeWidth={1.9}
-                    strokeDasharray="4"
-                  />
+            const animatedProps = useAnimatedProps(() => ({
+              strokeDasharray: `${Math.max(0, segmento - espacoEntreSegmentos) * animatedProgress.value} ${circumference}`,
+              strokeDashoffset: offset * animatedProgress.value,
+            }));
+            const centroSegmentoSeguro = isNaN(centroSegmento) || centroSegmento === undefined
+              ? -Math.PI / 2
+              : centroSegmento;
+            const animatedAngle = useDerivedValue(() => {
+              if (animatedProgress.value === 0) return -Math.PI / 2;
+              return interpolate(animatedProgress.value, [0, 1], [-Math.PI / 2, centroSegmentoSeguro]);
+            }, [animatedProgress]);
 
 
-                  <G>
-                    <Circle cx={xOuter} cy={yOuter} r={width * 0.083} fill={categoria.cor_cat || "#000"} />
-                    {/* Ícone da categoria dentro da bolinha */}
-                    {categoria.img_cat && imagensCategorias[categoria.img_cat] && (
-                      <ImageSVG
-                        x={xOuter - width * 0.04}
-                        y={yOuter - width * 0.06}
-                        width={width * 0.083}
-                        height={width * 0.083}
-                        href={imagensCategorias[categoria.img_cat]}
-                        preserveAspectRatio="xMidYMid meet"
 
-                      />
+            // 🟢 Animação da linha, agora também usando animatedAngle.value corretamente
+            const animatedLineProps = useAnimatedProps(() => {
+              return {
+                x1: size / 2 + (radius - ajusteLinha) * Math.cos(animatedAngle.value),
+                y1: size / 2 + (radius - ajusteLinha) * Math.sin(animatedAngle.value),
+                x2: size / 2 + (radius + strokeWidth + 30) * Math.cos(animatedAngle.value),
+                y2: size / 2 + (radius + strokeWidth + 30) * Math.sin(animatedAngle.value),
+              };
+            });
 
-                    )}
-                    <Text
-                      x={xOuter}
-                      y={yOuter + width * 0.06}
-                      fontSize={width * 0.035}
-                      fill="white"
-                      textAnchor="middle"
-                      fontWeight="bold"
+            const animatedContainerStyle = useAnimatedStyle(() => {
+              return {
+                position: "absolute",
+                width: width * 0.166, // Tamanho da bolinha
+                height: width * 0.166,
+                backgroundColor: categoria.cor_cat || "#000",
+                borderRadius: (width * 0.166) / 2,
+                justifyContent: "center",
+                alignItems: "center",
+                transform: [
+                  { translateX: (size / 2 + (radius + strokeWidth + 30) * Math.cos(animatedAngle.value)) - (width * 0.166) / 2 },
+                  { translateY: (size / 2 + (radius + strokeWidth + 30) * Math.sin(animatedAngle.value)) - (width * 0.166) / 2 },
+                ],
+              };
+            });
 
-                    >
-                      {`${parseInt(categoria.total_valor.toString(), 10)}€`}
-                    </Text>
+            return (
+              <React.Fragment key={`segmento-${categoria.categoria_id}`}>
+                {/* Segmento do gráfico */}
+                <AnimatedCircle
+                  cx={size / 2}
+                  cy={size / 2}
+                  r={radius}
+                  stroke={categoria.cor_cat}
+                  strokeWidth={strokeWidth}
+                  fill="none"
+                  strokeDasharray={`${Math.max(0, segmento - espacoEntreSegmentos)} ${circumference}`}
+                  strokeDashoffset={offset}
+                  strokeLinecap="round"
+                  rotation={-90}
+                  originX={size / 2}
+                  originY={size / 2}
+                  animatedProps={animatedProps}
+                />
 
-                  </G>
+                {/* 🟢 Linha animada */}
+                <AnimatedLine
+                  stroke={categoria.cor_cat}
+                  strokeWidth={1.9}
+                  strokeDasharray="4"
+                  animatedProps={animatedLineProps}
+                />
 
-                </React.Fragment>
-              );
-            })}
+                <Animated.View style={animatedContainerStyle}>
+                  {categoria.img_cat && (
+                    <Image
+                      source={imagensCategorias[categoria.img_cat]}
+                      style={{
+                        width: width * 0.08,
+                        height: width * 0.08,
+                        marginBottom: width * 0.04,
+                        resizeMode: "contain",
+                      }}
+                    />
+                  )}
+                  <Text
+                    style={{
+                      fontSize: width * 0.035,
+                      color: "white",
+                      fontWeight: "bold",
+                      position: "absolute",
+                      top: width * 0.10,
+                      textAlign: "center",
+                      width: "100%",
+                    }}
+                  >
+                    {`${parseInt(categoria.total_valor.toString(), 10)}€`}
+                  </Text>
 
-          </G>
-        </Svg>
-      </Animated.View>
-      {/* 📌 Imagem central no meio do gráfico */}
+                </Animated.View>
+
+              </React.Fragment>
+            );
+          })}
+
+        </G>
+      </Svg>
+
+       
       <View style={styles.imagemCentro}>
         <ImagemCentral width="100%" height="100%" fill="#E22121" />
       </View>
@@ -231,6 +257,8 @@ const Grafico_Circular: React.FC<GraficoCircularProps> = ({ categorias, tipoSele
   );
 
 };
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+const AnimatedLine = Animated.createAnimatedComponent(Line);
 
 const styles = StyleSheet.create({
   container: {

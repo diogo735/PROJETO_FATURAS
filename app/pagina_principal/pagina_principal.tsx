@@ -31,9 +31,9 @@ const Pagina_principal: React.FC = () => {
       let dados: DadosGrafico[] = [];
 
       if (tipoSelecionado === 'despesas') {
-        dados = await obterSomaMovimentosPorCategoriaDespesa();
+        dados = await obterSomaMovimentosPorCategoriaDespesa()|| [];
       } else {
-        dados = await obterSomaMovimentosPorCategoriaReceita();
+        dados = await obterSomaMovimentosPorCategoriaReceita()|| [];
       }
       setDadosGrafico(dados.length > 0 ? dados : []);
     };
@@ -60,10 +60,7 @@ const Pagina_principal: React.FC = () => {
         <SaldoWidget />
 
         <View style={styles.containerGrafico}>
-
           <Grafico_Circular categorias={dadosGrafico} tipoSelecionado={tipoSelecionado} />
-
-
         </View>
 
         <Botoes tipoSelecionado={tipoSelecionado} setTipoSelecionado={setTipoSelecionado} />
