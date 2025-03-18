@@ -100,30 +100,75 @@ async function listarMovimentos() {
     }
 }
 
-async function obterSomaMovimentosPorCategoria() {
+async function obterSomaMovimentosPorCategoriaDespesa() {//DAS DESPESAS
     try {
-      const db = await SQLite.openDatabaseAsync('app.db');
-  
-      const result = await db.getAllAsync(`
-        SELECT 
-          m.categoria_id, 
-          c.nome_cat, 
-          c.cor_cat, 
-          c.img_cat,
-          SUM(m.valor) as total_valor
-        FROM movimentos m
-        INNER JOIN categorias c ON m.categoria_id = c.id
-        GROUP BY m.categoria_id, c.nome_cat,c.cor_cat, c.img_cat
-        ORDER BY total_valor DESC;
-      `);
-  
-     // console.log("📊 Dados de movimentos agrupados por categoria:", result);
-      return result;
+        const db = await SQLite.openDatabaseAsync('app.db');
+
+        // Primeiro, obter o ID correspondente ao tipo "Despesa"
+        const tipoDespesa = await db.getFirstAsync(`
+            SELECT id FROM tipo_movimento WHERE nome_movimento = 'Despesa';
+        `);
+
+        if (!tipoDespesa) {
+            console.error("❌ Tipo de movimento 'Despesa' não encontrado.");
+            return [];
+        }
+
+        const result = await db.getAllAsync(`
+            SELECT 
+                m.categoria_id, 
+                c.nome_cat, 
+                c.cor_cat, 
+                c.img_cat,
+                SUM(m.valor) as total_valor
+            FROM movimentos m
+            INNER JOIN categorias c ON m.categoria_id = c.id
+            WHERE m.tipo_movimento_id = ?
+            GROUP BY m.categoria_id, c.nome_cat, c.cor_cat, c.img_cat
+            ORDER BY total_valor DESC;
+        `, [tipoDespesa.id]); 
+
+        return result;
     } catch (error) {
-      console.error("❌ Erro ao obter movimentos agrupados por categoria:", error);
-      return [];
+        console.error("❌ Erro ao obter movimentos agrupados por categoria:", error);
+        return [];
     }
-  }
+}
+
+async function obterSomaMovimentosPorCategoriaReceita() { // DAS RECEITAS
+    try {
+        const db = await SQLite.openDatabaseAsync('app.db');
+
+        // Primeiro, obter o ID correspondente ao tipo "Receita"
+        const tipoReceita = await db.getFirstAsync(`
+            SELECT id FROM tipo_movimento WHERE nome_movimento = 'Receita';
+        `);
+
+        if (!tipoReceita) {
+            console.error("❌ Tipo de movimento 'Receita' não encontrado.");
+            return [];
+        }
+
+        const result = await db.getAllAsync(`
+            SELECT 
+                m.categoria_id, 
+                c.nome_cat, 
+                c.cor_cat, 
+                c.img_cat,
+                SUM(m.valor) as total_valor
+            FROM movimentos m
+            INNER JOIN categorias c ON m.categoria_id = c.id
+            WHERE m.tipo_movimento_id = ?
+            GROUP BY m.categoria_id, c.nome_cat, c.cor_cat, c.img_cat
+            ORDER BY total_valor DESC;
+        `, [tipoReceita.id]); 
+
+        return result;
+    } catch (error) {
+        console.error("❌ Erro ao obter movimentos de receitas por categoria:", error);
+        return [];
+    }
+}
 
 async function apagarTodosMovimentos() {
     try {
@@ -136,4 +181,4 @@ async function apagarTodosMovimentos() {
 }
 
 
-export { criarTabelaMovimentos, inserirMovimento, listarMovimentos, apagarTodosMovimentos, inserirVariosMovimentos,obterSomaMovimentosPorCategoria };
+export { criarTabelaMovimentos, inserirMovimento, listarMovimentos, apagarTodosMovimentos, inserirVariosMovimentos,obterSomaMovimentosPorCategoriaDespesa,obterSomaMovimentosPorCategoriaReceita };

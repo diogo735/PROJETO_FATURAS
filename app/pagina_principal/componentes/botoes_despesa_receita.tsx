@@ -10,8 +10,12 @@ import MaisInativo from '../../../assets/icons/botes_paginia_pricipal/+_cinza.sv
 import MenosAtivo from '../../../assets/icons/botes_paginia_pricipal/-.svg';
 import MenosInativo from '../../../assets/icons/botes_paginia_pricipal/-_cinza.svg';
 
-const Botoes: React.FC = () => {
-    const [ativo, setAtivo] = useState<'receitas' | 'despesas'>('despesas'); // Começa em despesas
+interface BotoesProps {
+    tipoSelecionado: 'receitas' | 'despesas';
+    setTipoSelecionado: (tipo: 'receitas' | 'despesas') => void;
+}
+const Botoes: React.FC<BotoesProps> = ({ tipoSelecionado, setTipoSelecionado }) => {
+    
 
     return (
         <View style={styles.container}>
@@ -19,13 +23,13 @@ const Botoes: React.FC = () => {
             <TouchableOpacity
                 style={[
                     styles.botao,
-                    ativo === 'receitas' ? styles.ativo : styles.inativo,
+                    tipoSelecionado === 'receitas' ? styles.ativo : styles.inativo,
                 ]}
-                onPress={() => setAtivo('receitas')}
+                onPress={() => setTipoSelecionado('receitas')}
             >
                 <View style={styles.conteudo}>
                     {/* Ícone */}
-                    {ativo === 'receitas' ? (
+                    {tipoSelecionado === 'receitas' ? (
                         <MaisAtivo width={width*0.1} height={width*0.1} />
                     ) : (
                         <MaisInativo width={width*0.1} height={width*0.1} />
@@ -33,10 +37,10 @@ const Botoes: React.FC = () => {
 
                     {/* Texto Receitas */}
                     <View style={styles.textoContainer}>
-                        <Text style={ativo === 'receitas' ? styles.textoAtivoReceita : styles.textoInativoReceita}>
+                        <Text style={tipoSelecionado === 'receitas' ? styles.textoAtivoReceita : styles.textoInativoReceita}>
                             Receitas
                         </Text>
-                        <Text style={ativo === 'receitas' ? styles.textovalorAtivoReceita : styles.textovalorInativoReceita}>
+                        <Text style={tipoSelecionado === 'receitas' ? styles.textovalorAtivoReceita : styles.textovalorInativoReceita}>
                             900 €
                         </Text>
                     </View>
@@ -47,13 +51,13 @@ const Botoes: React.FC = () => {
             <TouchableOpacity
                 style={[
                     styles.botao,
-                    ativo === 'despesas' ? styles.ativo : styles.inativo
+                    tipoSelecionado === 'despesas' ? styles.ativo : styles.inativo
                 ]}
-                onPress={() => setAtivo('despesas')}
+                onPress={() => setTipoSelecionado('despesas')}
             >
                 <View style={styles.conteudo}>
                     {/* Ícone */}
-                    {ativo === 'despesas' ? (
+                    {tipoSelecionado === 'despesas' ? (
                         <MenosAtivo width={width*0.1} height={width*0.1} />
                     ) : (
                         <MenosInativo width={width*0.1} height={width*0.1} />
@@ -61,10 +65,10 @@ const Botoes: React.FC = () => {
 
                     {/* Texto e valor alinhados à direita */}
                     <View style={styles.textoContainer}>
-                        <Text style={ativo === 'despesas' ? styles.textoAtivoDespesa : styles.textoInativoDespesa}>
+                        <Text style={tipoSelecionado === 'despesas' ? styles.textoAtivoDespesa : styles.textoInativoDespesa}>
                             Despesas
                         </Text>
-                        <Text style={ativo === 'despesas' ? styles.textovalorAtivoDespesa : styles.textovalorInativoDespesa}>
+                        <Text style={tipoSelecionado === 'despesas' ? styles.textovalorAtivoDespesa : styles.textovalorInativoDespesa}>
                             -150 €
                         </Text>
                     </View>
@@ -81,7 +85,7 @@ const styles = StyleSheet.create({
         width: '95%',
         height: height * 0.10,
         alignSelf: 'center',
-        backgroundColor:'red',
+        //backgroundColor:'red',
         marginTop:-20
     },
     botao: {

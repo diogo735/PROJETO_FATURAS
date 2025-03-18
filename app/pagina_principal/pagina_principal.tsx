@@ -4,13 +4,11 @@ import NavbarPaginaPrincipal from './componentes/navbar_pagprincipal';
 import SaldoWidget from '../pagina_principal/componentes/saldo_widget';
 import Grafico_Circular from './componentes/grafico_circular';
 
-import { Categoria } from '../../BASEDEDADOS/tipos_tabelas';
+
 import { ScrollView } from 'react-native';
 const { width, height } = Dimensions.get('window');
 
-
-import { listarCategorias, } from '../../BASEDEDADOS/categorias';
-import { obterSomaMovimentosPorCategoria } from '../../BASEDEDADOS/movimentos';
+import { obterSomaMovimentosPorCategoriaDespesa, obterSomaMovimentosPorCategoriaReceita } from '../../BASEDEDADOS/movimentos';
 import Botoes from './componentes/botoes_despesa_receita';
 import { Dimensions } from 'react-native';
 
@@ -22,19 +20,25 @@ interface DadosGrafico {
   total_valor: number;
 }
 const Pagina_principal: React.FC = () => {
-  const [dadosGrafico, setDadosGrafico] = useState<DadosGrafico[]>([]);
 
+  const [tipoSelecionado, setTipoSelecionado] = useState<'receitas' | 'despesas'>('despesas');// Estado para armazenar qual tipo de movimento está ativo (inicialmente "despesas")
+
+  const [dadosGrafico, setDadosGrafico] = useState<DadosGrafico[]>([]);//armazena os dados do gráfico
+
+  //  carregar os movimentos quando o botão for alterado
   useEffect(() => {
     const carregarMovimentos = async () => {
-      const dados: DadosGrafico[] = await obterSomaMovimentosPorCategoria();
-      if (dados.length > 0) {
-        setDadosGrafico(dados);
+      let dados: DadosGrafico[] = [];
+
+      if (tipoSelecionado === 'despesas') {
+        dados = await obterSomaMovimentosPorCategoriaDespesa();
       } else {
-        setDadosGrafico([]);
+        dados = await obterSomaMovimentosPorCategoriaReceita();
       }
+      setDadosGrafico(dados.length > 0 ? dados : []);
     };
     carregarMovimentos();
-  }, []);
+  }, [tipoSelecionado]);
 
   const handleNotificacaoPress = () => {
     Alert.alert('Notificações', 'Você clicou no botão de notificações!');
@@ -56,14 +60,13 @@ const Pagina_principal: React.FC = () => {
         <SaldoWidget />
 
         <View style={styles.containerGrafico}>
-          {dadosGrafico.length > 0 ? (
-            <Grafico_Circular categorias={dadosGrafico} />
-          ) : (
-            <Text>Carregando dados do gráfico...</Text>
-          )}
+
+          <Grafico_Circular categorias={dadosGrafico} tipoSelecionado={tipoSelecionado} />
+
+
         </View>
 
-        <Botoes />
+        <Botoes tipoSelecionado={tipoSelecionado} setTipoSelecionado={setTipoSelecionado} />
 
         <View style={styles.conteudo}>
           <Text>Home Screen</Text>
@@ -90,16 +93,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   containerGrafico: {
-
     width: '95%', // Ocupa toda a largura da tela
-
     alignItems: 'center', // Centraliza o conteúdo horizontalmente
     justifyContent: 'flex-start',
-    backgroundColor: '#ADD8E6', // Azul claro como fundo
-
+    //backgroundColor: '#ADD8E6', // Azul claro como fundo
   },
-
-
 });
 
 export default Pagina_principal;

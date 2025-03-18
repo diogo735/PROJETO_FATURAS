@@ -72,6 +72,7 @@ async function inserirCategoria(img_cat, cor_cat, nome_cat) {
   
   async function inserirVariasCategorias() {
     const categorias = [
+      //despesas
       { img_cat: 'compras_pessoais.png', cor_cat: '#FA6FE0', nome_cat: 'Compras Pessoais' },
       { img_cat: 'contas_e_servicos.png', cor_cat: '#7FCACF', nome_cat: 'Contas e Serviços' },
       { img_cat: 'despesas_gerais.png', cor_cat: '#61C98D', nome_cat: 'Despesas Gerais' },
@@ -83,7 +84,15 @@ async function inserirCategoria(img_cat, cor_cat, nome_cat) {
       { img_cat: 'outros.png', cor_cat: '#B0C5C6', nome_cat: 'Outros' },
       { img_cat: 'restauracao.png', cor_cat: '#E8CE62', nome_cat: 'Restauração e Alojamento' },
       { img_cat: 'saude.png', cor_cat: '#FA6C5D', nome_cat: 'Saúde' },
-      { img_cat: 'transportes.png', cor_cat: '#E39F62', nome_cat: 'Transportes' }
+      { img_cat: 'transportes.png', cor_cat: '#E39F62', nome_cat: 'Transportes' },
+      //receitas
+      { img_cat: 'alugel.png', cor_cat: '#5899FF', nome_cat: 'Renda' },
+      { img_cat: 'caixa-de-ferramentas.png', cor_cat: '#DAC44A', nome_cat: 'Pequenos Trabalhos' },
+      { img_cat: 'deposito.png', cor_cat: '#5899FF', nome_cat: 'Depósitos' },
+      { img_cat: 'dinheiro.png', cor_cat: '#ACBCC3', nome_cat: 'Outras Receitas' },
+      { img_cat: 'lucro.png', cor_cat: '#B258FF', nome_cat: 'Investimentos' },
+      { img_cat: 'presente.png', cor_cat: '#FF66C4', nome_cat: 'Presentes' },
+      { img_cat: 'salario.png', cor_cat: '#39C89E', nome_cat: 'Salário' }
   ];
   
       
@@ -98,7 +107,7 @@ async function inserirCategoria(img_cat, cor_cat, nome_cat) {
         );
       }
   
-      console.log('✅ 12 categorias inseridas com sucesso!');
+      console.log('✅ 19 categorias inseridas com sucesso!');
     } catch (error) {
       console.error('❌ Erro ao inserir múltiplas categorias:', error);
     }
