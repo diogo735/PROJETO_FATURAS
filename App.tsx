@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { SafeAreaView, StatusBar, StyleSheet, Platform } from 'react-native';
@@ -9,8 +9,8 @@ import TabNavigator from './componentes/barra_navegacao'; // Navegação princip
 import PaginaMovimentos from './app/pagina_movimentos';
 import PaginaMetas from './app/pagina_metas';
 import PaginaPerfil from './app/pagina_perfil';
-
-
+import * as SplashScreen from 'expo-splash-screen';
+SplashScreen.preventAutoHideAsync();
 // Definição do tipo do Stack Navigator
 type RootStackParamList = {
   TelaEntrada: undefined;
@@ -24,6 +24,14 @@ type RootStackParamList = {
 const Stack = createStackNavigator<RootStackParamList>();
 
 const App: React.FC = () => {
+  useEffect(() => {
+    const prepararApp = async () => {
+      await new Promise(resolve => setTimeout(resolve, 2000)); // Simula carregamento
+      await SplashScreen.hideAsync(); // Esconde a Splash após carregamento
+    };
+
+    prepararApp();
+  }, []);
   return (
     <SafeAreaView style={styles.safeContainer}>
       <StatusBar backgroundColor="transparent" translucent={true} barStyle="dark-content" />

@@ -1,17 +1,13 @@
 {
   "expo": {
     "name": "PiggyWallet",
-    "slug": "PiggyWallet",
+    "slug": "MeuApp",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#9DDDFF"
-    },
+    
     "ios": {
       "supportsTablet": true
     },
@@ -33,6 +29,7 @@
       "eas": {
         "projectId": "003365ac-1625-4068-b9b7-70ec42eaba9e"
       }
-    }
+    },
+    "owner": "maximiliano.2024"
   }
 }

@@ -65,9 +65,7 @@ const Pagina_principal: React.FC = () => {
 
         <Botoes tipoSelecionado={tipoSelecionado} setTipoSelecionado={setTipoSelecionado} />
 
-        <View style={styles.conteudo}>
-          <Text>Home Screen</Text>
-        </View>
+       
       </ScrollView>
     </View>
   );
