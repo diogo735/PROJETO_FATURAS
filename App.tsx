@@ -9,11 +9,10 @@ import TabNavigator from './componentes/barra_navegacao'; // Navegação princip
 import PaginaMovimentos from './app/pagina_movimentos';
 import PaginaMetas from './app/pagina_metas';
 import PaginaPerfil from './app/pagina_perfil';
-import * as SplashScreen from 'expo-splash-screen';
-SplashScreen.preventAutoHideAsync();
+
 // Definição do tipo do Stack Navigator
 type RootStackParamList = {
-  TelaEntrada: undefined;
+  Splash: undefined;
   MainApp: undefined;
   Movimentos: undefined;
   Metas: undefined;
@@ -27,7 +26,7 @@ const App: React.FC = () => {
   useEffect(() => {
     const prepararApp = async () => {
       await new Promise(resolve => setTimeout(resolve, 2000)); // Simula carregamento
-      await SplashScreen.hideAsync(); // Esconde a Splash após carregamento
+    
     };
 
     prepararApp();
@@ -39,7 +38,7 @@ const App: React.FC = () => {
       <NavigationContainer>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           {/* Tela Inicial que carrega o banco de dados */}
-          <Stack.Screen name="TelaEntrada" component={PagLoadingEntrar} />
+          <Stack.Screen name="Splash" component={PagLoadingEntrar} />
 
           {/* Navegação principal do App */}
           <Stack.Screen name="MainApp" component={TabNavigator} />

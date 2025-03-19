@@ -21,7 +21,7 @@ interface DadosGrafico {
 }
 const Pagina_principal: React.FC = () => {
 
-  const [tipoSelecionado, setTipoSelecionado] = useState<'receitas' | 'despesas'>('despesas');// Estado para armazenar qual tipo de movimento está ativo (inicialmente "despesas")
+  const [tipoSelecionado, setTipoSelecionado] = useState<'receitas' | 'despesas'>('receitas');// Estado para armazenar qual tipo de movimento está ativo (inicialmente "despesas")
 
   const [dadosGrafico, setDadosGrafico] = useState<DadosGrafico[]>([]);//armazena os dados do gráfico
 

@@ -7,14 +7,18 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "icon":{
+        "dark":"./assets/ios_icon.png",
+        "light":"./assets/ios_icon.png",
+        "tinted":"./assets/ios_icon.png"
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "monochromeImage":"./assets/adaptive-icon.png"
       },
       "package": "com.PiggyWallet"
     },
