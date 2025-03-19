@@ -1,9 +1,9 @@
 import * as SQLite from 'expo-sqlite';
-
+import { CRIARBD } from './databaseInstance';
 // 📌 Criar a tabela "categorias"
 async function criarTabelaCategorias() {
   try {
-    const db = await SQLite.openDatabaseAsync('app.db');
+    const db = await CRIARBD();
     await db.execAsync(
       `CREATE TABLE IF NOT EXISTS categorias (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -19,7 +19,7 @@ async function criarTabelaCategorias() {
 }
 async function resetarCategorias() {
   try {
-    const db = await SQLite.openDatabaseAsync('app.db');
+    const db = await CRIARBD();
 
     await db.runAsync(`DELETE FROM categorias;`); // Apaga todas as categorias
     await db.runAsync(`UPDATE SQLITE_SEQUENCE SET seq = 0 WHERE name = 'categorias';`); // Reseta o ID
@@ -32,7 +32,7 @@ async function resetarCategorias() {
 
 async function inserirCategoria(img_cat, cor_cat, nome_cat) {
     try {
-      const db = await SQLite.openDatabaseAsync('app.db');
+      const db = await CRIARBD();
   
       const result = await db.runAsync(
         `INSERT INTO categorias (img_cat, cor_cat, nome_cat) VALUES (?, ?, ?)`,
@@ -47,7 +47,7 @@ async function inserirCategoria(img_cat, cor_cat, nome_cat) {
   
   async function verificarEInserirCategorias() {
     try {
-      const db = await SQLite.openDatabaseAsync('app.db');
+      const db = await CRIARBD();
   
       // 📌 Obtém a contagem de categorias usando getFirstAsync()
       const result = await db.getFirstAsync(`SELECT COUNT(*) as total FROM categorias`);
@@ -98,7 +98,7 @@ async function inserirCategoria(img_cat, cor_cat, nome_cat) {
       
       /*console.log("Categorias antes de inserir:", categorias);*/
     try {
-      const db = await SQLite.openDatabaseAsync('app.db');
+      const db = await CRIARBD();
   
       for (const categoria of categorias) {
         await db.runAsync(
@@ -130,7 +130,7 @@ async function inserirCategoria(img_cat, cor_cat, nome_cat) {
   };
   
   try {
-    const db = await SQLite.openDatabaseAsync('app.db');
+    const db = await CRIARBD();
     const result = await db.getAllAsync('SELECT * FROM categorias;');
 
     //console.log('📌 Categorias encontradas:', result);
@@ -144,7 +144,7 @@ async function inserirCategoria(img_cat, cor_cat, nome_cat) {
 }
 async function apagarTodasCategorias() {
     try {
-      const db = await SQLite.openDatabaseAsync('app.db');
+      const db = await CRIARBD();
   
       const result = await db.runAsync(`DELETE FROM categorias`);
   

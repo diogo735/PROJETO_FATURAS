@@ -1,9 +1,9 @@
 import * as SQLite from 'expo-sqlite';
-
+import { CRIARBD } from './databaseInstance';
 
 async function criarTabelaTipoMovimento() {
     try {
-        const db = await SQLite.openDatabaseAsync('app.db');
+      const db = await CRIARBD();
         await db.execAsync(
             `CREATE TABLE IF NOT EXISTS tipo_movimento (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -18,7 +18,7 @@ async function criarTabelaTipoMovimento() {
 
 async function inserirVariosTiposMovimento() {
     try {
-      const db = await SQLite.openDatabaseAsync('app.db');
+      const db = await CRIARBD();
       const result = await db.getFirstAsync(`SELECT COUNT(*) as total FROM tipo_movimento;`);
       
       if (result.total === 0) {
@@ -38,7 +38,7 @@ async function inserirVariosTiposMovimento() {
 
 async function listarTiposMovimento() {
     try {
-        const db = await SQLite.openDatabaseAsync('app.db');
+      const db = await CRIARBD();
         const result = await db.getAllAsync('SELECT * FROM tipo_movimento;');
         console.log('📌 Tipos de movimento encontrados:', result);
         return result;
@@ -50,7 +50,7 @@ async function listarTiposMovimento() {
 
 async function apagarTodosTiposMovimento() {
     try {
-        const db = await SQLite.openDatabaseAsync('app.db');
+      const db = await CRIARBD();
         const result = await db.runAsync(`DELETE FROM tipo_movimento;`);
         console.log(`🗑 Todos os tipos de movimento foram apagados! Registros afetados: ${result.changes}`);
     } catch (error) {

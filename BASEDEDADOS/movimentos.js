@@ -1,9 +1,9 @@
 import * as SQLite from 'expo-sqlite';
-
+import { CRIARBD } from './databaseInstance';
 
 async function criarTabelaMovimentos() {
     try {
-        const db = await SQLite.openDatabaseAsync('app.db');
+        const db = await CRIARBD();
         await db.execAsync(
             `CREATE TABLE IF NOT EXISTS movimentos (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -24,7 +24,7 @@ async function criarTabelaMovimentos() {
 
 async function inserirMovimento(valor, data_movimento, categoria_id, tipo_movimento_id, nota = '') {
     try {
-        const db = await SQLite.openDatabaseAsync('app.db');
+        const db = await CRIARBD();
         const result = await db.runAsync(
             `INSERT INTO movimentos (valor, data_movimento, categoria_id, tipo_movimento_id, nota) 
        VALUES (?, ?, ?, ?, ?);`,
@@ -38,7 +38,7 @@ async function inserirMovimento(valor, data_movimento, categoria_id, tipo_movime
 
 async function inserirVariosMovimentos() {
     try {
-        const db = await SQLite.openDatabaseAsync('app.db');
+        const db = await CRIARBD();
         const tabelaExiste = await db.getFirstAsync(
             `SELECT name FROM sqlite_master WHERE type='table' AND name='movimentos';`
         );
@@ -86,7 +86,7 @@ async function inserirVariosMovimentos() {
 }
 async function listarMovimentos() {
     try {
-        const db = await SQLite.openDatabaseAsync('app.db');
+        const db = await CRIARBD();
         const result = await db.getAllAsync(`
       SELECT movimentos.*, categorias.nome_cat, tipo_movimento.nome_movimento
       FROM movimentos
@@ -102,7 +102,7 @@ async function listarMovimentos() {
 
 async function obterSomaMovimentosPorCategoriaDespesa() {//DAS DESPESAS
     try {
-        const db = await SQLite.openDatabaseAsync('app.db');
+        const db = await CRIARBD();
 
         // Primeiro, obter o ID correspondente ao tipo "Despesa"
         const tipoDespesa = await db.getFirstAsync(`
@@ -130,14 +130,14 @@ async function obterSomaMovimentosPorCategoriaDespesa() {//DAS DESPESAS
 
         return result;
     } catch (error) {
-        console.error("❌ Erro ao obter movimentos agrupados por categoria:", error);
+        console.error("❌ Erro ao obter movimentos agrupados por categoria de despesas:", error);
         return [];
     }
 }
 
 async function obterSomaMovimentosPorCategoriaReceita() { // DAS RECEITAS
     try {
-        const db = await SQLite.openDatabaseAsync('app.db');
+        const db = await CRIARBD();
 
         // Primeiro, obter o ID correspondente ao tipo "Receita"
         const tipoReceita = await db.getFirstAsync(`
@@ -165,14 +165,14 @@ async function obterSomaMovimentosPorCategoriaReceita() { // DAS RECEITAS
 
         return result;
     } catch (error) {
-        console.error("❌ Erro ao obter movimentos de receitas por categoria:", error);
+        console.error("❌ Erro ao obter movimentos de receitas por categoria de receitas:", error);
         return [];
     }
 }
 
 async function apagarTodosMovimentos() {
     try {
-        const db = await SQLite.openDatabaseAsync('app.db');
+        const db = await CRIARBD();
         const result = await db.runAsync(`DELETE FROM movimentos;`);
         console.log(`🗑 Todos os movimentos foram apagados! Registros afetados: ${result.changes}`);
     } catch (error) {
