@@ -4,7 +4,7 @@ import { View, Text, Alert } from 'react-native';
 import { StyleSheet } from 'react-native';
 
 //PARA TESTES
-import { apagarTodosMovimentos, inserirMovimentoTesteUnico,inserirTodosMovimentosTeste,inserirMovimentoTesteNormal } from '../../PROJETO_FATURAS/BASEDEDADOS/movimentos';
+import { apagarTodosMovimentos, inserirMovimentoTesteUnico,inserirTodosMovimentosTeste,inserirMovimentoTesteNormal } from '../BASEDEDADOS/movimentos';
 
 import { TouchableOpacity } from 'react-native-gesture-handler';
 const Pagina_movimentos: React.FC = () => {
