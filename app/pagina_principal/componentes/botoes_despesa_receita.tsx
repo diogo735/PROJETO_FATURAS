@@ -13,9 +13,12 @@ import MenosInativo from '../../../assets/icons/botes_paginia_pricipal/-_cinza.s
 interface BotoesProps {
     tipoSelecionado: 'receitas' | 'despesas';
     setTipoSelecionado: (tipo: 'receitas' | 'despesas') => void;
+    totalReceitas: number;
+    totalDespesas: number;
 }
-const Botoes: React.FC<BotoesProps> = ({ tipoSelecionado, setTipoSelecionado }) => {
-    
+
+const Botoes: React.FC<BotoesProps> = ({ tipoSelecionado, setTipoSelecionado, totalReceitas, totalDespesas }) => {
+
 
     return (
         <View style={styles.container}>
@@ -30,9 +33,9 @@ const Botoes: React.FC<BotoesProps> = ({ tipoSelecionado, setTipoSelecionado }) 
                 <View style={styles.conteudo}>
                     {/* Ícone */}
                     {tipoSelecionado === 'receitas' ? (
-                        <MaisAtivo width={width*0.1} height={width*0.1} />
+                        <MaisAtivo width={width * 0.1} height={width * 0.1} />
                     ) : (
-                        <MaisInativo width={width*0.1} height={width*0.1} />
+                        <MaisInativo width={width * 0.1} height={width * 0.1} />
                     )}
 
                     {/* Texto Receitas */}
@@ -41,8 +44,9 @@ const Botoes: React.FC<BotoesProps> = ({ tipoSelecionado, setTipoSelecionado }) 
                             Receitas
                         </Text>
                         <Text style={tipoSelecionado === 'receitas' ? styles.textovalorAtivoReceita : styles.textovalorInativoReceita}>
-                            900 €
+                            {totalReceitas.toFixed(2)}€
                         </Text>
+
                     </View>
                 </View>
             </TouchableOpacity>
@@ -58,9 +62,9 @@ const Botoes: React.FC<BotoesProps> = ({ tipoSelecionado, setTipoSelecionado }) 
                 <View style={styles.conteudo}>
                     {/* Ícone */}
                     {tipoSelecionado === 'despesas' ? (
-                        <MenosAtivo width={width*0.1} height={width*0.1} />
+                        <MenosAtivo width={width * 0.1} height={width * 0.1} />
                     ) : (
-                        <MenosInativo width={width*0.1} height={width*0.1} />
+                        <MenosInativo width={width * 0.1} height={width * 0.1} />
                     )}
 
                     {/* Texto e valor alinhados à direita */}
@@ -69,8 +73,10 @@ const Botoes: React.FC<BotoesProps> = ({ tipoSelecionado, setTipoSelecionado }) 
                             Despesas
                         </Text>
                         <Text style={tipoSelecionado === 'despesas' ? styles.textovalorAtivoDespesa : styles.textovalorInativoDespesa}>
-                            -150 €
+                            {totalDespesas > 0 ? `-${totalDespesas.toFixed(2)}€` : `${totalDespesas.toFixed(2)}€`}
                         </Text>
+
+
                     </View>
                 </View>
             </TouchableOpacity>
@@ -86,7 +92,7 @@ const styles = StyleSheet.create({
         height: height * 0.10,
         alignSelf: 'center',
         //backgroundColor:'red',
-        marginTop:-20
+        marginTop: -10
     },
     botao: {
         width: '48%', // Ocupa metade da largura disponível
@@ -105,9 +111,9 @@ const styles = StyleSheet.create({
         alignItems: 'center', // Mantém alinhamento vertical correto
         justifyContent: 'space-between', // Ícone à esquerda, texto à direita
         width: '100%', // Garante que ocupa toda a largura do botão
-        paddingHorizontal: "15%", // Adiciona espaço interno
+        paddingHorizontal: "12%", // Adiciona espaço interno
     },
-    
+
     textoContainer: {
         flex: 1, // Ocupa o espaço restante ao lado do ícone
         alignItems: 'flex-end', // Mantém o texto alinhado à direita
@@ -118,7 +124,7 @@ const styles = StyleSheet.create({
     inativo: {
         backgroundColor: '#F2F2F2', // Fundo mais cinza quando inativo
     },
-   
+
     textoAtivoDespesa: {
         color: '#E12D2D',
         fontSize: 16,
@@ -136,22 +142,22 @@ const styles = StyleSheet.create({
         fontSize: 16,
     },
     textovalorAtivoReceita: {
-        fontSize: 18,
+        fontSize: 17,
         fontWeight: 'bold',
         color: '#4AAF53',
     },
     textovalorInativoReceita: {
-        fontSize: 18,
+        fontSize: 17,
         fontWeight: 'bold',
         color: '#A0A0A0',
     },
     textovalorAtivoDespesa: {
-        fontSize: 18,
+        fontSize: 17,
         fontWeight: 'bold',
         color: '#E12D2D',
     },
     textovalorInativoDespesa: {
-        fontSize: 18,
+        fontSize: 17,
         fontWeight: 'bold',
         color: '#A0A0A0',
     },

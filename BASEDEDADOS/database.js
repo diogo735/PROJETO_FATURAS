@@ -17,7 +17,7 @@ async function inicializarBaseDeDados() {
     await criarTabelaTipoMovimento(); await inserirVariosTiposMovimento();
    
     //MOVIMENTOS
-    await criarTabelaMovimentos();await inserirVariosMovimentos();
+    await criarTabelaMovimentos();//await inserirVariosMovimentos();
 
 
     console.log('🎉 Todas as tabelas foram inicializadas com sucesso!');

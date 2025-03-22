@@ -3,6 +3,9 @@ import { View, Text, Image, StyleSheet, Alert } from 'react-native';
 import NavbarPaginaPrincipal from './componentes/navbar_pagprincipal';
 import SaldoWidget from '../pagina_principal/componentes/saldo_widget';
 import Grafico_Circular from './componentes/grafico_circular';
+import { obterTotalReceitas, obterTotalDespesas } from '../../BASEDEDADOS/movimentos';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+
 
 
 import { ScrollView } from 'react-native';
@@ -25,20 +28,49 @@ const Pagina_principal: React.FC = () => {
 
   const [dadosGrafico, setDadosGrafico] = useState<DadosGrafico[]>([]);//armazena os dados do gráfico
 
+  const [totalReceitas, setTotalReceitas] = useState(0);
+  const [totalDespesas, setTotalDespesas] = useState(0);
+  const [carregarGrafico, setCarregarGrafico] = useState(false);
+
+  const opacidadeGrafico = useSharedValue(0);
+
+  const estiloAnimado = useAnimatedStyle(() => {
+    return {
+      opacity: withTiming(opacidadeGrafico.value, { duration: 200 }),
+    };
+  });
+
   //  carregar os movimentos quando o botão for alterado
   useEffect(() => {
-    const carregarMovimentos = async () => {
-      let dados: DadosGrafico[] = [];
+    const carregarDadosComTransicao = async () => {
+      
+      opacidadeGrafico.value = withTiming(0, { duration: 200 });
 
-      if (tipoSelecionado === 'despesas') {
-        dados = await obterSomaMovimentosPorCategoriaDespesa()|| [];
-      } else {
-        dados = await obterSomaMovimentosPorCategoriaReceita()|| [];
-      }
-      setDadosGrafico(dados.length > 0 ? dados : []);
+setCarregarGrafico(true);
+      setTimeout(async () => {
+        // Carrega dados do gráfico
+        let dados: DadosGrafico[] = [];
+        if (tipoSelecionado === 'despesas') {
+          dados = await obterSomaMovimentosPorCategoriaDespesa() || [];
+        } else {
+          dados = await obterSomaMovimentosPorCategoriaReceita() || [];
+        }
+        setDadosGrafico(dados);
+
+
+        const receitas = await obterTotalReceitas();
+        const despesas = await obterTotalDespesas();
+        setTotalReceitas(receitas);
+        setTotalDespesas(despesas);
+
+        setCarregarGrafico(false);
+        opacidadeGrafico.value = withTiming(1, { duration: 200 });
+      }, 160);
     };
-    carregarMovimentos();
+
+    carregarDadosComTransicao();
   }, [tipoSelecionado]);
+
 
   const handleNotificacaoPress = () => {
     Alert.alert('Notificações', 'Você clicou no botão de notificações!');
@@ -59,13 +91,28 @@ const Pagina_principal: React.FC = () => {
       >
         <SaldoWidget />
 
-        <View style={styles.containerGrafico}>
-          <Grafico_Circular categorias={dadosGrafico} tipoSelecionado={tipoSelecionado} />
-        </View>
+        <Animated.View style={[styles.containerGrafico, estiloAnimado]}>
+          {carregarGrafico ? (
+            <View style={{ height: width * 0.804 + 100 }} /> //  ocupa o mesmo espaço do gráfico 
+          ) : (
+            <Grafico_Circular categorias={dadosGrafico} tipoSelecionado={tipoSelecionado} />
+          )}
+        </Animated.View>
 
-        <Botoes tipoSelecionado={tipoSelecionado} setTipoSelecionado={setTipoSelecionado} />
 
-       
+
+
+
+
+
+        <Botoes
+          tipoSelecionado={tipoSelecionado}
+          setTipoSelecionado={setTipoSelecionado}
+          totalReceitas={totalReceitas}
+          totalDespesas={totalDespesas}
+        />
+
+
       </ScrollView>
     </View>
   );
@@ -94,5 +141,10 @@ const styles = StyleSheet.create({
     //backgroundColor: '#ADD8E6', // Azul claro como fundo
   },
 });
+
+/////////////////////////////////////////////////////////////////////////////////
+
+
+
 
 export default Pagina_principal;

@@ -126,7 +126,7 @@ async function obterSomaMovimentosPorCategoriaDespesa() {//DAS DESPESAS
             WHERE m.tipo_movimento_id = ?
             GROUP BY m.categoria_id, c.nome_cat, c.cor_cat, c.img_cat
             ORDER BY total_valor DESC;
-        `, [tipoDespesa.id]); 
+        `, [tipoDespesa.id]);
 
         return result;
     } catch (error) {
@@ -161,7 +161,7 @@ async function obterSomaMovimentosPorCategoriaReceita() { // DAS RECEITAS
             WHERE m.tipo_movimento_id = ?
             GROUP BY m.categoria_id, c.nome_cat, c.cor_cat, c.img_cat
             ORDER BY total_valor DESC;
-        `, [tipoReceita.id]); 
+        `, [tipoReceita.id]);
 
         return result;
     } catch (error) {
@@ -174,6 +174,7 @@ async function apagarTodosMovimentos() {
     try {
         const db = await CRIARBD();
         const result = await db.runAsync(`DELETE FROM movimentos;`);
+        await db.runAsync(`UPDATE SQLITE_SEQUENCE SET seq = 0 WHERE name = 'movimentos';`);
         console.log(`🗑 Todos os movimentos foram apagados! Registros afetados: ${result.changes}`);
     } catch (error) {
         console.error('❌ Erro ao apagar movimentos:', error);
@@ -181,4 +182,118 @@ async function apagarTodosMovimentos() {
 }
 
 
-export { criarTabelaMovimentos, inserirMovimento, listarMovimentos, apagarTodosMovimentos, inserirVariosMovimentos,obterSomaMovimentosPorCategoriaDespesa,obterSomaMovimentosPorCategoriaReceita };
+async function obterTotalReceitas() {
+    try {
+        const db = await CRIARBD();
+        const tipo = await db.getFirstAsync(`SELECT id FROM tipo_movimento WHERE nome_movimento = 'Receita';`);
+        
+        if (!tipo) {
+            console.error("❌ Tipo 'Receita' não encontrado.");
+            return 0;
+        }
+
+        const resultado = await db.getFirstAsync(`
+            SELECT SUM(valor) AS total FROM movimentos WHERE tipo_movimento_id = ?;
+        `, [tipo.id]);
+
+        return resultado?.total ?? 0;
+    } catch (error) {
+        console.error("❌ Erro ao obter total de receitas:", error);
+        return 0;
+    }
+}
+
+
+async function obterTotalDespesas() {
+    try {
+        const db = await CRIARBD();
+        const tipo = await db.getFirstAsync(`SELECT id FROM tipo_movimento WHERE nome_movimento = 'Despesa';`);
+        
+        if (!tipo) {
+            console.error("❌ Tipo 'Despesa' não encontrado.");
+            return 0;
+        }
+
+        const resultado = await db.getFirstAsync(`
+            SELECT SUM(valor) AS total FROM movimentos WHERE tipo_movimento_id = ?;
+        `, [tipo.id]);
+
+        return resultado?.total ?? 0;
+    } catch (error) {
+        console.error("❌ Erro ao obter total de despesas:", error);
+        return 0;
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+const listaDeMovimentosTODOS = [
+    { valor: 100.50, data_movimento: "2025-03-17 08:30:00", categoria_id: 1, tipo_movimento_id: 2, nota: "Despesa Exemplo 1" },
+    { valor: 950.00, data_movimento: "2025-03-18 15:00:00", categoria_id: 2, tipo_movimento_id: 2, nota: "Despesa Exemplo 2" },
+    { valor: 150.00, data_movimento: "2025-03-19 19:45:00", categoria_id: 3, tipo_movimento_id: 2, nota: "Despesa Exemplo 3" },
+    { valor: 200.00, data_movimento: "2025-03-20 10:15:00", categoria_id: 4, tipo_movimento_id: 2, nota: "Despesa Exemplo 4" },
+    { valor: 150.00, data_movimento: "2025-03-20 19:19:00", categoria_id: 5, tipo_movimento_id: 2, nota: "Despesa Exemplo 5" },
+    { valor: 55.00, data_movimento: "2025-01-20 19:10:00", categoria_id: 6, tipo_movimento_id: 2, nota: "Despesa Exemplo 6" },
+    { valor: 50.00, data_movimento: "2025-01-29 10:10:00", categoria_id: 7, tipo_movimento_id: 2, nota: "Despesa Exemplo 7" },
+    { valor: 150.00, data_movimento: "2025-03-19 19:45:00", categoria_id: 8, tipo_movimento_id: 2, nota: "Despesa Exemplo 3" },
+    { valor: 200.00, data_movimento: "2025-03-20 10:15:00", categoria_id: 9, tipo_movimento_id: 2, nota: "Despesa Exemplo 4" },
+    { valor: 150.00, data_movimento: "2025-03-20 19:19:00", categoria_id: 10, tipo_movimento_id: 2, nota: "Despesa Exemplo 5" },
+    { valor: 55.00, data_movimento: "2025-01-20 19:10:00", categoria_id: 11, tipo_movimento_id: 2, nota: "Despesa Exemplo 6" },
+    { valor: 50.00, data_movimento: "2025-01-29 10:10:00", categoria_id: 12, tipo_movimento_id: 2, nota: "Despesa Exemplo 7" },
+];
+const listaDeMovimentosNormais = [
+    { valor: 100.50, data_movimento: "2025-03-17 08:30:00", categoria_id: 1, tipo_movimento_id: 2, nota: "Despesa Exemplo 1" },
+    { valor: 950.00, data_movimento: "2025-03-18 15:00:00", categoria_id: 2, tipo_movimento_id: 2, nota: "Despesa Exemplo 2" },
+    { valor: 150.00, data_movimento: "2025-03-19 19:45:00", categoria_id: 3, tipo_movimento_id: 2, nota: "Despesa Exemplo 3" },
+    { valor: 200.00, data_movimento: "2025-03-20 10:15:00", categoria_id: 4, tipo_movimento_id: 2, nota: "Despesa Exemplo 4" },
+    { valor: 150.00, data_movimento: "2025-03-20 19:19:00", categoria_id: 5, tipo_movimento_id: 2, nota: "Despesa Exemplo 5" },
+    { valor: 55.00, data_movimento: "2025-01-20 19:10:00", categoria_id: 6, tipo_movimento_id: 2, nota: "Despesa Exemplo 6" },
+];
+
+
+async function inserirMovimentoTesteUnico() {
+    try {
+        const m = listaDeMovimentosTODOS[0];
+        await inserirMovimento(m.valor, m.data_movimento, m.categoria_id, m.tipo_movimento_id, m.nota);
+        console.log("✅ Movimento de teste inserido!");
+    } catch (error) {
+        console.error("❌ Erro ao inserir movimento teste único:", error);
+    }
+}
+
+async function inserirTodosMovimentosTeste() {
+    try {
+        for (const m of listaDeMovimentosTODOS) {
+            await inserirMovimento(m.valor, m.data_movimento, m.categoria_id, m.tipo_movimento_id, m.nota);
+        }
+        console.log("🎉 Todos os movimentos de teste foram inseridos!");
+    } catch (error) {
+        console.error("❌ Erro ao inserir movimentos de teste:", error);
+    }
+}
+
+
+async function inserirMovimentoTesteNormal() {
+    try {
+        for (const m of listaDeMovimentosNormais) {
+            await inserirMovimento(m.valor, m.data_movimento, m.categoria_id, m.tipo_movimento_id, m.nota);
+        }
+        console.log("✅ Movimento de  NORMAIS inserido!");
+    } catch (error) {
+        console.error("❌ Erro ao inserir movimento teste único:", error);
+    }
+}
+
+export {
+    criarTabelaMovimentos,
+    inserirMovimento,
+    listarMovimentos,
+    apagarTodosMovimentos,
+    inserirVariosMovimentos,
+    obterSomaMovimentosPorCategoriaDespesa,
+    obterSomaMovimentosPorCategoriaReceita,
+    inserirMovimentoTesteUnico,
+    inserirTodosMovimentosTeste,
+    inserirMovimentoTesteNormal,
+    obterTotalDespesas,
+    obterTotalReceitas
+};

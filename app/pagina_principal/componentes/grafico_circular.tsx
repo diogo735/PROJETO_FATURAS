@@ -81,7 +81,7 @@ const Grafico_Circular: React.FC<GraficoCircularProps> = ({ categorias, tipoSele
           </Text>
 
         </Svg>
-        {tipoSelecionado === "receitas" ? (
+        
           <View style={styles.imagemCentro}>
             <ImagemCentral
               width="100%"
@@ -89,7 +89,7 @@ const Grafico_Circular: React.FC<GraficoCircularProps> = ({ categorias, tipoSele
               fill={tipoSelecionado === "receitas" ? "#4AAF53" : "#E12D2D"}
             />
           </View>
-        ) : null}
+       
 
       </View>
     );
@@ -99,7 +99,7 @@ const Grafico_Circular: React.FC<GraficoCircularProps> = ({ categorias, tipoSele
 
 
 
-  const tamanhoMinimo = circumference / 12;
+  const tamanhoMinimo = circumference / 5.5;
   //  Calculando o valor total para normalizar os tamanhos dos segmentos
   const totalGeral = categorias.length > 0 ? categorias.reduce((acc, categoria) => acc + (categoria.total_valor || 0), 0) : 1;
   // Ajuste de valores para garantir o tamanho mínimo
