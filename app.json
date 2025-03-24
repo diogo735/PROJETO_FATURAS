@@ -29,6 +29,10 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
+    "androidNavigationBar": {
+      "barStyle": "light-content"
+     
+    },
     "plugins": [
       "expo-sqlite",
       "expo-font"

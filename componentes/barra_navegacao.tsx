@@ -44,10 +44,11 @@ const TabNavigator = () => {
             screenOptions={({ route }) => ({
                 tabBarShowLabel: false,
                 tabBarStyle: styles.tabBar,
-
                 tabBarItemStyle: { marginHorizontal: 3 },
-                animationEnable: false,
+                animationEnabled: true,
                 headerShown: false,
+                animationTypeForReplace: 'push', // ou 'pop' se quiser
+                animation: 'fade', // <- FADE entre telas
                 tabBarBackground: () => (
                     <ImageBackground source={FundoImagem} style={styles.tabBarBackground} />
                 ),
@@ -62,6 +63,7 @@ const TabNavigator = () => {
                     } else if (route.name === 'Perfil') {
                         IconComponent = Perfilicon;
                     }
+                    
                     return (
                         <View style={{ alignItems: 'center', justifyContent: 'center', marginTop: altura * 0.030 }}>
                             {IconComponent ? (

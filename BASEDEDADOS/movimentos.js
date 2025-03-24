@@ -124,6 +124,7 @@ async function obterSomaMovimentosPorCategoriaDespesa() {//DAS DESPESAS
             FROM movimentos m
             INNER JOIN categorias c ON m.categoria_id = c.id
             WHERE m.tipo_movimento_id = ?
+              AND strftime('%Y-%m', m.data_movimento) = strftime('%Y-%m', 'now')
             GROUP BY m.categoria_id, c.nome_cat, c.cor_cat, c.img_cat
             ORDER BY total_valor DESC;
         `, [tipoDespesa.id]);
@@ -159,6 +160,7 @@ async function obterSomaMovimentosPorCategoriaReceita() { // DAS RECEITAS
             FROM movimentos m
             INNER JOIN categorias c ON m.categoria_id = c.id
             WHERE m.tipo_movimento_id = ?
+                AND strftime('%Y-%m', m.data_movimento) = strftime('%Y-%m', 'now')
             GROUP BY m.categoria_id, c.nome_cat, c.cor_cat, c.img_cat
             ORDER BY total_valor DESC;
         `, [tipoReceita.id]);
@@ -193,8 +195,11 @@ async function obterTotalReceitas() {
         }
 
         const resultado = await db.getFirstAsync(`
-            SELECT SUM(valor) AS total FROM movimentos WHERE tipo_movimento_id = ?;
-        `, [tipo.id]);
+            SELECT SUM(valor) AS total 
+            FROM movimentos 
+            WHERE tipo_movimento_id = ? 
+              AND strftime('%Y-%m', data_movimento) = strftime('%Y-%m', 'now');
+          `, [tipo.id]);
 
         return resultado?.total ?? 0;
     } catch (error) {
@@ -215,8 +220,11 @@ async function obterTotalDespesas() {
         }
 
         const resultado = await db.getFirstAsync(`
-            SELECT SUM(valor) AS total FROM movimentos WHERE tipo_movimento_id = ?;
-        `, [tipo.id]);
+            SELECT SUM(valor) AS total 
+            FROM movimentos 
+            WHERE tipo_movimento_id = ? 
+              AND strftime('%Y-%m', data_movimento) = strftime('%Y-%m', 'now');
+          `, [tipo.id]);
 
         return resultado?.total ?? 0;
     } catch (error) {
@@ -225,7 +233,61 @@ async function obterTotalDespesas() {
     }
 }
 
-///////////////////////////////////////////////////////////////////////
+
+async function listarMovimentosUltimos30Dias() {
+    try {
+      const db = await CRIARBD();
+  
+      const result = await db.getAllAsync(`
+        SELECT movimentos.*, categorias.nome_cat, categorias.cor_cat, categorias.img_cat, tipo_movimento.nome_movimento
+        FROM movimentos
+        INNER JOIN categorias ON movimentos.categoria_id = categorias.id
+        INNER JOIN tipo_movimento ON movimentos.tipo_movimento_id = tipo_movimento.id
+        WHERE datetime(data_movimento) >= datetime('now', '-30 days')
+        ORDER BY datetime(data_movimento) DESC;
+      `);
+  
+      return result;
+    } catch (error) {
+      console.error("❌ Erro ao listar movimentos dos últimos 30 dias:", error);
+      return [];
+    }
+  }
+  async function obterSaldoMensalAtual() {
+    try {
+        const db = await CRIARBD();
+
+        const tipoReceita = await db.getFirstAsync(`SELECT id FROM tipo_movimento WHERE nome_movimento = 'Receita';`);
+        const tipoDespesa = await db.getFirstAsync(`SELECT id FROM tipo_movimento WHERE nome_movimento = 'Despesa';`);
+
+        if (!tipoReceita || !tipoDespesa) {
+            console.error("❌ Tipos 'Receita' ou 'Despesa' não encontrados.");
+            return 0;
+        }
+
+        const totalReceitas = await db.getFirstAsync(`
+            SELECT SUM(valor) AS total FROM movimentos 
+            WHERE tipo_movimento_id = ? AND strftime('%Y-%m', data_movimento) = strftime('%Y-%m', 'now');
+        `, [tipoReceita.id]);
+
+        const totalDespesas = await db.getFirstAsync(`
+            SELECT SUM(valor) AS total FROM movimentos 
+            WHERE tipo_movimento_id = ? AND strftime('%Y-%m', data_movimento) = strftime('%Y-%m', 'now');
+        `, [tipoDespesa.id]);
+
+        const receitas = totalReceitas?.total || 0;
+        const despesas = totalDespesas?.total || 0;
+
+        return receitas - despesas;
+
+    } catch (error) {
+        console.error("❌ Erro ao calcular saldo do mês:", error);
+        return 0;
+    }
+}
+
+
+/////////////////////////////////////////////////////////////////////// TEEEEEEEESSSSSSSSSSSTTTTTTTTTEEEEEEESXXXXXXXXXXXXXXX
 const listaDeMovimentosTODOS = [
     { valor: 100.50, data_movimento: "2025-03-17 08:30:00", categoria_id: 1, tipo_movimento_id: 2, nota: "Despesa Exemplo 1" },
     { valor: 950.00, data_movimento: "2025-03-18 15:00:00", categoria_id: 2, tipo_movimento_id: 2, nota: "Despesa Exemplo 2" },
@@ -295,5 +357,7 @@ export {
     inserirTodosMovimentosTeste,
     inserirMovimentoTesteNormal,
     obterTotalDespesas,
-    obterTotalReceitas
+    obterTotalReceitas,
+    listarMovimentosUltimos30Dias,
+    obterSaldoMensalAtual,
 };

@@ -1,16 +1,22 @@
 import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import { SafeAreaView, StatusBar, StyleSheet, Platform } from 'react-native';
+import { View, StyleSheet, Platform, StatusBar as RNStatusBar } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import * as SystemUI from 'expo-system-ui';
+import { setStatusBarTranslucent } from 'expo-status-bar';
+import PagLoadingEntrar from './app/pagina_loading_entrar';
+import TabNavigator from './componentes/barra_navegacao';
+import * as NavigationBar from 'expo-navigation-bar';
 
-import PagLoadingEntrar from './app/pagina_loading_entrar'; // Tela de entrada que carrega o BD
-import TabNavigator from './componentes/barra_navegacao'; // Navegação principal
 
 import PaginaMovimentos from './app/pagina_movimentos';
 import PaginaMetas from './app/pagina_metas';
 import PaginaPerfil from './app/pagina_perfil';
 
-// Definição do tipo do Stack Navigator
+import 'react-native-gesture-handler';
+import 'react-native-reanimated';
+
 type RootStackParamList = {
   Splash: undefined;
   MainApp: undefined;
@@ -19,46 +25,79 @@ type RootStackParamList = {
   Perfil: undefined;
 };
 
-// Criando o Stack Navigator com os tipos definidos
 const Stack = createStackNavigator<RootStackParamList>();
 
-const App: React.FC = () => {
+// SPLASH: fullscreen com barra transparente (status + navigation)
+const SplashScreen = (props: any) => {
   useEffect(() => {
-    const prepararApp = async () => {
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Simula carregamento
-    
-    };
+    if (Platform.OS === 'android') {
+      // Remove cor de fundo da UI
+      SystemUI.setBackgroundColorAsync('transparent');
+  
 
-    prepararApp();
+      
+      NavigationBar.setBehaviorAsync('overlay-swipe');
+      NavigationBar.setButtonStyleAsync('light');
+    }
   }, []);
+  
+
   return (
-    <SafeAreaView style={styles.safeContainer}>
-      <StatusBar backgroundColor="transparent" translucent={true} barStyle="dark-content" />
+    <View style={{ flex: 1 }}>
+      <StatusBar translucent backgroundColor="transparent" style="light" />
+      <PagLoadingEntrar {...props} />
+    </View>
+  );
+};
 
-      <NavigationContainer>
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
-          {/* Tela Inicial que carrega o banco de dados */}
-          <Stack.Screen name="Splash" component={PagLoadingEntrar} />
+// DEMAIS TELAS: com paddingTop para status bar
+const MainAppScreen = (props: any) => (
+  <View style={styles.defaultContainer}>
+    <StatusBar translucent backgroundColor="transparent" style="dark" />
+    <TabNavigator {...props} />
+  </View>
+);
 
-          {/* Navegação principal do App */}
-          <Stack.Screen name="MainApp" component={TabNavigator} />
+const MovimentosScreen = (props: any) => (
+  <View style={styles.defaultContainer}>
+    <StatusBar translucent backgroundColor="transparent" style="dark" />
+    <PaginaMovimentos {...props} />
+  </View>
+);
 
-          {/* Telas adicionais que podem ser abertas fora do TabNavigator */}
-          <Stack.Screen name="Movimentos" component={PaginaMovimentos} />
-          <Stack.Screen name="Metas" component={PaginaMetas} />
-          <Stack.Screen name="Perfil" component={PaginaPerfil} />
+const MetasScreen = (props: any) => (
+  <View style={styles.defaultContainer}>
+    <StatusBar translucent backgroundColor="transparent" style="dark" />
+    <PaginaMetas {...props} />
+  </View>
+);
 
-        </Stack.Navigator>
-      </NavigationContainer>
-    </SafeAreaView>
+const PerfilScreen = (props: any) => (
+  <View style={styles.defaultContainer}>
+    <StatusBar translucent backgroundColor="transparent" style="dark" />
+    <PaginaPerfil {...props} />
+  </View>
+);
+
+const App: React.FC = () => {
+  return (
+    <NavigationContainer>
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="Splash" component={SplashScreen} />
+        <Stack.Screen name="MainApp" component={MainAppScreen} />
+        <Stack.Screen name="Movimentos" component={MovimentosScreen} />
+        <Stack.Screen name="Metas" component={MetasScreen} />
+        <Stack.Screen name="Perfil" component={PerfilScreen} />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 };
 
 const styles = StyleSheet.create({
-  safeContainer: {
+  defaultContainer: {
     flex: 1,
     backgroundColor: 'white',
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+    paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight ?? 0 : 0,
   },
 });
 

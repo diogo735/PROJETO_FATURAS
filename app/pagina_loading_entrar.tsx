@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ActivityIndicator, Animated, Easing, Dimensions
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { StatusBar, Platform } from 'react-native';
 
 import Logo from '../assets/imagens/icon_app_porco.svg';
 import { useFonts, Nokora_400Regular, Nokora_900Black } from '@expo-google-fonts/nokora';
@@ -22,13 +23,14 @@ const PagLoadingEntrar = () => {
     const carregarBD = async () => {
       try {
         await inicializarBaseDeDados();
-        await SplashScreen.hideAsync(); 
-         setTimeout(() => {
-           navigation.reset({
-             index: 0,
-             routes: [{ name: 'MainApp' }],
-           });
-         }, 1000);
+        await SplashScreen.hideAsync();
+        setTimeout(() => {
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'MainApp' }],
+          });
+        },900);
+
       } catch (error) {
         console.error('Erro ao carregar o banco de dados:', error);
       }
@@ -82,8 +84,15 @@ const PagLoadingEntrar = () => {
     })
   );
 
+
   return (
     <View style={styles.container}>
+      <StatusBar
+        translucent
+        backgroundColor="transparent"
+        barStyle="light-content"
+      />
+
       <LinearGradient
         colors={['#022B4C', '#2985DE']}
         start={{ x: 0, y: 0 }}
@@ -149,8 +158,11 @@ const PagLoadingEntrar = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
+    paddingBottom: 0,
+    marginBottom: 0,
   },
   iconContainer: {
     position: 'absolute',
@@ -186,7 +198,7 @@ const styles = StyleSheet.create({
   },
 
   byEnoycContainer: {
-    marginTop: -width*0.02,
+    marginTop: -width * 0.02,
 
   },
 

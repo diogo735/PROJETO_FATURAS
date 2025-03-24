@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, StyleSheet, Image } from 'react-native';
+import { View, StyleSheet, Image, ImageSourcePropType } from 'react-native';
 import Svg, { Circle, Line, G, } from 'react-native-svg';
 import { Dimensions } from 'react-native';
 import { red } from 'react-native-reanimated/lib/typescript/Colors';
@@ -30,20 +30,42 @@ interface GraficoCircularProps {
   categorias: DadosGrafico[];
   tipoSelecionado: 'receitas' | 'despesas';
 }
-const imagensCategorias: Record<string, any> = {
-  "compras_pessoais.png": require("../../../assets/imagens/categorias/compras_pessoais.png"),
-  "contas_e_servicos.png": require("../../../assets/imagens/categorias/contas_e_servicos.png"),
-  "despesas_gerais.png": require("../../../assets/imagens/categorias/despesas_gerais.png"),
-  "educacao.png": require("../../../assets/imagens/categorias/educacao.png"),
-  "estimacao.png": require("../../../assets/imagens/categorias/estimacao.png"),
-  "financas.png": require("../../../assets/imagens/categorias/financas.png"),
-  "habitacao.png": require("../../../assets/imagens/categorias/habitacao.png"),
-  "lazer.png": require("../../../assets/imagens/categorias/lazer.png"),
-  "outros.png": require("../../../assets/imagens/categorias/outros.png"),
-  "restauracao.png": require("../../../assets/imagens/categorias/restauracao.png"),
-  "saude.png": require("../../../assets/imagens/categorias/saude.png"),
-  "transportes.png": require("../../../assets/imagens/categorias/transportes.png"),
-};
+function getImagemCategoria(img_cat: string): ImageSourcePropType {
+  if (!img_cat) {
+    return require('../../../assets/imagens/categorias/outros.png');
+  }
+
+  // Se for imagem do usuário ou remota
+  if (img_cat.startsWith('file') || img_cat.startsWith('http')) {
+    return { uri: img_cat };
+  }
+
+  // Se for imagem local pré-definida
+  const imagensLocais: Record<string, ImageSourcePropType> = {
+    'compras_pessoais.png': require('../../../assets/imagens/categorias/compras_pessoais.png'),
+    'contas_e_servicos.png': require('../../../assets/imagens/categorias/contas_e_servicos.png'),
+    'despesas_gerais.png': require('../../../assets/imagens/categorias/despesas_gerais.png'),
+    'educacao.png': require('../../../assets/imagens/categorias/educacao.png'),
+    'estimacao.png': require('../../../assets/imagens/categorias/estimacao.png'),
+    'financas.png': require('../../../assets/imagens/categorias/financas.png'),
+    'habitacao.png': require('../../../assets/imagens/categorias/habitacao.png'),
+    'lazer.png': require('../../../assets/imagens/categorias/lazer.png'),
+    'outros.png': require('../../../assets/imagens/categorias/outros.png'),
+    'restauracao.png': require('../../../assets/imagens/categorias/restauracao.png'),
+    'saude.png': require('../../../assets/imagens/categorias/saude.png'),
+    'transportes.png': require('../../../assets/imagens/categorias/transportes.png'),
+    'alugel.png': require('../../../assets/imagens/categorias/receitas/alugel.png'),
+    'caixa-de-ferramentas.png': require('../../../assets/imagens/categorias/receitas/caixa-de-ferramentas.png'),
+    'deposito.png': require('../../../assets/imagens/categorias/receitas/deposito.png'),
+    'dinheiro.png': require('../../../assets/imagens/categorias/receitas/dinheiro.png'),
+    'lucro.png': require('../../../assets/imagens/categorias/receitas/lucro.png'),
+    'presente.png': require('../../../assets/imagens/categorias/receitas/presente.png'),
+    'salario.png': require('../../../assets/imagens/categorias/receitas/salario.png'),
+  };
+
+  return imagensLocais[img_cat] || imagensLocais['outros.png'];
+}
+
 const Grafico_Circular: React.FC<GraficoCircularProps> = ({ categorias, tipoSelecionado }) => {
   const radius = width * 0.24;
   const strokeWidth = width * 0.077;
@@ -81,15 +103,15 @@ const Grafico_Circular: React.FC<GraficoCircularProps> = ({ categorias, tipoSele
           </Text>
 
         </Svg>
-        
-          <View style={styles.imagemCentro}>
-            <ImagemCentral
-              width="100%"
-              height="100%"
-              fill={tipoSelecionado === "receitas" ? "#4AAF53" : "#E12D2D"}
-            />
-          </View>
-       
+
+        <View style={styles.imagemCentro}>
+          <ImagemCentral
+            width="100%"
+            height="100%"
+            fill={tipoSelecionado === "receitas" ? "#4AAF53" : "#E12D2D"}
+          />
+        </View>
+
 
       </View>
     );
@@ -216,7 +238,7 @@ const Grafico_Circular: React.FC<GraficoCircularProps> = ({ categorias, tipoSele
                 <Animated.View style={animatedContainerStyle}>
                   {categoria.img_cat && (
                     <Image
-                      source={imagensCategorias[categoria.img_cat]}
+                      source={getImagemCategoria(categoria.img_cat)}
                       style={{
                         width: width * 0.08,
                         height: width * 0.08,
@@ -248,7 +270,7 @@ const Grafico_Circular: React.FC<GraficoCircularProps> = ({ categorias, tipoSele
         </G>
       </Svg>
 
-       
+
       <View style={styles.imagemCentro}>
         <ImagemCentral width="100%" height="100%" fill="#E22121" />
       </View>

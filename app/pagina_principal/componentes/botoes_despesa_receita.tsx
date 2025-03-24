@@ -101,11 +101,9 @@ const styles = StyleSheet.create({
         paddingVertical: 15,
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: '#000',
-        shadowOpacity: 0.1,
-        shadowOffset: { width: 0, height: 4 },
-        elevation: 5, // Efeito de sombra no Android
+
     },
+
     conteudo: {
         flexDirection: 'row', // Alinha o ícone e o texto horizontalmente
         alignItems: 'center', // Mantém alinhamento vertical correto
@@ -120,6 +118,10 @@ const styles = StyleSheet.create({
     },
     ativo: {
         backgroundColor: '#FFFFFF', // Fundo branco quando ativo
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 9,
+        elevation: 2,
     },
     inativo: {
         backgroundColor: '#F2F2F2', // Fundo mais cinza quando inativo

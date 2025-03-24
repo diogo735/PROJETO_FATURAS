@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { scale } from 'react-native-size-matters';
 
-const SaldoWidget = () => {
+const SaldoWidget = ({ saldoTotal }: { saldoTotal: number }) => {
   const [mostrarSaldo, setMostrarSaldo] = useState(true);
 
   return (
@@ -20,7 +20,8 @@ const SaldoWidget = () => {
 
       {/* Linha do saldo + ícone */}
       <View style={styles.saldoRow}>
-        <Text style={styles.saldo}>{mostrarSaldo ? '500 €' : '- - -'}</Text>
+      <Text style={styles.saldo}>{mostrarSaldo ? `${saldoTotal.toFixed(2)} €` : '- - -'}</Text>
+
 
         {/* Botão do olho ao lado do saldo */}
         <TouchableOpacity onPress={() => setMostrarSaldo(!mostrarSaldo)}>
@@ -39,7 +40,7 @@ const styles = StyleSheet.create({
   container: {
     borderRadius: scale(15), // Mantém o arredondamento
     width: '95%',
-    height: '15%',
+    height: scale(90),
     alignSelf: 'center',
     marginTop: "4%",
     justifyContent: 'center',
