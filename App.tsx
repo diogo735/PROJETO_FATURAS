@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import { View, StyleSheet, Platform, StatusBar as RNStatusBar } from 'react-native';
+import { View, StyleSheet, Platform, StatusBar as RNStatusBar, Dimensions } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as SystemUI from 'expo-system-ui';
 import { setStatusBarTranslucent } from 'expo-status-bar';
@@ -10,10 +10,10 @@ import TabNavigator from './componentes/barra_navegacao';
 import * as NavigationBar from 'expo-navigation-bar';
 
 
-import PaginaMovimentos from './app/pagina_movimentos';
+import PaginaMovimentos from './app/pagina_moviementos/pagina_movimentos';
 import PaginaMetas from './app/pagina_metas';
 import PaginaPerfil from './app/pagina_perfil';
-
+const { height, width } = Dimensions.get('window');
 import 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
@@ -33,9 +33,6 @@ const SplashScreen = (props: any) => {
     if (Platform.OS === 'android') {
       // Remove cor de fundo da UI
       SystemUI.setBackgroundColorAsync('transparent');
-  
-
-      
       NavigationBar.setBehaviorAsync('overlay-swipe');
       NavigationBar.setButtonStyleAsync('light');
     }
@@ -97,7 +94,7 @@ const styles = StyleSheet.create({
   defaultContainer: {
     flex: 1,
     backgroundColor: 'white',
-    paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight ?? 0 : 0,
+    paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight ?? 0 : height*0.056,
   },
 });
 

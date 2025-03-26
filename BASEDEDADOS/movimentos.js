@@ -100,6 +100,17 @@ async function listarMovimentos() {
     }
 }
 
+async function apagarTodosMovimentos() {
+    try {
+        const db = await CRIARBD();
+        const result = await db.runAsync(`DELETE FROM movimentos;`);
+        await db.runAsync(`UPDATE SQLITE_SEQUENCE SET seq = 0 WHERE name = 'movimentos';`);
+        console.log(`🗑 Todos os movimentos foram apagados! Registros afetados: ${result.changes}`);
+    } catch (error) {
+        console.error('❌ Erro ao apagar movimentos:', error);
+    }
+}
+///////////////////////////P A G I N A   P R I N C I P A L //////////
 async function obterSomaMovimentosPorCategoriaDespesa() {//DAS DESPESAS
     try {
         const db = await CRIARBD();
@@ -172,18 +183,6 @@ async function obterSomaMovimentosPorCategoriaReceita() { // DAS RECEITAS
     }
 }
 
-async function apagarTodosMovimentos() {
-    try {
-        const db = await CRIARBD();
-        const result = await db.runAsync(`DELETE FROM movimentos;`);
-        await db.runAsync(`UPDATE SQLITE_SEQUENCE SET seq = 0 WHERE name = 'movimentos';`);
-        console.log(`🗑 Todos os movimentos foram apagados! Registros afetados: ${result.changes}`);
-    } catch (error) {
-        console.error('❌ Erro ao apagar movimentos:', error);
-    }
-}
-
-
 async function obterTotalReceitas() {
     try {
         const db = await CRIARBD();
@@ -207,7 +206,6 @@ async function obterTotalReceitas() {
         return 0;
     }
 }
-
 
 async function obterTotalDespesas() {
     try {
@@ -233,7 +231,6 @@ async function obterTotalDespesas() {
     }
 }
 
-
 async function listarMovimentosUltimos30Dias() {
     try {
       const db = await CRIARBD();
@@ -253,7 +250,8 @@ async function listarMovimentosUltimos30Dias() {
       return [];
     }
   }
-  async function obterSaldoMensalAtual() {
+
+async function obterSaldoMensalAtual() {
     try {
         const db = await CRIARBD();
 
@@ -283,6 +281,85 @@ async function listarMovimentosUltimos30Dias() {
     } catch (error) {
         console.error("❌ Erro ao calcular saldo do mês:", error);
         return 0;
+    }
+}
+
+//////////////////////////PAGINA M O V I M E N T O S //////////
+async function buscarMovimentosPorMesAno(mes, ano) {
+    try {
+      const db = await CRIARBD();
+      const mesFormatado = mes.toString().padStart(2, '0'); // Garante que o mês tem dois dígitos
+      const anoMes = `${ano}-${mesFormatado}`; // Formato aaaa-mm
+  
+      const result = await db.getAllAsync(`
+        SELECT 
+          movimentos.id,
+          movimentos.nota,
+          movimentos.valor,
+          movimentos.data_movimento,
+          tipo_movimento.nome_movimento,
+          categorias.id AS categoria_id,
+          categorias.img_cat,
+          categorias.cor_cat
+        FROM movimentos
+        INNER JOIN categorias ON movimentos.categoria_id = categorias.id
+        INNER JOIN tipo_movimento ON movimentos.tipo_movimento_id = tipo_movimento.id
+        WHERE strftime('%Y-%m', data_movimento) = ?
+        ORDER BY data_movimento DESC;
+      `, [anoMes]);
+      return result;
+    } catch (error) {
+      console.error('❌ Erro ao buscar movimentos:', error);
+      return [];
+    }
+  }
+
+  async function obterBalancoGeral(mes, ano) {
+    try {
+        const db = await CRIARBD();
+        const mesFormatado = mes.toString().padStart(2, '0');
+        const anoMes = `${ano}-${mesFormatado}`; // ex: 2025-03
+
+        const tipoDespesa = await db.getFirstAsync(`
+            SELECT id FROM tipo_movimento WHERE nome_movimento = 'Despesa';
+        `);
+        const tipoReceita = await db.getFirstAsync(`
+            SELECT id FROM tipo_movimento WHERE nome_movimento = 'Receita';
+        `);
+
+        if (!tipoDespesa || !tipoReceita) {
+            console.error("❌ Tipos 'Despesa' ou 'Receita' não encontrados.");
+            return { totalMovimentos: 0, totalDespesas: 0, totalReceitas: 0 };
+        }
+
+        const totalMovimentos = await db.getFirstAsync(`
+            SELECT COUNT(*) as total 
+            FROM movimentos 
+            WHERE strftime('%Y-%m', data_movimento) = ?;
+        `, [anoMes]);
+
+        const totalDespesas = await db.getFirstAsync(`
+            SELECT SUM(valor) as total 
+            FROM movimentos 
+            WHERE tipo_movimento_id = ? 
+              AND strftime('%Y-%m', data_movimento) = ?;
+        `, [tipoDespesa.id, anoMes]);
+
+        const totalReceitas = await db.getFirstAsync(`
+            SELECT SUM(valor) as total 
+            FROM movimentos 
+            WHERE tipo_movimento_id = ? 
+              AND strftime('%Y-%m', data_movimento) = ?;
+        `, [tipoReceita.id, anoMes]);
+
+        return {
+            totalMovimentos: totalMovimentos?.total || 0,
+            totalDespesas: totalDespesas?.total || 0,
+            totalReceitas: totalReceitas?.total || 0,
+        };
+    } catch (error) {
+        console.error("❌ Erro ao obter resumo mensal:", error);
+        return { totalMovimentos: 0, totalDespesas: 0, totalReceitas: 0 };
     }
 }
 
@@ -360,4 +437,6 @@ export {
     obterTotalReceitas,
     listarMovimentosUltimos30Dias,
     obterSaldoMensalAtual,
+    buscarMovimentosPorMesAno,
+    obterBalancoGeral
 };

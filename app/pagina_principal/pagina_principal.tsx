@@ -125,7 +125,7 @@ const Pagina_principal: React.FC = () => {
         />
 
         <UltimosMovimentos movimentos={movimentosRecentes} />
-        <View style={{ height: 100, backgroundColor: 'lightgray' }} />
+        
 
       </ScrollView>
     </View>
@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     alignItems: 'center',
-    paddingBottom: 150,
+    paddingBottom: height*0.16,
   },
   conteudo: {
     justifyContent: 'center',

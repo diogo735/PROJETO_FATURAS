@@ -113,35 +113,16 @@ async function inserirCategoria(img_cat, cor_cat, nome_cat) {
     }
   }
   
- async function listarCategorias() {
-  const imagensCategorias = {
-    "compras_pessoais.png": require("../assets/imagens/categorias/compras_pessoais.png"),
-    "contas_e_servicos.png": require("../assets/imagens/categorias/contas_e_servicos.png"),
-    "despesas_gerais.png": require("../assets/imagens/categorias/despesas_gerais.png"),
-    "educacao.png": require("../assets/imagens/categorias/educacao.png"),
-    "estimacao.png": require("../assets/imagens/categorias/estimacao.png"),
-    "financas.png": require("../assets/imagens/categorias/financas.png"),
-    "habitacao.png": require("../assets/imagens/categorias/habitacao.png"),
-    "lazer.png": require("../assets/imagens/categorias/lazer.png"),
-    "outros.png": require("../assets/imagens/categorias/outros.png"),
-    "restauracao.png": require("../assets/imagens/categorias/restauracao.png"),
-    "saude.png": require("../assets/imagens/categorias/saude.png"),
-    "transportes.png": require("../assets/imagens/categorias/transportes.png"),
-  };
-  
-  try {
-    const db = await CRIARBD();
-    const result = await db.getAllAsync('SELECT * FROM categorias;');
-
-    //console.log('📌 Categorias encontradas:', result);
-    return result.map((cat) => ({
-      ...cat,
-      img_cat: imagensCategorias[cat.img_cat] || require("../assets/imagens/default.png"), 
-    }));
-  } catch (error) {
-    console.error('❌ Erro ao buscar categorias:', error);
+  async function listarCategorias() {
+    try {
+      const db = await CRIARBD();
+      const result = await db.getAllAsync('SELECT * FROM categorias;');
+      return result; 
+    } catch (error) {
+      console.error('❌ Erro ao buscar categorias:', error);
+    }
   }
-}
+  
 async function apagarTodasCategorias() {
     try {
       const db = await CRIARBD();
