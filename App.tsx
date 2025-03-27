@@ -8,22 +8,28 @@ import { setStatusBarTranslucent } from 'expo-status-bar';
 import PagLoadingEntrar from './app/pagina_loading_entrar';
 import TabNavigator from './componentes/barra_navegacao';
 import * as NavigationBar from 'expo-navigation-bar';
+import CriarMeta from './app/pagina_metas/criar_meta/criar_meta';
 
 
 import PaginaMovimentos from './app/pagina_moviementos/pagina_movimentos';
-import PaginaMetas from './app/pagina_metas';
+import PaginaMetas from './app/pagina_metas/pagina_metas';
 import PaginaPerfil from './app/pagina_perfil';
+import DetalhesFatura from './app/pagina_fatura/detalhes_fatura';
 const { height, width } = Dimensions.get('window');
 import 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
-type RootStackParamList = {
+export type RootStackParamList = {
   Splash: undefined;
   MainApp: undefined;
   Movimentos: undefined;
   Metas: undefined;
   Perfil: undefined;
+  Fatura: { id: number };
+  CriarMeta: undefined;
+
 };
+
 
 const Stack = createStackNavigator<RootStackParamList>();
 
@@ -76,6 +82,21 @@ const PerfilScreen = (props: any) => (
   </View>
 );
 
+const FaturaScreen = (props: any) => (
+  <View style={styles.defaultContainer}>
+    <StatusBar translucent backgroundColor="transparent" style="dark" />
+    <DetalhesFatura {...props} />
+  </View>
+);
+const CriarMetaScreen = (props: any) => (
+  <View style={styles.defaultContainer}>
+    <StatusBar translucent backgroundColor="transparent" style="dark" />
+    <CriarMeta {...props} />
+  </View>
+);
+
+
+
 const App: React.FC = () => {
   return (
     <NavigationContainer>
@@ -85,6 +106,8 @@ const App: React.FC = () => {
         <Stack.Screen name="Movimentos" component={MovimentosScreen} />
         <Stack.Screen name="Metas" component={MetasScreen} />
         <Stack.Screen name="Perfil" component={PerfilScreen} />
+        <Stack.Screen name="Fatura" component={FaturaScreen} />
+        <Stack.Screen name="CriarMeta" component={CriarMetaScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

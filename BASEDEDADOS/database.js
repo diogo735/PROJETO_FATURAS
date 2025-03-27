@@ -1,8 +1,10 @@
 import * as SQLite from 'expo-sqlite';
 import { criarTabelaCategorias, verificarEInserirCategorias, apagarTodasCategorias,resetarCategorias } from './categorias';
 import { criarTabelaTipoMovimento, inserirVariosTiposMovimento } from './tipo_movimento';
-import { criarTabelaMovimentos,inserirVariosMovimentos } from './movimentos';
+import { criarTabelaMovimentos,inserirVariosMovimentos,inserirMovimentoTesteUnico } from './movimentos';
 import { CRIARBD } from './databaseInstance';
+import { criarTabelaFaturas ,apagarTabelaFaturas} from './faturas';
+import { criarTabelaMetas } from './metas';
 
 async function inicializarBaseDeDados() {
 
@@ -18,6 +20,13 @@ async function inicializarBaseDeDados() {
    
     //MOVIMENTOS
     await criarTabelaMovimentos();//await inserirVariosMovimentos();
+
+    //faturas
+    await criarTabelaFaturas();
+
+    //metas
+    await criarTabelaMetas();
+
 
 
     console.log('🎉 Todas as tabelas foram inicializadas com sucesso!');

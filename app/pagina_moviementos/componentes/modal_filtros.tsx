@@ -17,7 +17,10 @@ const { height, width } = Dimensions.get('window');
 interface Props {
     visivel: boolean;
     aoFechar: () => void;
+    filtrosSalvos: Filtros | null;
+    setFiltrosSalvos: (f: Filtros | null) => void;
 }
+
 interface Categoria {
     id: number;
     nome_cat: string;
@@ -25,6 +28,17 @@ interface Categoria {
     img_cat: string;
     imagem: ImageSourcePropType;
 }
+
+interface Filtros {
+    categoriasSelecionadas: number[];
+    faixaSelecionada: string | null;
+    montanteInicial: string;
+    montanteFinal: string;
+    tipoSelecionado: 'Receita' | 'Despesa' | null;
+    ordenacaoSelecionada: 'data' | 'maior' | 'menor' | null;
+}
+
+
 function getImagemCategoria(img_cat: any): ImageSourcePropType {
     // Se já for um objeto (tipo require), retorna diretamente
     if (typeof img_cat === 'object' && img_cat !== null && img_cat.uri === undefined) {
@@ -66,22 +80,71 @@ function getImagemCategoria(img_cat: any): ImageSourcePropType {
 }
 
 
-const ModalFiltros: React.FC<Props> = ({ visivel, aoFechar }) => {
+const ModalFiltros: React.FC<Props> = ({ visivel, aoFechar, filtrosSalvos, setFiltrosSalvos }) => {
 
     const [categorias, setCategorias] = useState<Categoria[]>([]);
-    const [categoriaSelecionada, setCategoriaSelecionada] = useState<number | null>(0);
+    const [categoriasSelecionadas, setCategoriasSelecionadas] = useState<number[]>([0]);
     const [selecionado, setSelecionado] = useState<string | null>(null);
     const [montanteInicial, setMontanteInicial] = useState('');
     const [montanteFinal, setMontanteFinal] = useState('');
     const [focoInicial, setFocoInicial] = useState(false);
     const [focoFinal, setFocoFinal] = useState(false);
-    const [tipoSelecionado, setTipoSelecionado] = useState<'receita' | 'despesa'>('despesa');
-    const [ordenacaoSelecionada, setOrdenacaoSelecionada] = useState<'data' | 'maior' | 'menor'>('data');
+    const [tipoSelecionado, setTipoSelecionado] = useState<'Receita' | 'Despesa' | null>(null);
+    const [ordenacaoSelecionada, setOrdenacaoSelecionada] = useState<'data' | 'maior' | 'menor' | null>(null);
+
+
+    const alternarCategoria = (id: number) => {
+        if (id === 0) {
+            if (categoriasSelecionadas.length === 1 && categoriasSelecionadas[0] === 0) {
+                // "Todas" já está sozinha selecionada → desmarcar
+                setCategoriasSelecionadas([]);
+            } else {
+                // Marca apenas "Todas"
+                setCategoriasSelecionadas([0]);
+            }
+        } else {
+            const atual = categoriasSelecionadas.filter(catId => catId !== 0);
+
+            if (atual.includes(id)) {
+                // Já estava selecionada → desmarca
+                const novaLista = atual.filter(catId => catId !== id);
+                setCategoriasSelecionadas(novaLista);
+            } else {
+                // Adiciona nova categoria e remove "Todas" se tiver
+                setCategoriasSelecionadas([...atual, id]);
+            }
+        }
+    };
+
 
 
 
     useEffect(() => {
         if (visivel) {
+            if (filtrosSalvos) {
+                setCategoriasSelecionadas(filtrosSalvos.categoriasSelecionadas);
+                setSelecionado(filtrosSalvos.faixaSelecionada);
+                setMontanteInicial(filtrosSalvos.montanteInicial);
+                setMontanteFinal(filtrosSalvos.montanteFinal);
+                setTipoSelecionado(filtrosSalvos.tipoSelecionado);
+                setOrdenacaoSelecionada(filtrosSalvos.ordenacaoSelecionada);
+                //console.log("🟢 Modal aberto com filtros:", filtrosSalvos);
+            } else {
+                // Resetar se não houver filtros salvos
+                setCategoriasSelecionadas([]);
+                setSelecionado(null);
+                setMontanteInicial('');
+                setMontanteFinal('');
+                setTipoSelecionado(null);
+                setOrdenacaoSelecionada(null);
+                setFocoInicial(false);
+                setFocoFinal(false);
+                labelAnim.setValue(0);
+                labelFinalAnim.setValue(0);
+                labelAnim.setValue(0);
+                labelFinalAnim.setValue(0);
+            }
+
             listarCategorias().then((lista) => {
                 const comImagem = lista.map((cat: any) => {
                     const imagemSegura = getImagemCategoria(cat?.img_cat || 'outros.png');
@@ -98,7 +161,7 @@ const ModalFiltros: React.FC<Props> = ({ visivel, aoFechar }) => {
                     {
                         id: 0,
                         nome_cat: 'Todas',
-                        cor_cat: '#2C72B4',
+                        cor_cat: '#387DC0',
                         img_cat: '',
                         imagem: null,
                     },
@@ -148,6 +211,18 @@ const ModalFiltros: React.FC<Props> = ({ visivel, aoFechar }) => {
         }
     }, [focoFinal, montanteFinal]);
 
+    const contarFiltrosAtivos = () => {
+        let count = 0;
+
+        if (categoriasSelecionadas.length > 0) count++;
+        if (selecionado) count++;
+        if (montanteInicial !== '' || montanteFinal !== '') count++;
+        if (tipoSelecionado) count++;
+        if (ordenacaoSelecionada) count++;
+
+        return count;
+    };
+
 
     return (
         <Modal
@@ -161,8 +236,8 @@ const ModalFiltros: React.FC<Props> = ({ visivel, aoFechar }) => {
             animationOut="bounceOutDown"
             animationInTiming={1000}
             animationOutTiming={1000}
-
         >
+
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
                 <View style={styles.container}>
                     <View style={styles.header}>
@@ -191,7 +266,8 @@ const ModalFiltros: React.FC<Props> = ({ visivel, aoFechar }) => {
                                     style={[
                                         styles.categoriaItem,
                                         { backgroundColor: cat.cor_cat },
-                                        cat.id === categoriaSelecionada && {
+                                        categoriasSelecionadas.includes(cat.id)
+                                        && {
                                             backgroundColor: cat.cor_cat,
                                             borderWidth: 5,
                                             padding: 8,
@@ -203,7 +279,7 @@ const ModalFiltros: React.FC<Props> = ({ visivel, aoFechar }) => {
                                             elevation: 5,
                                         }
                                     ]}
-                                    onPress={() => setCategoriaSelecionada(cat.id)}
+                                    onPress={() => alternarCategoria(cat.id)}
                                 >
                                     {cat.id === 0 ? (
                                         <IconTodas width={40} height={40} />
@@ -216,7 +292,15 @@ const ModalFiltros: React.FC<Props> = ({ visivel, aoFechar }) => {
                                     )}
                                 </TouchableOpacity>
 
-                                <Text style={styles.categoriaTexto}>{cat.nome_cat}</Text>
+                                <Text
+                                    style={[
+                                        styles.categoriaTexto,
+                                        !categoriasSelecionadas.includes(cat.id) && { fontWeight: '500' } // regular
+                                    ]}
+                                >
+                                    {cat.nome_cat}
+                                </Text>
+
                             </View>
 
                         ))}
@@ -231,7 +315,13 @@ const ModalFiltros: React.FC<Props> = ({ visivel, aoFechar }) => {
                                 <TouchableOpacity
                                     key={faixa}
                                     style={[styles.botao, ativo && styles.botaoSelecionado]}
-                                    onPress={() => setSelecionado(faixa)}
+                                    onPress={() => {
+                                        setSelecionado(prev => prev === faixa ? null : faixa);
+                                        setMontanteInicial('');
+                                        setMontanteFinal('');
+                                    }}
+
+
                                 >
                                     <Text style={[styles.texto, ativo && styles.textoSelecionado]}>
                                         {faixa}
@@ -270,13 +360,26 @@ const ModalFiltros: React.FC<Props> = ({ visivel, aoFechar }) => {
                                     onChangeText={(text) => {
                                         const apenasNumeros = text.replace(/[^0-9]/g, '');
                                         setMontanteInicial(apenasNumeros);
+                                        if (apenasNumeros !== '') {
+                                            setSelecionado(null); // desmarca faixa
+                                        }
                                     }}
-                                    onFocus={() => setFocoInicial(true)}
+                                    onFocus={() => {
+                                        setFocoInicial(true);
+                                        setSelecionado(null);
+                                    }}
+
                                     onBlur={() => setFocoInicial(false)}
                                 />
 
 
-                                <View style={styles.linha} />
+                                <View
+                                    style={[
+                                        styles.linha,
+                                        montanteInicial === '' && { height: 1, backgroundColor: '#6C8CA1' }
+                                    ]}
+                                />
+
                             </View>
                         </View>
 
@@ -309,13 +412,25 @@ const ModalFiltros: React.FC<Props> = ({ visivel, aoFechar }) => {
                                     onChangeText={(text) => {
                                         const apenasNumeros = text.replace(/[^0-9]/g, '');
                                         setMontanteFinal(apenasNumeros);
+                                        if (apenasNumeros !== '') {
+                                            setSelecionado(null); // desmarca faixa
+                                        }
                                     }}
-                                    onFocus={() => setFocoFinal(true)}
+                                    onFocus={() => {
+                                        setFocoFinal(true);
+                                        setSelecionado(null);
+                                    }}
+
                                     onBlur={() => setFocoFinal(false)}
                                 />
 
 
-                                <View style={styles.linha} />
+                                <View
+                                    style={[
+                                        styles.linha,
+                                        montanteInicial === '' && { height: 1, backgroundColor: '#6C8CA1' }
+                                    ]}
+                                />
                             </View>
                         </View>
 
@@ -331,9 +446,12 @@ const ModalFiltros: React.FC<Props> = ({ visivel, aoFechar }) => {
                         <TouchableOpacity
                             style={[
                                 styles.botaoMovimentos,
-                                tipoSelecionado === 'receita' ? styles.botaoSelecionadoMovimentos : styles.botaoNaoSelecionado,
+                                tipoSelecionado === 'Receita' ? styles.botaoSelecionadoMovimentos : styles.botaoNaoSelecionado,
                             ]}
-                            onPress={() => setTipoSelecionado('receita')}
+                            onPress={() =>
+                                setTipoSelecionado((prev) => (prev === 'Receita' ? null : 'Receita'))
+                            }
+
                         >
                             <View style={[styles.iconeCirculo, { backgroundColor: '#2ECC71' }]}>
                                 <MaterialCommunityIcons name="arrow-right" color="#fff" size={16} />
@@ -341,7 +459,7 @@ const ModalFiltros: React.FC<Props> = ({ visivel, aoFechar }) => {
                             <Text
                                 style={[
                                     styles.textoMovimentos,
-                                    tipoSelecionado === 'receita' ? styles.textoSelecionadoMovimentos : styles.textoNaoSelecionado,
+                                    tipoSelecionado === 'Receita' ? styles.textoSelecionadoMovimentos : styles.textoNaoSelecionado,
                                 ]}
                             >
                                 Receita
@@ -352,9 +470,12 @@ const ModalFiltros: React.FC<Props> = ({ visivel, aoFechar }) => {
                         <TouchableOpacity
                             style={[
                                 styles.botaoMovimentos,
-                                tipoSelecionado === 'despesa' ? styles.botaoSelecionadoMovimentos : styles.botaoNaoSelecionado,
+                                tipoSelecionado === 'Despesa' ? styles.botaoSelecionadoMovimentos : styles.botaoNaoSelecionado,
                             ]}
-                            onPress={() => setTipoSelecionado('despesa')}
+                            onPress={() =>
+                                setTipoSelecionado((prev) => (prev === 'Despesa' ? null : 'Despesa'))
+                            }
+
                         >
                             <View style={[styles.iconeCirculo, { backgroundColor: '#E74C3C' }]}>
                                 <MaterialCommunityIcons name="arrow-left" color="#fff" size={16} />
@@ -362,7 +483,7 @@ const ModalFiltros: React.FC<Props> = ({ visivel, aoFechar }) => {
                             <Text
                                 style={[
                                     styles.textoMovimentos,
-                                    tipoSelecionado === 'despesa' ? styles.textoSelecionadoMovimentos : styles.textoNaoSelecionado,
+                                    tipoSelecionado === 'Despesa' ? styles.textoSelecionadoMovimentos : styles.textoNaoSelecionado,
                                 ]}
                             >
                                 Despesas
@@ -377,7 +498,10 @@ const ModalFiltros: React.FC<Props> = ({ visivel, aoFechar }) => {
                     <View style={{ marginTop: 10, paddingLeft: 15 }}>
                         <TouchableOpacity
                             style={styles.opcaoOrdenar}
-                            onPress={() => setOrdenacaoSelecionada('data')}
+                            onPress={() =>
+                                setOrdenacaoSelecionada((prev) => (prev === 'data' ? null : 'data'))
+                            }
+
                         >
                             <MaterialCommunityIcons
                                 name={ordenacaoSelecionada === 'data' ? 'radiobox-marked' : 'radiobox-blank'}
@@ -389,7 +513,10 @@ const ModalFiltros: React.FC<Props> = ({ visivel, aoFechar }) => {
 
                         <TouchableOpacity
                             style={styles.opcaoOrdenar}
-                            onPress={() => setOrdenacaoSelecionada('maior')}
+                            onPress={() =>
+                                setOrdenacaoSelecionada((prev) => (prev === 'maior' ? null : 'maior'))
+                            }
+
                         >
                             <MaterialCommunityIcons
                                 name={ordenacaoSelecionada === 'maior' ? 'radiobox-marked' : 'radiobox-blank'}
@@ -401,7 +528,10 @@ const ModalFiltros: React.FC<Props> = ({ visivel, aoFechar }) => {
 
                         <TouchableOpacity
                             style={styles.opcaoOrdenar}
-                            onPress={() => setOrdenacaoSelecionada('menor')}
+                            onPress={() =>
+                                setOrdenacaoSelecionada((prev) => (prev === 'menor' ? null : 'menor'))
+                            }
+
                         >
                             <MaterialCommunityIcons
                                 name={ordenacaoSelecionada === 'menor' ? 'radiobox-marked' : 'radiobox-blank'}
@@ -413,13 +543,43 @@ const ModalFiltros: React.FC<Props> = ({ visivel, aoFechar }) => {
                     </View>
 
                     <View style={styles.botoes}>
-                        <TouchableOpacity style={styles.botaoLimpar}>
+                        <TouchableOpacity
+                            style={styles.botaoLimpar}
+                            onPress={() => {
+                                
+                                setFiltrosSalvos(null);
+                                aoFechar();
+
+                            }}
+                        >
                             <Text style={styles.textoBotao}>Limpar</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={styles.botaoAplicar}
+                            onPress={() => {
+                                const filtros = {
+                                    categoriasSelecionadas,
+                                    faixaSelecionada: selecionado,
+                                    montanteInicial,
+                                    montanteFinal,
+                                    tipoSelecionado,
+                                    ordenacaoSelecionada,
+                                };
+
+                                //console.log("🔵 Filtros aplicados:", filtros);
+
+                                setFiltrosSalvos(filtros);
+                                aoFechar();
+                            }}
+                        >
+                            <Text style={styles.textoBotao}>
+                                Aplicar{contarFiltrosAtivos() > 0 ? `(${contarFiltrosAtivos()})` : ''}
+                            </Text>
 
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.botaoAplicar}>
-                            <Text style={styles.textoBotao}>Aplicar(4)</Text>
-                        </TouchableOpacity>
+
+
                     </View>
                 </View></TouchableWithoutFeedback>
         </Modal>
@@ -465,26 +625,26 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         marginTop: 5,
-        
+
     },
     botaoLimpar: {
         backgroundColor: '#F54338',
         paddingVertical: 11,
         borderRadius: 12,
-        width:width*0.43
+        width: width * 0.43
     },
     botaoAplicar: {
         backgroundColor: '#50AF4A',
         paddingVertical: 11,
         borderRadius: 12,
-        width:width*0.43
+        width: width * 0.43
     },
     textoBotao: {
         color: '#fff',
         fontSize: 16,
         fontWeight: '600',
         textAlign: 'center',
-      },
+    },
     categoriaItem: {
         backgroundColor: '#fff',
         padding: 12,

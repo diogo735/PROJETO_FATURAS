@@ -4,6 +4,13 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Dimensions } from 'react-native';
 const { height,width } = Dimensions.get('window');
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { RootStackParamList } from '../../App'; // ajuste o caminho se necessário
+
+type NavigationProp = StackNavigationProp<RootStackParamList>;
+
+
 
 
 
@@ -22,6 +29,8 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({ onPress }) 
 
 
 const Pagina_metas: React.FC = () => {
+  const navigation = useNavigation<NavigationProp>();
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -33,13 +42,13 @@ const Pagina_metas: React.FC = () => {
 
       {/* Conteúdo da Página */}
       <View style={styles.content}>
-      <Image source={require('../assets/imagens/sem_metas.png')} style={styles.image} />
+      <Image source={require('../../assets/imagens/sem_metas.png')} style={styles.image} />
         <Text style={styles.title}>Sem Metas</Text>
         <Text style={styles.subtitle}>
           Sem metas definidas para este mês.{"\n"}Crie uma para controlar as suas despesas!
         </Text>
       </View>
-      <FloatingActionButton onPress={() => alert('Criando nova meta!')} />
+      <FloatingActionButton onPress={() => navigation.navigate('CriarMeta')} />
     </View>
   );
 };

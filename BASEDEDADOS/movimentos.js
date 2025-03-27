@@ -363,6 +363,12 @@ async function buscarMovimentosPorMesAno(mes, ano) {
     }
 }
 
+//////////////////////////PAGINA DEYALHES F A T U R A S //////////
+
+
+
+
+
 
 /////////////////////////////////////////////////////////////////////// TEEEEEEEESSSSSSSSSSSTTTTTTTTTEEEEEEESXXXXXXXXXXXXXXX
 const listaDeMovimentosTODOS = [

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -14,11 +14,14 @@ interface Props {
         totalDespesas: number;
         totalReceitas: number;
     };
+    expandidoInicial?: boolean;
 }
 
-const BalancoGeral: React.FC<Props> = ({ resumo }) => {
+const BalancoGeral: React.FC<Props> = ({ resumo, expandidoInicial }) => {
 
-    const [expandido, setExpandido] = useState(true);
+
+    const [expandido, setExpandido] = useState(expandidoInicial ?? true);
+
     const alturaAnimada = useRef(new Animated.Value(1)).current;
 
     const toggleExpandir = () => {
@@ -30,6 +33,11 @@ const BalancoGeral: React.FC<Props> = ({ resumo }) => {
         setExpandido(!expandido);
     };
 
+    useEffect(() => {
+        setExpandido(expandidoInicial ?? true);
+        alturaAnimada.setValue((expandidoInicial ?? true) ? 1 : 0); // animação visual também
+      }, [expandidoInicial]);
+      
 
 
 

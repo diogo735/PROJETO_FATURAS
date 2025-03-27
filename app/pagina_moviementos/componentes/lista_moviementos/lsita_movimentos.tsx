@@ -4,6 +4,13 @@ import MovimentoCard from './1_movimento'; // caminho conforme seu projeto
 import moment from 'moment';
 const { height, width } = Dimensions.get('window');
 import 'moment/locale/pt-br'; // ✅ importa o idioma português
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { RootStackParamList } from '../../../../App';
+
+type NavigationProp = StackNavigationProp<RootStackParamList>;
+
+
 
 // Exemplo de dados em seções
 
@@ -53,6 +60,7 @@ const agruparMovimentosPorData = (movimentos: Movimento[]) => {
 };
 
 const ListaMovimentosAgrupada: React.FC<Props> = ({ movimentos }) => {
+    const navigation = useNavigation<NavigationProp>();
     const sections = agruparMovimentosPorData(movimentos);
     return (
         <SectionList
@@ -68,6 +76,7 @@ const ListaMovimentosAgrupada: React.FC<Props> = ({ movimentos }) => {
                     cor={item.cor_cat}
                     imagem={item.img_cat}
                     tipo={item.nome_movimento === 'Despesa' ? 'Despesa' : 'Receita'}
+                    onPress={() => navigation.navigate('Fatura', { id: item.id })}
                 />
             )}
             // Cabeçalho de cada seção (a data)

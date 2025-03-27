@@ -5,7 +5,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Dimensions } from 'react-native';
 import Pagina_principal from '../app/pagina_principal/pagina_principal';
 import Pagina_movimentos from '../app//pagina_moviementos/pagina_movimentos';
-import Pagina_metas from '../app/pagina_metas';
+import Pagina_metas from '../app/pagina_metas/pagina_metas';
 import Pagina_perfil from '../app/pagina_perfil';
 import { BottomTabBar } from '@react-navigation/bottom-tabs';
 import { GestureResponderEvent } from 'react-native';
