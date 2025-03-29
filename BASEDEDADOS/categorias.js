@@ -9,7 +9,9 @@ async function criarTabelaCategorias() {
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           img_cat TEXT,
           cor_cat TEXT,
-          nome_cat TEXT NOT NULL
+          nome_cat TEXT NOT NULL,
+          tipo_movimento_id INTEGER NOT NULL,
+          FOREIGN KEY (tipo_movimento_id) REFERENCES tipo_movimento(id)
       );`
     );
     //console.log('✅ Tabela "categorias" criada com sucesso!');
@@ -71,8 +73,7 @@ async function inserirCategoria(img_cat, cor_cat, nome_cat) {
   }
   
   async function inserirVariasCategorias() {
-    const categorias = [
-      //despesas
+    const categoriasDespesas = [
       { img_cat: 'compras_pessoais.png', cor_cat: '#FA6FE0', nome_cat: 'Compras Pessoais' },
       { img_cat: 'contas_e_servicos.png', cor_cat: '#7FCACF', nome_cat: 'Contas e Serviços' },
       { img_cat: 'despesas_gerais.png', cor_cat: '#61C98D', nome_cat: 'Despesas Gerais' },
@@ -85,7 +86,9 @@ async function inserirCategoria(img_cat, cor_cat, nome_cat) {
       { img_cat: 'restauracao.png', cor_cat: '#E8CE62', nome_cat: 'Restauração e Alojamento' },
       { img_cat: 'saude.png', cor_cat: '#FA6C5D', nome_cat: 'Saúde' },
       { img_cat: 'transportes.png', cor_cat: '#E39F62', nome_cat: 'Transportes' },
-      //receitas
+    ];
+  
+    const categoriasReceitas = [
       { img_cat: 'alugel.png', cor_cat: '#5899FF', nome_cat: 'Renda' },
       { img_cat: 'caixa-de-ferramentas.png', cor_cat: '#DAC44A', nome_cat: 'Pequenos Trabalhos' },
       { img_cat: 'deposito.png', cor_cat: '#5899FF', nome_cat: 'Depósitos' },
@@ -93,23 +96,49 @@ async function inserirCategoria(img_cat, cor_cat, nome_cat) {
       { img_cat: 'lucro.png', cor_cat: '#B258FF', nome_cat: 'Investimentos' },
       { img_cat: 'presente.png', cor_cat: '#FF66C4', nome_cat: 'Presentes' },
       { img_cat: 'salario.png', cor_cat: '#39C89E', nome_cat: 'Salário' }
-  ];
+    ];
   
-      
-      /*console.log("Categorias antes de inserir:", categorias);*/
     try {
       const db = await CRIARBD();
   
-      for (const categoria of categorias) {
+      // Obtem os IDs dos tipos
+      const tipoReceita = await db.getFirstAsync(`SELECT id FROM tipo_movimento WHERE nome_movimento = 'Receita'`);
+      const tipoDespesa = await db.getFirstAsync(`SELECT id FROM tipo_movimento WHERE nome_movimento = 'Despesa'`);
+  
+      if (!tipoReceita || !tipoDespesa) {
+        console.error('❌ Tipos de movimento não encontrados.');
+        return;
+      }
+  
+      // Insere categorias de despesa
+      for (const categoria of categoriasDespesas) {
         await db.runAsync(
-          `INSERT INTO categorias (img_cat, cor_cat, nome_cat) VALUES (?, ?, ?);`,
-          categoria.img_cat, categoria.cor_cat, categoria.nome_cat // Passando parâmetros corretamente
+          `INSERT INTO categorias (img_cat, cor_cat, nome_cat, tipo_movimento_id) VALUES (?, ?, ?, ?)`,
+          categoria.img_cat, categoria.cor_cat, categoria.nome_cat, tipoDespesa.id
         );
       }
   
-      console.log('✅ 19 categorias inseridas com sucesso!');
+      // Insere categorias de receita
+      for (const categoria of categoriasReceitas) {
+        await db.runAsync(
+          `INSERT INTO categorias (img_cat, cor_cat, nome_cat, tipo_movimento_id) VALUES (?, ?, ?, ?)`,
+          categoria.img_cat, categoria.cor_cat, categoria.nome_cat, tipoReceita.id
+        );
+      }
+  
+      console.log('✅ Categorias de despesa e receita inseridas com sucesso!');
     } catch (error) {
-      console.error('❌ Erro ao inserir múltiplas categorias:', error);
+      console.error('❌ Erro ao inserir categorias:', error);
+    }
+  }
+  
+  async function deletarTabelaCategorias() {
+    try {
+      const db = await CRIARBD();
+      await db.execAsync(`DROP TABLE IF EXISTS categorias;`);
+      console.log('🗑 Tabela "categorias" foi removida completamente.');
+    } catch (error) {
+      console.error('❌ Erro ao deletar a tabela "categorias":', error);
     }
   }
   
@@ -122,6 +151,30 @@ async function inserirCategoria(img_cat, cor_cat, nome_cat) {
       console.error('❌ Erro ao buscar categorias:', error);
     }
   }
+  async function listarCategoriasDespesa() {
+    try {
+      const db = await CRIARBD();
+  
+      const tipo = await db.getFirstAsync(`
+        SELECT id FROM tipo_movimento WHERE nome_movimento = 'Despesa';
+      `);
+  
+      if (!tipo) {
+        console.error("❌ Tipo 'Despesa' não encontrado.");
+        return [];
+      }
+  
+      const result = await db.getAllAsync(`
+        SELECT * FROM categorias WHERE tipo_movimento_id = ?;
+      `, [tipo.id]);
+  
+      return result;
+    } catch (error) {
+      console.error('❌ Erro ao buscar categorias de despesa:', error);
+      return [];
+    }
+  }
+  
   
 async function apagarTodasCategorias() {
     try {
@@ -134,6 +187,31 @@ async function apagarTodasCategorias() {
       console.error('❌ Erro ao apagar categorias:', error);
     }
   }
+  async function buscarCategoriaPorId(id) {
+    try {
+      const db = await CRIARBD();
+      const categoria = await db.getFirstAsync(
+        'SELECT * FROM categorias WHERE id = ?',
+        [id]
+      );
+      return categoria;
+    } catch (error) {
+      console.error('❌ Erro ao buscar categoria por ID:', error);
+      return null;
+    }
+  }
+  
   
 // Exporta as operações para serem usadas no app
-export { criarTabelaCategorias, resetarCategorias,inserirCategoria, listarCategorias , verificarEInserirCategorias, inserirVariasCategorias,apagarTodasCategorias};
+export { criarTabelaCategorias, 
+  resetarCategorias,
+  inserirCategoria,
+   listarCategorias , 
+   verificarEInserirCategorias,
+    inserirVariasCategorias,
+    apagarTodasCategorias,
+    deletarTabelaCategorias,
+    listarCategoriasDespesa,
+    buscarCategoriaPorId
+
+  };

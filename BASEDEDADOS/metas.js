@@ -15,7 +15,7 @@ async function criarTabelaMetas() {
         FOREIGN KEY (categoria_id) REFERENCES categorias(id) ON DELETE CASCADE
       );
     `);
-    console.log("✅ Tabela 'metas' criada com sucesso!");
+    //console.log("✅ Tabela 'metas' criada com sucesso!");
   } catch (error) {
     console.error('❌ Erro ao criar tabela "metas":', error);
   }

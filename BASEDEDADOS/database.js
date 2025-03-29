@@ -1,5 +1,5 @@
 import * as SQLite from 'expo-sqlite';
-import { criarTabelaCategorias, verificarEInserirCategorias, apagarTodasCategorias,resetarCategorias } from './categorias';
+import { criarTabelaCategorias, verificarEInserirCategorias, apagarTodasCategorias,resetarCategorias ,deletarTabelaCategorias} from './categorias';
 import { criarTabelaTipoMovimento, inserirVariosTiposMovimento } from './tipo_movimento';
 import { criarTabelaMovimentos,inserirVariosMovimentos,inserirMovimentoTesteUnico } from './movimentos';
 import { CRIARBD } from './databaseInstance';
@@ -12,17 +12,21 @@ async function inicializarBaseDeDados() {
 
     
   await CRIARBD();
-    //CATEGORIAS
-    await criarTabelaCategorias(); /*await resetarCategorias();*/  await verificarEInserirCategorias(); 
-   
+
     //TIPOS_MOVIMENTOS
     await criarTabelaTipoMovimento(); await inserirVariosTiposMovimento();
-   
-    //MOVIMENTOS
-    await criarTabelaMovimentos();//await inserirVariosMovimentos();
 
+    //CATEGORIAS
+    await criarTabelaCategorias(); /*await resetarCategorias();*/  await verificarEInserirCategorias(); 
+
+    //MOVIMENTOS
+   // await criarTabelaMovimentos();//await inserirVariosMovimentos();
+    
     //faturas
-    await criarTabelaFaturas();
+    //await criarTabelaFaturas();
+    
+
+    
 
     //metas
     await criarTabelaMetas();

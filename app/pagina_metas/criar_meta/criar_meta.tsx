@@ -1,10 +1,10 @@
 import { useNavigation } from '@react-navigation/native';
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Dimensions, TouchableOpacity, TextInput, Switch } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, Dimensions, TouchableOpacity, TextInput, Switch, ImageSourcePropType } from 'react-native';
 import { scale } from 'react-native-size-matters';
 const { height, width } = Dimensions.get('window');
 import Ionicons from 'react-native-vector-icons/Ionicons';
-
+import { buscarCategoriaPorId } from '../../../BASEDEDADOS/categorias';
 import Catgoriaicon from '../../../assets/icons/pagina_criar_meta/categorias.svg';
 import Valoricon from '../../../assets/icons/pagina_criar_meta/valor.svg';
 import Dataicon from '../../../assets/icons/pagina_criar_meta/data.svg';
@@ -13,7 +13,51 @@ import SwitchCustomizado from './componentes/switch_customizado';
 import AlertaCard from './componentes/alerta_card';
 import { ScrollView } from 'react-native';
 import ModalCategorias from './modal_categorias';
+import { Categoria } from '../../../BASEDEDADOS/tipos_tabelas';
+import { Image } from 'react-native';
+import ModalData from './modal_data';
 
+
+
+function getImagemCategoria(img_cat: any): ImageSourcePropType {
+    // Se já for um objeto (tipo require), retorna diretamente
+    if (typeof img_cat === 'object' && img_cat !== null && img_cat.uri === undefined) {
+        return img_cat;
+    }
+
+    if (!img_cat || typeof img_cat !== 'string') {
+        return require('../../../assets/imagens/categorias/outros.png');
+    }
+
+    // Se for imagem do usuário ou remota
+    if (img_cat.startsWith('file') || img_cat.startsWith('http')) {
+        return { uri: img_cat };
+    }
+
+    const imagensLocais: Record<string, ImageSourcePropType> = {
+        'compras_pessoais.png': require('../../../assets/imagens/categorias/compras_pessoais.png'),
+        'contas_e_servicos.png': require('../../../assets/imagens/categorias/contas_e_servicos.png'),
+        'despesas_gerais.png': require('../../../assets/imagens/categorias/despesas_gerais.png'),
+        'educacao.png': require('../../../assets/imagens/categorias/educacao.png'),
+        'estimacao.png': require('../../../assets/imagens/categorias/estimacao.png'),
+        'financas.png': require('../../../assets/imagens/categorias/financas.png'),
+        'habitacao.png': require('../../../assets/imagens/categorias/habitacao.png'),
+        'lazer.png': require('../../../assets/imagens/categorias/lazer.png'),
+        'outros.png': require('../../../assets/imagens/categorias/outros.png'),
+        'restauracao.png': require('../../../assets/imagens/categorias/restauracao.png'),
+        'saude.png': require('../../../assets/imagens/categorias/saude.png'),
+        'transportes.png': require('../../../assets/imagens/categorias/transportes.png'),
+        'alugel.png': require('../../../assets/imagens/categorias/receitas/alugel.png'),
+        'caixa-de-ferramentas.png': require('../../../assets/imagens/categorias/receitas/caixa-de-ferramentas.png'),
+        'deposito.png': require('../../../assets/imagens/categorias/receitas/deposito.png'),
+        'dinheiro.png': require('../../../assets/imagens/categorias/receitas/dinheiro.png'),
+        'lucro.png': require('../../../assets/imagens/categorias/receitas/lucro.png'),
+        'presente.png': require('../../../assets/imagens/categorias/receitas/presente.png'),
+        'salario.png': require('../../../assets/imagens/categorias/receitas/salario.png'),
+    };
+
+    return imagensLocais[img_cat] || imagensLocais['outros.png'];
+}
 
 
 const CriarMeta: React.FC = () => {
@@ -24,7 +68,28 @@ const CriarMeta: React.FC = () => {
     const [valor, setValor] = React.useState(222);
 
     const [modalCategoriaVisivel, setModalCategoriaVisivel] = useState(false);
-    const [categoriaSelecionada, setCategoriaSelecionada] = useState('Habitação');
+
+    const [categoriaSelecionada, setCategoriaSelecionada] = useState<number | null>(null);
+    const [categoriaInfo, setCategoriaInfo] = useState<Categoria | null>(null);
+
+    const [modalDataVisivel, setModalDataVisivel] = useState(false);
+    const [dataInicio, setDataInicio] = useState<Date | null>(null);
+    const [dataFim, setDataFim] = useState<Date | null>(null);
+
+
+    useEffect(() => {
+        const carregarCategoria = async () => {
+            if (categoriaSelecionada !== null) {
+                const categoria = await buscarCategoriaPorId(categoriaSelecionada);
+                setCategoriaInfo(categoria);
+            } else {
+                setCategoriaInfo(null);
+            }
+        };
+
+        carregarCategoria();
+    }, [categoriaSelecionada]);
+
 
     const navigation = useNavigation();
     return (
@@ -48,13 +113,44 @@ const CriarMeta: React.FC = () => {
                             <Catgoriaicon width={16} height={16} color="#164878" />
                             <Text style={styles.label}>Categoria</Text>
                             <TouchableOpacity
-                                style={styles.pickerButton}
-                                onPress={() => setModalCategoriaVisivel(true)}
+                                style={[
+                                    styles.pickerButton,
+                                    { backgroundColor: categoriaInfo?.cor_cat || '#5DADE2' }
+                                ]}
+                                onPress={() => {
+                                    setModalCategoriaVisivel(true);
+                                }}
                             >
-                                <Ionicons name="home" size={18} color="#fff" />
-                                <Text style={styles.pickerText}>{categoriaSelecionada}</Text>
+                                {categoriaInfo ? (
+                                    <>
+                                        <Image
+                                            source={getImagemCategoria(categoriaInfo.img_cat)}
+                                            style={{ width: 22, height: 22 }}
+                                            resizeMode="contain"
+                                        />
+                                        <Text
+                                            style={styles.pickerText}
+                                            numberOfLines={1}
+                                            ellipsizeMode="tail"
+                                        >
+                                            {categoriaInfo.nome_cat}
+                                        </Text>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Text
+                                            style={styles.pickerText}
+                                            numberOfLines={1}
+                                            ellipsizeMode="tail"
+                                        >
+                                            Selecionar
+                                        </Text>
+                                    </>
+                                )}
+
                                 <Ionicons name="chevron-down" size={18} color="#fff" />
                             </TouchableOpacity>
+
 
                         </View>
 
@@ -77,10 +173,18 @@ const CriarMeta: React.FC = () => {
                         <View style={styles.row}>
                             <Dataicon width={16} height={16} color="#164878" />
                             <Text style={styles.label}>Duração</Text>
-                            <TouchableOpacity style={styles.duracaoButton}>
-                                <Text style={styles.duracaoText}>Este mês</Text>
+                            <TouchableOpacity
+                                style={styles.duracaoButton}
+                                onPress={() => setModalDataVisivel(true)}
+                            >
+                                <Text style={styles.duracaoText}>
+                                    {dataInicio && dataFim
+                                        ? `${dataInicio.toLocaleDateString('pt-PT')} → ${dataFim.toLocaleDateString('pt-PT')}`
+                                        : 'Este mês'}
+                                </Text>
                                 <Ionicons name="chevron-down" size={18} color="#164878" />
                             </TouchableOpacity>
+
                         </View>
 
                     </View>
@@ -118,8 +222,22 @@ const CriarMeta: React.FC = () => {
             <ModalCategorias
                 visivel={modalCategoriaVisivel}
                 aoFechar={() => setModalCategoriaVisivel(false)}
-                aoSelecionarCategoria={(cat) => setCategoriaSelecionada(cat)}
+                aoSelecionarCategoria={(cat) => {
+                    setCategoriaSelecionada(cat);
+                }}
+
             />
+            <ModalData
+                visivel={modalDataVisivel}
+                aoFechar={() => setModalDataVisivel(false)}
+                aoConfirmar={(inicio, fim) => {
+                    setDataInicio(inicio);
+                    setDataFim(fim);
+                    setModalDataVisivel(false);
+                }}
+            />
+
+
 
 
         </View>
@@ -174,17 +292,19 @@ const styles = StyleSheet.create({
     pickerButton: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#5DADE2',
+        //backgroundColor: '#5DADE2',
         paddingVertical: 6,
         paddingHorizontal: 12,
         borderRadius: 25,
         gap: 5,
+        height: scale(35)
     },
 
     pickerText: {
         color: '#fff',
         fontWeight: 'bold',
         marginHorizontal: 4,
+        maxWidth: 140,
     },
 
     valorContainer: {
