@@ -15,9 +15,23 @@ import PaginaMovimentos from './app/pagina_moviementos/pagina_movimentos';
 import PaginaMetas from './app/pagina_metas/pagina_metas';
 import PaginaPerfil from './app/pagina_perfil';
 import DetalhesFatura from './app/pagina_fatura/detalhes_fatura';
+import PaginaCamera from './app/pagina_principal/pagina_camera';
+
+
+
 const { height, width } = Dimensions.get('window');
 import 'react-native-gesture-handler';
 import 'react-native-reanimated';
+import * as Notify from 'expo-notifications';
+
+
+Notify.setNotificationHandler({
+  handleNotification : async()=> ({
+    shouldPlaySound:true,
+    shouldShowAlert:true,
+    shouldSetBadge:true,
+  })    
+});
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -27,6 +41,7 @@ export type RootStackParamList = {
   Perfil: undefined;
   Fatura: { id: number };
   CriarMeta: undefined;
+  Camera:undefined;
 
 };
 
@@ -94,7 +109,12 @@ const CriarMetaScreen = (props: any) => (
     <CriarMeta {...props} />
   </View>
 );
-
+const CameraScreen = (props: any) => (
+  <View style={{ flex: 1 }}>
+    <StatusBar translucent backgroundColor="transparent" style="light" />
+    <PaginaCamera {...props} />
+  </View>
+);
 
 
 const App: React.FC = () => {
@@ -102,6 +122,7 @@ const App: React.FC = () => {
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Splash" component={SplashScreen} />
+        <Stack.Screen name="Camera" component={CameraScreen} options={{ headerShown: false }} />
         <Stack.Screen name="MainApp" component={MainAppScreen} />
         <Stack.Screen name="Movimentos" component={MovimentosScreen} />
         <Stack.Screen name="Metas" component={MetasScreen} />

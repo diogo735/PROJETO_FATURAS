@@ -1,17 +1,32 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, StatusBar,Image } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Image } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Dimensions } from 'react-native';
-const { height,width } = Dimensions.get('window');
+const { height, width } = Dimensions.get('window');
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../App'; // ajuste o caminho se necessário
-
+import CardMetas from './componestes_metas/card_meta';
+import { listarMetas } from '../../BASEDEDADOS/metas';
 type NavigationProp = StackNavigationProp<RootStackParamList>;
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
 
 
 
+type Meta = {
+  id_meta: number;
+  nome_cat: string;
+  cor_cat: string;
+  img_cat: string;
+  valor_meta: number;
+  data_inicio: string;
+  data_fim: string;
+  repetir_meta: number;
+  recebe_alerta: number | null;
+  valor_usado?: number;
+};
 
 
 interface FloatingActionButtonProps {
@@ -29,6 +44,18 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({ onPress }) 
 
 
 const Pagina_metas: React.FC = () => {
+  const [metas, setMetas] = useState<Meta[]>([]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const carregar = async () => {
+        const dados = await listarMetas();
+        setMetas(dados);
+      };
+      carregar();
+    }, [])
+  );
+
   const navigation = useNavigation<NavigationProp>();
 
   return (
@@ -41,14 +68,31 @@ const Pagina_metas: React.FC = () => {
       </View>
 
       {/* Conteúdo da Página */}
-      <View style={styles.content}>
-      <Image source={require('../../assets/imagens/sem_metas.png')} style={styles.image} />
-        <Text style={styles.title}>Sem Metas</Text>
-        <Text style={styles.subtitle}>
-          Sem metas definidas para este mês.{"\n"}Crie uma para controlar as suas despesas!
-        </Text>
-      </View>
-      <FloatingActionButton onPress={() => navigation.navigate('CriarMeta')} />
+      {metas.length === 0 ? (
+        <View style={styles.content}>
+          <Image source={require('../../assets/imagens/sem_metas.png')} style={styles.image} />
+          <Text style={styles.title}>Sem Metas</Text>
+          <Text style={styles.subtitle}>
+            Sem metas definidas para este mês.{"\n"}Crie uma para controlar as suas despesas!
+          </Text>
+        </View>
+      ) : (
+        <View style={{ flex: 1, paddingHorizontal: 10 }}>
+          {metas.map((meta) => (
+            <TouchableOpacity
+              key={meta.id_meta}
+              onPress={() => console.log('Meta clicada:', meta.id_meta)}
+              activeOpacity={0.8}
+            >
+              <CardMetas meta={meta} />
+            </TouchableOpacity>
+          ))}
+
+        </View>
+      )}
+
+      <FloatingActionButton onPress={() => navigation.navigate('CriarMeta')} /> 
+
     </View>
   );
 };
@@ -61,9 +105,9 @@ const styles = StyleSheet.create({
   }
   ,
   image: {
-    width: height*0.2, 
-    height: height*0.2,
-    marginBottom: 10, 
+    width: height * 0.2,
+    height: height * 0.2,
+    marginBottom: 10,
     resizeMode: 'contain',
   },
   header: {
@@ -85,7 +129,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'flex-start',
-    paddingTop: height*0.22,
+    paddingTop: height * 0.22,
   },
   title: {
     fontSize: 18,
@@ -101,14 +145,14 @@ const styles = StyleSheet.create({
   },
   fab: {
     position: 'absolute',
-    bottom: height*0.137, 
-    right: width*0.03, 
-    backgroundColor: '#FFA500', 
-    flexDirection: 'row', 
+    bottom: height * 0.137,
+    right: width * 0.03,
+    backgroundColor: '#FFA500',
+    flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 10,
     paddingHorizontal: 12,
-    borderRadius: 39, 
+    borderRadius: 39,
     elevation: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
@@ -119,7 +163,7 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: scale(18),
     fontWeight: 'bold',
-    marginLeft: 10, 
+    marginLeft: 10,
   },
 });
 

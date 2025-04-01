@@ -11,6 +11,7 @@ import IconeRotativo from '../assets/imagens/wallpaper.svg';
 import { inicializarBaseDeDados } from '../BASEDEDADOS/database';
 import EnovoSVG from '../assets/imagens/by_enovo.svg';
 import * as SplashScreen from 'expo-splash-screen';
+import { verificarNotificacoesDeTodasMetas } from '../BASEDEDADOS/metas';
 const { width, height } = Dimensions.get('window');
 
 type RootStackParamList = {
@@ -23,6 +24,7 @@ const PagLoadingEntrar = () => {
     const carregarBD = async () => {
       try {
         await inicializarBaseDeDados();
+        await verificarNotificacoesDeTodasMetas();
         await SplashScreen.hideAsync();
         setTimeout(() => {
           navigation.reset({

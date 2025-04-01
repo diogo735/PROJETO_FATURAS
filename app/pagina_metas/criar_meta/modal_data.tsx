@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform, TextInput } from 'react-native';
 import Modal from 'react-native-modal';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -6,9 +6,14 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 
 interface Props {
     visivel: boolean;
+    opcaoSelecionada: '' | 'semana' | 'mes' | 'semestre' | 'personalizado';
+    setOpcaoSelecionada: (value: '' | 'semana' | 'mes' | 'semestre' | 'personalizado') => void;
     aoFechar: () => void;
-    aoConfirmar: (inicio: Date, fim: Date) => void;
+    aoConfirmar: (inicio: Date, fim: Date, rotulo: string) => void;
 }
+
+
+
 
 const hoje = new Date();
 
@@ -51,8 +56,14 @@ function formatarDataCurta(data: Date) {
     return data.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit' });
 }
 
-const ModalData: React.FC<Props> = ({ visivel, aoFechar, aoConfirmar }) => {
-    const [opcaoSelecionada, setOpcaoSelecionada] = useState<string>('semana');
+const ModalData: React.FC<Props> = ({
+    visivel,
+    aoFechar,
+    aoConfirmar,
+    opcaoSelecionada,
+    setOpcaoSelecionada
+}) => {
+
     const [dataInicio, setDataInicio] = useState('');
     const [dataFim, setDataFim] = useState('');
     const [mostrarPicker, setMostrarPicker] = useState<'inicio' | 'fim' | null>(null);
@@ -61,7 +72,26 @@ const ModalData: React.FC<Props> = ({ visivel, aoFechar, aoConfirmar }) => {
         const hoje = new Date();
         return hoje.toISOString().substring(0, 10); // formato YYYY-MM-DD
     };
-
+    useEffect(() => {
+        if (opcaoSelecionada === 'semana') {
+          const [inicio, fim] = getIntervaloSemana();
+          setDataInicio(inicio.toISOString().split('T')[0]);
+          setDataFim(fim.toISOString().split('T')[0]);
+        } else if (opcaoSelecionada === 'mes') {
+          const [inicio, fim] = getIntervaloMes();
+          setDataInicio(inicio.toISOString().split('T')[0]);
+          setDataFim(fim.toISOString().split('T')[0]);
+        } else if (opcaoSelecionada === 'semestre') {
+          const [inicio, fim] = getIntervaloSemestre();
+          setDataInicio(inicio.toISOString().split('T')[0]);
+          setDataFim(fim.toISOString().split('T')[0]);
+        } else if (opcaoSelecionada === 'personalizado') {
+          setDataInicio('');
+          setDataFim('');
+        }
+      }, [opcaoSelecionada]);
+      
+      
     return (
         <Modal
             isVisible={visivel}
@@ -74,21 +104,30 @@ const ModalData: React.FC<Props> = ({ visivel, aoFechar, aoConfirmar }) => {
                 <View style={styles.handle} />
                 <Text style={styles.titulo}>Selecionar Duração</Text>
 
-                {['semana', 'mes', 'semestre', 'personalizado'].map((opcao) => (
+                {(['semana', 'mes', 'semestre', 'personalizado'] as const).map((opcao) => (
+
                     <TouchableOpacity
                         key={opcao}
                         style={styles.opcao}
                         onPress={() => {
+                            // Se já está selecionado, desmarca
                             if (opcaoSelecionada === opcao) {
                                 setOpcaoSelecionada('');
-                            } else {
-                                setOpcaoSelecionada(opcao);
-                                if (opcao !== 'personalizado') {
-                                    setDataInicio('');
-                                    setDataFim('');
-                                }
+                                setDataInicio('');
+                                setDataFim('');
+                                return;
+                            }
+
+                            // Se for uma nova opção, seleciona
+                            setOpcaoSelecionada(opcao);
+
+                            // Se não for personalizado, limpa datas
+                            if (opcao !== 'personalizado') {
+                                setDataInicio('');
+                                setDataFim('');
                             }
                         }}
+
                     >
                         {opcaoSelecionada === opcao ? (
                             <View style={styles.radioSelecionado}>
@@ -125,46 +164,57 @@ const ModalData: React.FC<Props> = ({ visivel, aoFechar, aoConfirmar }) => {
                 ))}
 
                 {opcaoSelecionada === 'personalizado' && (
-                    <View style={styles.datasPersonalizadas}>
-                        <View style={styles.dataInputWrapper}>
-                            <Text style={styles.dataLabel}>De</Text>
-                            <TouchableOpacity
-                                style={styles.dataInput}
-                                onPress={() => setMostrarPicker('inicio')}
-                            >
-                                <Text style={{ color: dataInicio ? '#000' : '#999' }}>
-                                    {dataInicio || 'YYYY-MM-DD'}
-                                </Text>
+                    <View style={styles.datasPersonalizadasHorizontal}>
+                        <TouchableOpacity
+                            style={styles.dataBotao}
+                            onPress={() => setMostrarPicker('inicio')}
+                        >
+                            <Text style={{ flexDirection: 'row' }}>
+                                <Text style={{ color: '#BABABA' }}>De </Text>
+                                <Text style={styles.dataTexto}>{dataInicio || 'AAAA-MM-DD'}</Text>
+                            </Text>
 
-                            </TouchableOpacity>
+                            <Ionicons name="chevron-down" size={16} color="#164878" />
+                        </TouchableOpacity>
 
-                        </View>
+                        <TouchableOpacity
+                            style={[
+                                styles.dataBotao,
+                                !dataInicio && { opacity: 0.5 } // visualmente desabilitado
+                            ]}
+                            onPress={() => {
+                                if (dataInicio) {
+                                    setMostrarPicker('fim');
+                                }
+                            }}
+                            disabled={!dataInicio}
+                        >
+                            <Text style={{ flexDirection: 'row' }}>
+                                <Text style={{ color: '#BABABA' }}>Até </Text>
+                                <Text style={styles.dataTexto}>{dataFim || 'AAAA-MM-DD'}</Text>
+                            </Text>
 
-                        <View style={styles.dataInputWrapper}>
-                            <Text style={styles.dataLabel}>Até</Text>
-                            <TouchableOpacity
-                                style={styles.dataInput}
-                                onPress={() => setMostrarPicker('fim')} // ✅ correto!
-                            >
-
-                                <Text style={{ color: dataFim ? '#000' : '#999' }}>
-                                    {dataFim || 'YYYY-MM-DD'}
-                                </Text>
-
-                            </TouchableOpacity>
-
-                        </View>
+                            <Ionicons name="chevron-down" size={16} color="#164878" />
+                        </TouchableOpacity>
                     </View>
                 )}
+
                 {mostrarPicker && (
                     <DateTimePicker
                         value={new Date()}
                         mode="date"
                         display="default"
+                        minimumDate={
+                            mostrarPicker === 'inicio'
+                                ? new Date() // início: hoje no mínimo
+                                : dataInicio
+                                    ? new Date(new Date(dataInicio).getTime() + 24 * 60 * 60 * 1000) // fim: 1 dia depois do início
+                                    : new Date()
+                        }
                         onChange={(event, selectedDate) => {
                             setMostrarPicker(null);
                             if (selectedDate) {
-                                const formatada = selectedDate.toISOString().split('T')[0]; // YYYY-MM-DD
+                                const formatada = selectedDate.toISOString().split('T')[0];
                                 if (mostrarPicker === 'inicio') {
                                     setDataInicio(formatada);
                                 } else {
@@ -173,6 +223,7 @@ const ModalData: React.FC<Props> = ({ visivel, aoFechar, aoConfirmar }) => {
                             }
                         }}
                     />
+
                 )}
 
 
@@ -184,9 +235,27 @@ const ModalData: React.FC<Props> = ({ visivel, aoFechar, aoConfirmar }) => {
                     <TouchableOpacity
                         style={styles.guardar}
                         onPress={() => {
-                            const inicio = new Date(dataInicio || formatarDataHoje());
-                            const fim = new Date(dataFim || formatarDataHoje());
-                            aoConfirmar(inicio, fim);
+                            
+                            if (dataInicio && dataFim) {
+                                const inicio = new Date(dataInicio);
+                                const fim = new Date(dataFim);
+                                const rotulo =
+                                    opcaoSelecionada === 'semana' ? 'Esta semana' :
+                                        opcaoSelecionada === 'mes' ? 'Este mês' :
+                                            opcaoSelecionada === 'semestre' ? 'Este semestre' :
+                                                'Personalizado';
+
+                                            //  console.log('📤 Dados confirmados:', {
+                                              //      inicio: inicio.toISOString().split('T')[0],
+                                                //    fim: fim.toISOString().split('T')[0],
+                                                    rotulo
+                                                  //});
+                                                  
+                                aoConfirmar(inicio, fim, rotulo);
+
+
+                            }
+                            aoFechar();
                         }}
                     >
                         <Text style={styles.textoGuardar}>Guardar</Text>
@@ -300,6 +369,31 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#fff',
     },
+    datasPersonalizadasHorizontal: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginTop: 5,
+        marginBottom: 15,
+        gap: 15,
+    },
+
+    dataBotao: {
+        flex: 1,
+        flexDirection: 'row',
+        //backgroundColor: '#F0F4F7',
+        paddingVertical: 10,
+        paddingHorizontal: 10,
+        borderRadius: 12,
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+
+    dataTexto: {
+        fontSize: 14,
+        color: '#164878',
+        fontWeight: '600',
+    },
+
 });
 
 export default ModalData;

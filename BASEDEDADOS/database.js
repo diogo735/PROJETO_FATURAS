@@ -4,7 +4,7 @@ import { criarTabelaTipoMovimento, inserirVariosTiposMovimento } from './tipo_mo
 import { criarTabelaMovimentos,inserirVariosMovimentos,inserirMovimentoTesteUnico } from './movimentos';
 import { CRIARBD } from './databaseInstance';
 import { criarTabelaFaturas ,apagarTabelaFaturas} from './faturas';
-import { criarTabelaMetas } from './metas';
+import { criarTabelaMetas,limparMetas,apagarTabelaMetas } from './metas';
 
 async function inicializarBaseDeDados() {
 
@@ -20,18 +20,14 @@ async function inicializarBaseDeDados() {
     await criarTabelaCategorias(); /*await resetarCategorias();*/  await verificarEInserirCategorias(); 
 
     //MOVIMENTOS
-   // await criarTabelaMovimentos();//await inserirVariosMovimentos();
+    await criarTabelaMovimentos();//await inserirVariosMovimentos();
     
     //faturas
     //await criarTabelaFaturas();
-    
-
-    
-
+  
     //metas
-    await criarTabelaMetas();
-
-
+    await criarTabelaMetas(); //await limparMetas();
+    //await apagarTabelaMetas();
 
     console.log('🎉 Todas as tabelas foram inicializadas com sucesso!');
   } catch (error) {

@@ -1,7 +1,8 @@
 import * as SQLite from 'expo-sqlite';
 import { CRIARBD } from './databaseInstance';
-
+import { verificar_se_envia_notificacao } from './metas';
 async function criarTabelaMovimentos() {
+
     try {
         const db = await CRIARBD();
         await db.execAsync(
@@ -25,16 +26,44 @@ async function criarTabelaMovimentos() {
 async function inserirMovimento(valor, data_movimento, categoria_id, tipo_movimento_id, nota = '') {
     try {
         const db = await CRIARBD();
-        const result = await db.runAsync(
+
+        // 1. Inserir movimento
+        await db.runAsync(
             `INSERT INTO movimentos (valor, data_movimento, categoria_id, tipo_movimento_id, nota) 
-       VALUES (?, ?, ?, ?, ?);`,
+         VALUES (?, ?, ?, ?, ?);`,
             [valor, data_movimento, categoria_id, tipo_movimento_id, nota]
         );
-        /*console.log(`✅ Movimento inserido! ID: ${result.lastInsertRowId}`);*/
+
+        // 2. Verificar se há alguma meta com essa categoria
+        const meta = await db.getFirstAsync(
+            `SELECT * FROM metas 
+             WHERE categoria_id = ? 
+               AND meta_ativa = 1
+               AND date(?) BETWEEN date(data_inicio) AND date(data_fim)`,
+            [categoria_id, data_movimento]
+          );
+          
+
+        if (meta) {
+            const novoValor = (meta.valor_atual || 0) + valor;
+
+            // 3. Atualizar valor_atual da meta
+            await db.runAsync(
+                `UPDATE metas SET valor_atual = ? WHERE id_meta = ?`,
+                [novoValor, meta.id_meta]
+            );
+            // Atualiza a meta com novo valor para passar à função de verificação
+            const metaAtualizada = { ...meta, valor_atual: novoValor };
+            await verificar_se_envia_notificacao(metaAtualizada);
+
+            console.log(`📈 Meta ${meta.id_meta} atualizada: novo valor atual = ${novoValor}`);
+        }
+
     } catch (error) {
-        console.error('❌ Erro ao inserir movimento:', error);
+        console.error('❌ Erro ao inserir movimento ou atualizar meta:', error);
     }
 }
+
 
 async function inserirVariosMovimentos() {
     try {
@@ -187,7 +216,7 @@ async function obterTotalReceitas() {
     try {
         const db = await CRIARBD();
         const tipo = await db.getFirstAsync(`SELECT id FROM tipo_movimento WHERE nome_movimento = 'Receita';`);
-        
+
         if (!tipo) {
             console.error("❌ Tipo 'Receita' não encontrado.");
             return 0;
@@ -211,7 +240,7 @@ async function obterTotalDespesas() {
     try {
         const db = await CRIARBD();
         const tipo = await db.getFirstAsync(`SELECT id FROM tipo_movimento WHERE nome_movimento = 'Despesa';`);
-        
+
         if (!tipo) {
             console.error("❌ Tipo 'Despesa' não encontrado.");
             return 0;
@@ -233,9 +262,9 @@ async function obterTotalDespesas() {
 
 async function listarMovimentosUltimos30Dias() {
     try {
-      const db = await CRIARBD();
-  
-      const result = await db.getAllAsync(`
+        const db = await CRIARBD();
+
+        const result = await db.getAllAsync(`
         SELECT movimentos.*, categorias.nome_cat, categorias.cor_cat, categorias.img_cat, tipo_movimento.nome_movimento
         FROM movimentos
         INNER JOIN categorias ON movimentos.categoria_id = categorias.id
@@ -243,13 +272,13 @@ async function listarMovimentosUltimos30Dias() {
         WHERE datetime(data_movimento) >= datetime('now', '-30 days')
         ORDER BY datetime(data_movimento) DESC;
       `);
-  
-      return result;
+
+        return result;
     } catch (error) {
-      console.error("❌ Erro ao listar movimentos dos últimos 30 dias:", error);
-      return [];
+        console.error("❌ Erro ao listar movimentos dos últimos 30 dias:", error);
+        return [];
     }
-  }
+}
 
 async function obterSaldoMensalAtual() {
     try {
@@ -287,11 +316,11 @@ async function obterSaldoMensalAtual() {
 //////////////////////////PAGINA M O V I M E N T O S //////////
 async function buscarMovimentosPorMesAno(mes, ano) {
     try {
-      const db = await CRIARBD();
-      const mesFormatado = mes.toString().padStart(2, '0'); // Garante que o mês tem dois dígitos
-      const anoMes = `${ano}-${mesFormatado}`; // Formato aaaa-mm
-  
-      const result = await db.getAllAsync(`
+        const db = await CRIARBD();
+        const mesFormatado = mes.toString().padStart(2, '0'); // Garante que o mês tem dois dígitos
+        const anoMes = `${ano}-${mesFormatado}`; // Formato aaaa-mm
+
+        const result = await db.getAllAsync(`
         SELECT 
           movimentos.id,
           movimentos.nota,
@@ -307,14 +336,14 @@ async function buscarMovimentosPorMesAno(mes, ano) {
         WHERE strftime('%Y-%m', data_movimento) = ?
         ORDER BY data_movimento DESC;
       `, [anoMes]);
-      return result;
+        return result;
     } catch (error) {
-      console.error('❌ Erro ao buscar movimentos:', error);
-      return [];
+        console.error('❌ Erro ao buscar movimentos:', error);
+        return [];
     }
-  }
+}
 
-  async function obterBalancoGeral(mes, ano) {
+async function obterBalancoGeral(mes, ano) {
     try {
         const db = await CRIARBD();
         const mesFormatado = mes.toString().padStart(2, '0');
@@ -372,26 +401,26 @@ async function buscarMovimentosPorMesAno(mes, ano) {
 
 /////////////////////////////////////////////////////////////////////// TEEEEEEEESSSSSSSSSSSTTTTTTTTTEEEEEEESXXXXXXXXXXXXXXX
 const listaDeMovimentosTODOS = [
-    { valor: 100.50, data_movimento: "2025-03-17 08:30:00", categoria_id: 1, tipo_movimento_id: 2, nota: "Despesa Exemplo 1" },
-    { valor: 950.00, data_movimento: "2025-03-18 15:00:00", categoria_id: 2, tipo_movimento_id: 2, nota: "Despesa Exemplo 2" },
-    { valor: 150.00, data_movimento: "2025-03-19 19:45:00", categoria_id: 3, tipo_movimento_id: 2, nota: "Despesa Exemplo 3" },
-    { valor: 200.00, data_movimento: "2025-03-20 10:15:00", categoria_id: 4, tipo_movimento_id: 2, nota: "Despesa Exemplo 4" },
-    { valor: 150.00, data_movimento: "2025-03-20 19:19:00", categoria_id: 5, tipo_movimento_id: 2, nota: "Despesa Exemplo 5" },
-    { valor: 55.00, data_movimento: "2025-01-20 19:10:00", categoria_id: 6, tipo_movimento_id: 2, nota: "Despesa Exemplo 6" },
-    { valor: 50.00, data_movimento: "2025-01-29 10:10:00", categoria_id: 7, tipo_movimento_id: 2, nota: "Despesa Exemplo 7" },
-    { valor: 150.00, data_movimento: "2025-03-19 19:45:00", categoria_id: 8, tipo_movimento_id: 2, nota: "Despesa Exemplo 3" },
-    { valor: 200.00, data_movimento: "2025-03-20 10:15:00", categoria_id: 9, tipo_movimento_id: 2, nota: "Despesa Exemplo 4" },
-    { valor: 150.00, data_movimento: "2025-03-20 19:19:00", categoria_id: 10, tipo_movimento_id: 2, nota: "Despesa Exemplo 5" },
-    { valor: 55.00, data_movimento: "2025-01-20 19:10:00", categoria_id: 11, tipo_movimento_id: 2, nota: "Despesa Exemplo 6" },
-    { valor: 50.00, data_movimento: "2025-01-29 10:10:00", categoria_id: 12, tipo_movimento_id: 2, nota: "Despesa Exemplo 7" },
+    { valor: 100.50, data_movimento: "2025-04-17 08:30:00", categoria_id: 1, tipo_movimento_id: 2, nota: "Despesa Exemplo 1" },
+    { valor: 950.00, data_movimento: "2025-04-18 15:00:00", categoria_id: 2, tipo_movimento_id: 2, nota: "Despesa Exemplo 2" },
+    { valor: 150.00, data_movimento: "2025-04-19 19:45:00", categoria_id: 3, tipo_movimento_id: 2, nota: "Despesa Exemplo 3" },
+    { valor: 200.00, data_movimento: "2025-04-20 10:15:00", categoria_id: 4, tipo_movimento_id: 2, nota: "Despesa Exemplo 4" },
+    { valor: 150.00, data_movimento: "2025-04-20 19:19:00", categoria_id: 5, tipo_movimento_id: 2, nota: "Despesa Exemplo 5" },
+    { valor: 55.00, data_movimento: "2025-04-20 19:10:00", categoria_id: 6, tipo_movimento_id: 2, nota: "Despesa Exemplo 6" },
+    { valor: 50.00, data_movimento: "2025-04-29 10:10:00", categoria_id: 7, tipo_movimento_id: 2, nota: "Despesa Exemplo 7" },
+    { valor: 150.00, data_movimento: "2025-04-19 19:45:00", categoria_id: 8, tipo_movimento_id: 2, nota: "Despesa Exemplo 3" },
+    { valor: 200.00, data_movimento: "2025-04-20 10:15:00", categoria_id: 9, tipo_movimento_id: 2, nota: "Despesa Exemplo 4" },
+    { valor: 150.00, data_movimento: "2025-04-20 19:19:00", categoria_id: 10, tipo_movimento_id: 2, nota: "Despesa Exemplo 5" },
+    { valor: 55.00, data_movimento: "2025-04-20 19:10:00", categoria_id: 11, tipo_movimento_id: 2, nota: "Despesa Exemplo 6" },
+    { valor: 50.00, data_movimento: "2025-04-29 10:10:00", categoria_id: 12, tipo_movimento_id: 2, nota: "Despesa Exemplo 7" },
 ];
 const listaDeMovimentosNormais = [
-    { valor: 100.50, data_movimento: "2025-03-17 08:30:00", categoria_id: 1, tipo_movimento_id: 2, nota: "Despesa Exemplo 1" },
-    { valor: 950.00, data_movimento: "2025-03-18 15:00:00", categoria_id: 2, tipo_movimento_id: 2, nota: "Despesa Exemplo 2" },
-    { valor: 150.00, data_movimento: "2025-03-19 19:45:00", categoria_id: 3, tipo_movimento_id: 2, nota: "Despesa Exemplo 3" },
-    { valor: 200.00, data_movimento: "2025-03-20 10:15:00", categoria_id: 4, tipo_movimento_id: 2, nota: "Despesa Exemplo 4" },
-    { valor: 150.00, data_movimento: "2025-03-20 19:19:00", categoria_id: 5, tipo_movimento_id: 2, nota: "Despesa Exemplo 5" },
-    { valor: 55.00, data_movimento: "2025-01-20 19:10:00", categoria_id: 6, tipo_movimento_id: 2, nota: "Despesa Exemplo 6" },
+    { valor: 100.50, data_movimento: "2025-04-17 08:30:00", categoria_id: 1, tipo_movimento_id: 2, nota: "Despesa Exemplo 1" },
+    { valor: 950.00, data_movimento: "2025-04-18 15:00:00", categoria_id: 2, tipo_movimento_id: 2, nota: "Despesa Exemplo 2" },
+    { valor: 150.00, data_movimento: "2025-04-19 19:45:00", categoria_id: 3, tipo_movimento_id: 2, nota: "Despesa Exemplo 3" },
+    { valor: 200.00, data_movimento: "2025-04-20 10:15:00", categoria_id: 4, tipo_movimento_id: 2, nota: "Despesa Exemplo 4" },
+    { valor: 150.00, data_movimento: "2025-04-20 19:19:00", categoria_id: 5, tipo_movimento_id: 2, nota: "Despesa Exemplo 5" },
+    { valor: 55.00, data_movimento: "2025-04-20 19:10:00", categoria_id: 6, tipo_movimento_id: 2, nota: "Despesa Exemplo 6" },
 ];
 
 

@@ -70,9 +70,13 @@ const ModalCategorias: React.FC<Props> = ({ visivel, aoFechar, aoSelecionarCateg
   return (
     <Modal
       isVisible={visivel}
+      animationIn="slideInUp"
+      animationOut="slideOutDown"
+      animationInTiming={300}
+      animationOutTiming={300}
       onBackdropPress={aoFechar}
-      swipeDirection="down"
       onSwipeComplete={aoFechar}
+      swipeDirection="down"
       style={styles.modal}
     >
       <View style={styles.container}>
@@ -86,8 +90,11 @@ const ModalCategorias: React.FC<Props> = ({ visivel, aoFechar, aoSelecionarCateg
               style={styles.card}
               onPress={() => {
                 const novaSelecao = categoriaSelecionadaId === cat.id ? null : cat.id;
-                aoSelecionarCategoria(novaSelecao);        
-                setCategoriaSelecionadaId(novaSelecao);    
+                aoSelecionarCategoria(novaSelecao);
+                setCategoriaSelecionadaId(novaSelecao);
+                setTimeout(() => {
+                  aoFechar(); 
+                }, 200);
               }}
 
 

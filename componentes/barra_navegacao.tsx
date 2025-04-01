@@ -16,6 +16,9 @@ import Faturasicon from '../assets/icons/faturas.svg';
 import Metasicon from '../assets/icons/metas.svg';
 import Perfilicon from '../assets/icons/perfil.svg';
 import ScanIcon from '../assets/icons/scan.svg';
+import { useNavigation } from '@react-navigation/native';
+import { RootStackParamList } from '../App';
+import { StackNavigationProp } from '@react-navigation/stack';
 
 
 const Tab = createBottomTabNavigator();
@@ -63,7 +66,7 @@ const TabNavigator = () => {
                     } else if (route.name === 'Perfil') {
                         IconComponent = Perfilicon;
                     }
-                    
+
                     return (
                         <View style={{ alignItems: 'center', justifyContent: 'center', marginTop: altura * 0.030 }}>
                             {IconComponent ? (
@@ -83,15 +86,27 @@ const TabNavigator = () => {
             {/* Botão Central Personalizado */}
             <Tab.Screen
                 name="Scan"
-                component={Pagina_principal}
                 options={{
-                    tabBarButton: (props) => (
-                        <CustomTabBarButton {...props}>
-                            <ScanIcon width={30} height={30} fill="white" />
-                        </CustomTabBarButton>
-                    ),
+                    tabBarButton: () => {
+                        const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+
+                        return (
+                            <TouchableOpacity
+                                style={styles.customButton}
+                                onPress={() => navigation.navigate('Camera')}
+                            >
+                                <View style={styles.innerButton}>
+                                    <ScanIcon width={30} height={30} fill="white" />
+                                </View>
+                            </TouchableOpacity>
+                        );
+                    },
                 }}
-            />
+            >
+                {() => null}
+            </Tab.Screen>
+
+
 
             <Tab.Screen name="Metas" component={Pagina_metas} options={{ lazy: false }} />
             <Tab.Screen name="Perfil" component={Pagina_perfil} options={{ lazy: false }} />

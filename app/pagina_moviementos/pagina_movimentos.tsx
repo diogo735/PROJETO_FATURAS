@@ -16,6 +16,8 @@ import ModalFiltros from './componentes/modal_filtros';
 import { useFocusEffect } from '@react-navigation/native';
 import { Animated } from 'react-native';
 
+import { useCallback } from 'react';
+
 
 interface MovimentoComCategoria {
   id: number;
@@ -41,7 +43,7 @@ import ListaMovimentosAgrupada from './componentes/lista_moviementos/lsita_movim
 const ITEM_LARGURA = 125;
 
 const Pagina_movimentos: React.FC = () => {
-  
+
   const hoje = new Date();
   const anoAtual = hoje.getFullYear();
 
@@ -83,14 +85,17 @@ const Pagina_movimentos: React.FC = () => {
     }
   }, []);
 
-  useEffect(() => {
-    if (mesSelecionado) {
-      const mes = mesSelecionado.mesIndex + 1;
-      const ano = mesSelecionado.ano;
-      carregarMovimentos(mes, ano);
-      carregarBalanco(mes, ano);
-    }
-  }, [mesSelecionado, filtrosAplicados]);
+  useFocusEffect(
+    useCallback(() => {
+      if (mesSelecionado) {
+        const mes = mesSelecionado.mesIndex + 1;
+        const ano = mesSelecionado.ano;
+        carregarMovimentos(mes, ano);
+        carregarBalanco(mes, ano);
+      }
+    }, [mesSelecionado, filtrosAplicados])
+  );
+  
 
   const carregarBalanco = async (mes: number, ano: number) => {
     try {
@@ -100,8 +105,8 @@ const Pagina_movimentos: React.FC = () => {
       console.error("Erro ao carregar resumo mensal:", error);
     }
   };
- 
-  
+
+
   const carregarMovimentos = async (mes: number, ano: number) => {
     try {
       const todosMovimentos = await buscarMovimentosPorMesAno(mes, ano) || [];
@@ -234,9 +239,9 @@ const Pagina_movimentos: React.FC = () => {
         <Text style={styles.headerTitle}>Movimentos</Text>
         <TouchableOpacity onPress={() => setFiltrosVisiveis(true)}>
           {temFiltrosAtivos() ? (
-            <FiltroIconActive width={30} height={30} fill="#fff" /> 
+            <FiltroIconActive width={30} height={30} fill="#fff" />
           ) : (
-            <FiltroIcon width={28} height={28}  /> 
+            <FiltroIcon width={28} height={28} />
           )}
         </TouchableOpacity>
 

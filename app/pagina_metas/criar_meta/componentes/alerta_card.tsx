@@ -1,56 +1,82 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, StyleSheet, Text as RNText, Text } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import SwitchCustomizado from '../componentes/switch_customizado';
 import Slider from '@react-native-community/slider';
+import Animated, { FadeIn, FadeOut, useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 
 interface Props {
     alertaAtivo: boolean;
     onToggle: (value: boolean) => void;
-    percentual: number;
-    valor: number;
-}
+    valor: number | null;
+    onValorCalculadoChange: (valorCalculado: number) => void; // novo!
+  }
+  
 
-const AlertaCard: React.FC<Props> = ({ alertaAtivo, onToggle, percentual, valor }) => {
+  const AlertaCard: React.FC<Props> = ({ alertaAtivo, onToggle, valor, onValorCalculadoChange }) => {
+    const percentual = useSharedValue(75);
+
+    const delayTimer = React.useRef<NodeJS.Timeout | null>(null);
+
+    const [sliderValue, setSliderValue] = useState(0.75);
+
     return (
         <View style={styles.card}>
             <View style={styles.alertaHeader}>
                 <View>
                     <View style={styles.alertaTituloRow}>
                         <Ionicons name="notifications" size={17} color="#164878" />
-                        <Text style={styles.alertaTitulo}>Alertas</Text>
+                        <RNText style={styles.alertaTitulo}>Alertas</RNText>
                     </View>
-                    <Text style={styles.alertaSubTitulo}>Receber alertas ao atingir ...</Text>
+                    <RNText style={styles.alertaSubTitulo}>
+                        Receber alertas ao atingir ...
+                    </RNText>
                 </View>
-
                 <SwitchCustomizado value={alertaAtivo} onValueChange={onToggle} />
             </View>
 
-            <View style={styles.alertaValores}>
-                <Text style={styles.alertaPorcentagem}>{percentual}%</Text>
-                <Text style={styles.alertaValor}>{valor}€</Text>
-            </View>
+            {alertaAtivo && valor !== null && (
+                <Animated.View entering={FadeIn} exiting={FadeOut}>
 
-            <View style={styles.alertaSliderContainer}>
-                <Slider
-                     style={{ width: '100%' }}
-                    minimumValue={0}
-                    maximumValue={100}
-                    step={1}
-                    value={percentual}
-                    onValueChange={(val) => {
-                        onToggle(true); // opcional: ativa alerta ao mover
-                        // aqui você pode passar um onChangePercentual também se quiser
-                    }}
-                    onSlidingComplete={(val) => {
-                        // opcional: chamar setPercentual externo
-                    }}
-                    minimumTrackTintColor="#2565A3"
-                    maximumTrackTintColor="#ccc"
-                    thumbTintColor="#2565A3"
-                />
-            </View>
+                    <View style={styles.alertaValores}>
+                        <Text style={styles.alertaPorcentagem}>
+                            {Math.floor(sliderValue)}%
+                        </Text>
 
+                        <Text style={styles.alertaValor}>
+                            {valor !== null && !isNaN(valor)
+                                ? Math.floor((valor * sliderValue) / 100).toString() + '€'
+                                : '0€'}
+                        </Text>
+                    </View>
+
+
+                </Animated.View>
+            )}
+
+            {alertaAtivo && valor !== null && (
+                <View style={styles.alertaSliderContainer}>
+                    <Slider
+                        style={{ width: '100%' }}
+                        minimumValue={0}
+                        maximumValue={100}
+                        step={1}
+                        value={percentual.value}
+                        onValueChange={(value) => {
+                            setSliderValue(value)
+                            if (valor !== null && !isNaN(valor)) {
+                                const calculado = Math.floor((valor * value) / 100);
+                                onValorCalculadoChange(calculado); // envia para o pai
+                              } else {
+                                onValorCalculadoChange(0);
+                              }
+                        }}
+                        minimumTrackTintColor="#2565A3"
+                        maximumTrackTintColor="#587088"
+                        thumbTintColor="#2565A3"
+                    />
+                </View>
+            )}
         </View>
     );
 };
@@ -80,14 +106,13 @@ const styles = StyleSheet.create({
         color: '#164878',
         fontWeight: 'bold',
         fontSize: 17,
-
     },
     alertaSubTitulo: {
         color: '#164878',
         fontSize: 13,
         fontWeight: '500',
         paddingTop: 3,
-        paddingLeft: 20
+        paddingLeft: 20,
     },
     alertaValores: {
         flexDirection: 'row',
@@ -96,6 +121,7 @@ const styles = StyleSheet.create({
         marginBottom: 8,
         paddingVertical: 10,
         paddingHorizontal: 10,
+
     },
     alertaPorcentagem: {
         fontSize: 40,
@@ -109,7 +135,7 @@ const styles = StyleSheet.create({
     },
     alertaSliderContainer: {
         paddingHorizontal: 5,
-        paddingVertical: 10
+        paddingVertical: 10,
     },
 });
 

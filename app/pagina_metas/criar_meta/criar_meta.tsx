@@ -16,7 +16,11 @@ import ModalCategorias from './modal_categorias';
 import { Categoria } from '../../../BASEDEDADOS/tipos_tabelas';
 import { Image } from 'react-native';
 import ModalData from './modal_data';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
+import { inserirMeta } from '../../../BASEDEDADOS/metas';
 
+import { Keyboard, TouchableWithoutFeedback } from 'react-native';
 
 
 function getImagemCategoria(img_cat: any): ImageSourcePropType {
@@ -61,11 +65,13 @@ function getImagemCategoria(img_cat: any): ImageSourcePropType {
 
 
 const CriarMeta: React.FC = () => {
+    const [valorCalculadoAlerta, setValorCalculadoAlerta] = useState(0);
 
     const [repetir, setRepetir] = React.useState(false);
-    const [alertaAtivo, setAlertaAtivo] = React.useState(true);
-    const [percentual, setPercentual] = React.useState(78);
-    const [valor, setValor] = React.useState(222);
+    const [alertaAtivo, setAlertaAtivo] = React.useState(false);
+
+    const [valor, setValor] = useState<number | null>(null);
+
 
     const [modalCategoriaVisivel, setModalCategoriaVisivel] = useState(false);
 
@@ -75,6 +81,10 @@ const CriarMeta: React.FC = () => {
     const [modalDataVisivel, setModalDataVisivel] = useState(false);
     const [dataInicio, setDataInicio] = useState<Date | null>(null);
     const [dataFim, setDataFim] = useState<Date | null>(null);
+    const [rotuloDuracao, setRotuloDuracao] = useState<string>('');
+    const [opcaoDuracao, setOpcaoDuracao] = useState<'' | 'semana' | 'mes' | 'semestre' | 'personalizado'>('');
+    const [ultimaOpcaoConfirmada, setUltimaOpcaoConfirmada] = useState<'' | 'semana' | 'mes' | 'semestre' | 'personalizado'>('');
+
 
 
     useEffect(() => {
@@ -89,9 +99,51 @@ const CriarMeta: React.FC = () => {
 
         carregarCategoria();
     }, [categoriaSelecionada]);
+    useEffect(() => {
+        if (!valor || valor <= 0) {
+            setAlertaAtivo(false);
+        }
+    }, [valor]);
 
+    useFocusEffect(
+        useCallback(() => {
+            // Resetar tudo quando a tela abrir
+            setCategoriaSelecionada(null);
+            setCategoriaInfo(null);
+            setValor(null);
+            setDataInicio(null);
+            setDataFim(null);
+            setRotuloDuracao('');
+            setOpcaoDuracao('');
+            setUltimaOpcaoConfirmada('');
+            setRepetir(false);
+            setAlertaAtivo(false);
+        }, [])
+    );
+
+    const podeCriarMeta = categoriaSelecionada !== null && valor !== null && valor > 0 && dataInicio !== null && dataFim !== null;
 
     const navigation = useNavigation();
+
+
+    const handleCriarMeta = async () => {
+        if (!podeCriarMeta) return;
+
+        const valorFinal = alertaAtivo ? (valorCalculadoAlerta ?? 0) : null;
+
+        await inserirMeta(
+            categoriaSelecionada,
+            valor,
+            dataInicio.toISOString().split('T')[0],
+            dataFim.toISOString().split('T')[0],
+            repetir,
+            valorFinal as any
+        );
+
+        navigation.goBack();
+    };
+
+
     return (
 
         <View style={styles.container}>
@@ -101,124 +153,148 @@ const CriarMeta: React.FC = () => {
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Nova Meta Mensal</Text>
             </View>
-
-            <View style={{ flex: 1 }}>
-                <ScrollView contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 5 }} showsVerticalScrollIndicator={false}>
-
-
-
-                    <View style={styles.card}>
-                        {/* Categoria */}
-                        <View style={styles.row}>
-                            <Catgoriaicon width={16} height={16} color="#164878" />
-                            <Text style={styles.label}>Categoria</Text>
-                            <TouchableOpacity
-                                style={[
-                                    styles.pickerButton,
-                                    { backgroundColor: categoriaInfo?.cor_cat || '#5DADE2' }
-                                ]}
-                                onPress={() => {
-                                    setModalCategoriaVisivel(true);
-                                }}
-                            >
-                                {categoriaInfo ? (
-                                    <>
-                                        <Image
-                                            source={getImagemCategoria(categoriaInfo.img_cat)}
-                                            style={{ width: 22, height: 22 }}
-                                            resizeMode="contain"
-                                        />
-                                        <Text
-                                            style={styles.pickerText}
-                                            numberOfLines={1}
-                                            ellipsizeMode="tail"
-                                        >
-                                            {categoriaInfo.nome_cat}
-                                        </Text>
-                                    </>
-                                ) : (
-                                    <>
-                                        <Text
-                                            style={styles.pickerText}
-                                            numberOfLines={1}
-                                            ellipsizeMode="tail"
-                                        >
-                                            Selecionar
-                                        </Text>
-                                    </>
-                                )}
-
-                                <Ionicons name="chevron-down" size={18} color="#fff" />
-                            </TouchableOpacity>
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+                <View style={{ flex: 1 }}>
+                    <ScrollView contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 5 }} showsVerticalScrollIndicator={false}>
 
 
-                        </View>
 
-                        {/* Valor */}
-                        <View style={styles.row}>
-                            <Valoricon width={16} height={16} color="#164878" />
-                            <Text style={styles.label}>Valor</Text>
-                            <View style={styles.valorContainer}>
-                                <TextInput
-                                    style={styles.valorInput}
-                                    keyboardType="numeric"
-                                    placeholder="0"
-                                    placeholderTextColor="#ccc"
-                                />
-                                <Text style={styles.euro}>€</Text>
+                        <View style={styles.card}>
+                            {/* Categoria */}
+                            <View style={styles.row}>
+                                <Catgoriaicon width={16} height={16} color="#164878" />
+                                <Text style={styles.label}>Categoria</Text>
+                                <TouchableOpacity
+                                    style={[
+                                        styles.pickerButton,
+                                        { backgroundColor: categoriaInfo?.cor_cat || '#5DADE2' }
+                                    ]}
+                                    onPress={() => {
+                                        setModalCategoriaVisivel(true);
+                                    }}
+                                >
+                                    {categoriaInfo ? (
+                                        <>
+                                            <Image
+                                                source={getImagemCategoria(categoriaInfo.img_cat)}
+                                                style={{ width: 22, height: 22 }}
+                                                resizeMode="contain"
+                                            />
+                                            <Text
+                                                style={styles.pickerText}
+                                                numberOfLines={1}
+                                                ellipsizeMode="tail"
+                                            >
+                                                {categoriaInfo.nome_cat}
+                                            </Text>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Text
+                                                style={styles.pickerText}
+                                                numberOfLines={1}
+                                                ellipsizeMode="tail"
+                                            >
+                                                Selecionar
+                                            </Text>
+                                        </>
+                                    )}
+
+                                    <Ionicons name="chevron-down" size={18} color="#fff" />
+                                </TouchableOpacity>
+
+
                             </View>
-                        </View>
 
-                        {/* Duração */}
-                        <View style={styles.row}>
-                            <Dataicon width={16} height={16} color="#164878" />
-                            <Text style={styles.label}>Duração</Text>
-                            <TouchableOpacity
-                                style={styles.duracaoButton}
-                                onPress={() => setModalDataVisivel(true)}
-                            >
-                                <Text style={styles.duracaoText}>
-                                    {dataInicio && dataFim
-                                        ? `${dataInicio.toLocaleDateString('pt-PT')} → ${dataFim.toLocaleDateString('pt-PT')}`
-                                        : 'Este mês'}
-                                </Text>
-                                <Ionicons name="chevron-down" size={18} color="#164878" />
-                            </TouchableOpacity>
+                            {/* Valor */}
+                            <View style={styles.row}>
+                                <Valoricon width={16} height={16} color="#164878" />
+                                <Text style={styles.label}>Valor</Text>
+                                <View style={styles.valorContainer}>
+                                    <TextInput
+                                        style={styles.valorInput}
+                                        value={valor !== null ? valor.toString() : ''}
+                                        onChangeText={(text) => {
+                                            const apenasNumeros = text.replace(/[^0-9]/g, '');
+                                            setValor(apenasNumeros ? parseInt(apenasNumeros, 10) : null);
+                                        }}
+                                        keyboardType="numeric"
+                                        maxLength={4}
+                                        placeholder="0"
+                                        placeholderTextColor="#164878"
+                                    />
 
-                        </View>
-
-                    </View>
-
-
-                    {/* REPETIR META*/}
-                    <View style={styles.repetirCard}>
-                        <View style={styles.repetirTextContainer}>
-                            <View style={styles.repetirRow}>
-                                <Repetiricon width={20} height={20} />
-                                <Text style={styles.repetirTitle}>Repetir Meta</Text>
+                                    <Text style={styles.euro}>€</Text>
+                                </View>
                             </View>
-                            <Text style={styles.repetirSub}>Esta meta será renovada automaticamente.</Text>
+
+                            {/* Duração */}
+                            <View style={styles.row}>
+                                <Dataicon width={16} height={16} color="#164878" />
+                                <Text style={styles.label}>Duração</Text>
+                                <TouchableOpacity
+                                    style={styles.duracaoButton}
+                                    onPress={() => setModalDataVisivel(true)}
+                                >
+                                    <Text style={styles.duracaoText}>
+                                        {rotuloDuracao || 'Selecionar'}
+                                    </Text>
+
+
+                                    <Ionicons name="chevron-down" size={18} color="#164878" />
+                                </TouchableOpacity>
+
+                            </View>
+
                         </View>
 
-                        <SwitchCustomizado value={repetir} onValueChange={setRepetir} />
 
+                        {/* REPETIR META*/}
+                        <View style={styles.repetirCard}>
+                            <View style={styles.repetirTextContainer}>
+                                <View style={styles.repetirRow}>
+                                    <Repetiricon width={20} height={20} />
+                                    <Text style={styles.repetirTitle}>Repetir Meta</Text>
+                                </View>
+                                <Text style={styles.repetirSub}>Esta meta será renovada automaticamente.</Text>
+                            </View>
+
+                            <SwitchCustomizado value={repetir} onValueChange={setRepetir} />
+
+                        </View>
+
+                        <AlertaCard
+                            alertaAtivo={alertaAtivo}
+                            onToggle={(ativo) => {
+                                if (valor && valor > 0) {
+                                    setAlertaAtivo(ativo);
+                                }
+                            }}
+                            valor={valor}
+                            onValorCalculadoChange={(val) => setValorCalculadoAlerta(val)}
+                        />
+
+
+                    </ScrollView>
+                    <View style={styles.footer}>
+                        <TouchableOpacity style={[
+                            styles.botaoCriarMeta,
+                            { opacity: podeCriarMeta ? 1 : 0.5 }
+                        ]}
+                            onPress={() => {
+                                if (podeCriarMeta) {
+                                    handleCriarMeta();
+                                    console.log('Criar Meta');
+                                }
+                            }}
+                            disabled={!podeCriarMeta}
+                        >
+                            <Ionicons name="checkmark" size={22} color="#fff" />
+                            <Text style={styles.botaoTexto}>Criar Meta</Text>
+                        </TouchableOpacity>
                     </View>
-
-                    <AlertaCard
-                        alertaAtivo={alertaAtivo}
-                        onToggle={setAlertaAtivo}
-                        percentual={percentual}
-                        valor={valor}
-                    />
-
-                </ScrollView>
-                <View style={styles.footer}>
-                    <TouchableOpacity style={styles.botaoCriarMeta} onPress={() => console.log('Criar Meta')}>
-                        <Ionicons name="checkmark" size={22} color="#fff" />
-                        <Text style={styles.botaoTexto}>Criar Meta</Text>
-                    </TouchableOpacity>
                 </View>
-            </View>
+            </TouchableWithoutFeedback>
             <ModalCategorias
                 visivel={modalCategoriaVisivel}
                 aoFechar={() => setModalCategoriaVisivel(false)}
@@ -229,13 +305,21 @@ const CriarMeta: React.FC = () => {
             />
             <ModalData
                 visivel={modalDataVisivel}
-                aoFechar={() => setModalDataVisivel(false)}
-                aoConfirmar={(inicio, fim) => {
+                opcaoSelecionada={opcaoDuracao}
+                setOpcaoSelecionada={setOpcaoDuracao}
+                aoFechar={() => {
+                    setOpcaoDuracao(ultimaOpcaoConfirmada); // reverter se cancelado
+                    setModalDataVisivel(false);
+                }}
+                aoConfirmar={(inicio, fim, rotulo) => {
                     setDataInicio(inicio);
                     setDataFim(fim);
+                    setRotuloDuracao(rotulo);
+                    setUltimaOpcaoConfirmada(opcaoDuracao); // confirmar a seleção
                     setModalDataVisivel(false);
                 }}
             />
+
 
 
 
@@ -277,8 +361,8 @@ const styles = StyleSheet.create({
     row: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 8,
-        marginTop: 6
+        marginBottom: 15,
+        marginTop: 8
     },
 
     label: {
@@ -311,7 +395,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'flex-end', // melhor para alinhas texto com símbolos
         borderBottomWidth: 1,
-        borderBottomColor: '#aaa',
+        borderBottomColor: '#4574A1',
         paddingBottom: 0, // reduz ainda mais a distância da linha
         marginTop: -5,
         marginBottom: 10 // opcional para subir tudo um pouco
@@ -339,7 +423,7 @@ const styles = StyleSheet.create({
 
     duracaoButton: {
         backgroundColor: '#ACCFF1',
-        borderRadius: 12,
+        borderRadius: 99,
         flexDirection: 'row',
         alignItems: 'center',
         paddingVertical: 6,
