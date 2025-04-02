@@ -80,6 +80,7 @@ async function inserirMeta(categoria_id, valor_meta, data_inicio, data_fim, repe
       recebe_alerta,
       notificado_limite_user: 0,
       notificado_valor_meta: 0,
+      meta_ativa: 1, 
       nome_cat: categoria?.nome_cat ?? 'Categoria',
     });
 
@@ -167,6 +168,8 @@ async function verificar_se_envia_notificacao(meta) {
 
     // ✅ Verifica se a meta está ativa e dentro da validade
     if (meta.meta_ativa !== 1 ) {
+      console.log('🧪 Objeto meta recebido:', meta);
+      console.log('Valor da variável:',meta.meta_ativa);
       console.log(`⏳ Meta ${meta.id_meta} não está ativa ou fora do intervalo de datas.`);
       return;
     }

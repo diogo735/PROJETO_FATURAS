@@ -84,7 +84,7 @@ const Pagina_principal: React.FC = () => {
 
 
   const handleNotificacaoPress = () => {
-    Alert.alert('Notificações', 'Você clicou no botão de notificações!');
+    Alert.alert('Notificações', ' notificações');
   };
 
   return (

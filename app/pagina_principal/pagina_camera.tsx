@@ -6,6 +6,7 @@ import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as NavigationBar from 'expo-navigation-bar';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import Modal from 'react-native-modal';
 
 import { CameraView, useCameraPermissions, CameraType } from 'expo-camera';
 import FaturaVerde from '../../assets/icons/pagina_camera/detetou_fatura.svg';
@@ -21,7 +22,8 @@ export default function PaginaCamera() {
   const [qrDetectado, setQrDetectado] = useState(false);
   const qrTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [flashLigado, setFlashLigado] = useState(false);
-
+  const [conteudoQr, setConteudoQr] = useState<string | null>(null);
+  const [dadosFatura, setDadosFatura] = useState<any | null>(null);
 
 
 
@@ -52,7 +54,9 @@ export default function PaginaCamera() {
   const handleQrDetectado = ({ data }: { data: string }) => {
     // Ativa o estado visual verde
     setQrDetectado(true);
-
+    setConteudoQr(data);
+    setDadosFatura(interpretarQr(data));
+    console.log('📦 QR Code lido:', data);
     // Limpa o timeout anterior (evita desativar logo a seguir)
     if (qrTimeoutRef.current) clearTimeout(qrTimeoutRef.current);
 
@@ -61,7 +65,25 @@ export default function PaginaCamera() {
       setQrDetectado(false);
     }, 200);
   };
+  function interpretarQr(qr: string) {
+    const dados = Object.fromEntries(qr.split('*').map(parte => {
+      const [chave, valor] = parte.split(':');
+      return [chave, valor];
+    }));
 
+    return {
+      emissor: `${dados.A} (${dados.C})`,
+      cliente: dados.B,
+      tipo: dados.D === 'FS' ? 'Fatura Simplificada (FS)' : dados.D,
+      data: new Date(dados.F).toLocaleDateString('pt-PT'),
+      numero: dados.G,
+      atcud: dados.H,
+      totalLiquido: dados.I7 + ' €',
+      iva: dados.I8 + ' €',
+      total: dados.O + ' €',
+      certificado: dados.R,
+    };
+  }
 
 
   return (
@@ -125,6 +147,30 @@ export default function PaginaCamera() {
           </View>
 
         </CameraView>
+        <Modal isVisible={!!dadosFatura} onBackdropPress={() => setDadosFatura(null)}>
+          <View style={{ backgroundColor: 'white', padding: 20, borderRadius: 12 }}>
+            <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>mODAL TESTE</Text>
+
+            <Text>🧾 Emissor: {dadosFatura?.emissor}</Text>
+            <Text>👤 Cliente: {dadosFatura?.cliente}</Text>
+            <Text>📂 Tipo: {dadosFatura?.tipo}</Text>
+            <Text>📅 Data: {dadosFatura?.data}</Text>
+            <Text>🔢 Nº Fatura: {dadosFatura?.numero}</Text>
+            <Text>📎 ATCUD: {dadosFatura?.atcud}</Text>
+            <Text>💰 Total líquido: {dadosFatura?.totalLiquido}</Text>
+            <Text>🧾 IVA: {dadosFatura?.iva}</Text>
+            <Text>💳 Total: {dadosFatura?.total}</Text>
+            <Text>🔐 Certificado: {dadosFatura?.certificado}</Text>
+
+            <TouchableOpacity
+              style={{ marginTop: 20, alignSelf: 'flex-end' }}
+              onPress={() => setDadosFatura(null)}
+            >
+              <Text style={{ color: '#2C72B4', fontWeight: 'bold' }}>Fechar</Text>
+            </TouchableOpacity>
+          </View>
+        </Modal>
+
 
 
       </View>
