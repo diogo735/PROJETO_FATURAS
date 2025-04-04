@@ -7,6 +7,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import * as NavigationBar from 'expo-navigation-bar';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Modal from 'react-native-modal';
+import * as ImageManipulator from 'expo-image-manipulator';
+
+import { Image } from 'react-native';
+import { Dimensions } from 'react-native';
+
+const { width, height } = Dimensions.get('window');
+const screenRatio = height / width;
 
 import { CameraView, useCameraPermissions, CameraType } from 'expo-camera';
 import FaturaVerde from '../../assets/icons/pagina_camera/detetou_fatura.svg';
@@ -24,6 +31,10 @@ export default function PaginaCamera() {
   const [flashLigado, setFlashLigado] = useState(false);
   const [conteudoQr, setConteudoQr] = useState<string | null>(null);
   const [dadosFatura, setDadosFatura] = useState<any | null>(null);
+  const cameraRef = useRef<CameraView>(null);
+
+  const [fotoCapturada, setFotoCapturada] = useState<string | null>(null);
+  const [mostrarFotoModal, setMostrarFotoModal] = useState(false);
 
 
 
@@ -55,7 +66,7 @@ export default function PaginaCamera() {
     // Ativa o estado visual verde
     setQrDetectado(true);
     setConteudoQr(data);
-    setDadosFatura(interpretarQr(data));
+    //setDadosFatura(interpretarQr(data));
     console.log('📦 QR Code lido:', data);
     // Limpa o timeout anterior (evita desativar logo a seguir)
     if (qrTimeoutRef.current) clearTimeout(qrTimeoutRef.current);
@@ -85,17 +96,36 @@ export default function PaginaCamera() {
     };
   }
 
+  const tirarFoto = async () => {
+    if (cameraRef.current) {
+      try {
+        const foto = await cameraRef.current.takePictureAsync({ base64: true, quality: 1 });
+        if (foto && foto.uri) {
+          setFotoCapturada(foto.uri);
+          setMostrarFotoModal(true);
+        } else {
+          console.warn('⚠️ Nenhuma foto foi capturada.');
+        }
+      } catch (error) {
+        console.error('Erro ao tirar foto:', error);
+      }
+    }
+  };
+  
+  
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'right', 'left']}>
       <View style={styles.container}>
         <CameraView
-
-          style={styles.camera}
+          ref={cameraRef}
+          style={[styles.camera]}
+          mode="picture"
           facing={facing}
           barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
           onBarcodeScanned={handleQrDetectado}
           enableTorch={flashLigado}
+          
 
 
         >
@@ -118,8 +148,17 @@ export default function PaginaCamera() {
           </TouchableOpacity>
 
           <View style={styles.centralizeBox}>
-            <Text style={styles.centralizeText}>Centralize a sua fatura</Text>
+            {qrDetectado ? (
+              <Text style={[styles.centralizeText, { color: '#4AAF53' }]}>
+                Fatura Detetada !
+              </Text>
+            ) : (
+              <Text style={styles.centralizeText}>
+                Centralize a sua fatura até ficar <Text style={{ color: '#4AAF53', fontWeight: 'bold' }}>Verde</Text>
+              </Text>
+            )}
           </View>
+
 
           <View style={styles.bottomControls}>
 
@@ -128,7 +167,7 @@ export default function PaginaCamera() {
             </TouchableOpacity>
 
 
-            <TouchableOpacity style={styles.captureOuter} onPress={() => console.log('Capturar')}>
+            <TouchableOpacity style={styles.captureOuter} onPress={tirarFoto}>
               <View style={styles.captureInner} />
             </TouchableOpacity>
 
@@ -147,6 +186,7 @@ export default function PaginaCamera() {
           </View>
 
         </CameraView>
+
         <Modal isVisible={!!dadosFatura} onBackdropPress={() => setDadosFatura(null)}>
           <View style={{ backgroundColor: 'white', padding: 20, borderRadius: 12 }}>
             <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>mODAL TESTE</Text>
@@ -167,6 +207,18 @@ export default function PaginaCamera() {
               onPress={() => setDadosFatura(null)}
             >
               <Text style={{ color: '#2C72B4', fontWeight: 'bold' }}>Fechar</Text>
+            </TouchableOpacity>
+          </View>
+        </Modal>
+
+        <Modal isVisible={mostrarFotoModal} onBackdropPress={() => setMostrarFotoModal(false)}>
+          <View style={{ backgroundColor: 'white', padding: 10, borderRadius: 12 }}>
+            <Text style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 10 }}>📸 Foto Capturada</Text>
+            {fotoCapturada && (
+              <Image source={{ uri: fotoCapturada }} style={{ width: '100%', height: 400, borderRadius: 8 }} resizeMode="contain" />
+            )}
+            <TouchableOpacity onPress={() => setMostrarFotoModal(false)} style={{ marginTop: 15 }}>
+              <Text style={{ color: '#2C72B4', fontWeight: 'bold', textAlign: 'right' }}>Fechar</Text>
             </TouchableOpacity>
           </View>
         </Modal>
