@@ -34,3 +34,7 @@ yarn-error.*
 
 # typescript
 *.tsbuildinfo
+
+# Android build - ignore tudo exceto APK
+android/app/build/
+!android/app/build/outputs/apk/debug/app-debug.apk
