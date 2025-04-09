@@ -174,6 +174,23 @@ async function inserirCategoria(img_cat, cor_cat, nome_cat) {
       return [];
     }
   }
+  async function listarCategoriasComTipo() {
+    try {
+      const db = await CRIARBD();
+  
+      const result = await db.getAllAsync(`
+        SELECT categorias.*, tipo_movimento.nome_movimento AS tipo_nome
+        FROM categorias
+        INNER JOIN tipo_movimento ON categorias.tipo_movimento_id = tipo_movimento.id
+      `);
+  
+      return result; // já vem como array de objetos
+    } catch (error) {
+      console.error('❌ Erro ao buscar categorias com tipo:', error);
+      return [];
+    }
+  }
+  
   
   
 async function apagarTodasCategorias() {
@@ -212,6 +229,7 @@ export { criarTabelaCategorias,
     apagarTodasCategorias,
     deletarTabelaCategorias,
     listarCategoriasDespesa,
+    listarCategoriasComTipo,
     buscarCategoriaPorId
 
   };

@@ -5,19 +5,22 @@ import MovimentoItem from './movimento_item';
 import { format, isToday } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { Image } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 
-
-
+import { RootStackParamList } from '../../../../App';
+type NavigationProps = StackNavigationProp<RootStackParamList, 'Movimentos'>
 const { width, height } = Dimensions.get('window');
 interface Props {
     movimentos: any[];
 }
 const UltimosMovimentos: React.FC<Props> = ({ movimentos }) => {
+    const navigation = useNavigation<NavigationProps>();
 
     const handleVerTodos = () => {
-        Alert.alert('Ver Todos', 'Você clicou em "Ver Todos"!');
-
+        navigation.navigate('Movimentos');
     };
+
 
     function formatarHora(dataStr: string): string {
         const data = new Date(dataStr);
@@ -33,6 +36,9 @@ const UltimosMovimentos: React.FC<Props> = ({ movimentos }) => {
             acc[chave].push(movimento);
             return acc;
         }, {} as { [chave: string]: any[] });
+    }
+    function formatarNumero(valor: number): string {
+        return valor % 1 === 0 ? valor.toString() : valor.toFixed(2);
     }
 
     function agruparPorHoraCheia(movimentos: any[]): { [hora: string]: any[] } {
@@ -105,10 +111,10 @@ const UltimosMovimentos: React.FC<Props> = ({ movimentos }) => {
                                         <Text
                                             style={[
                                                 styles.totalReceita,
-                                                totalReceitas === 0 && { color: '#969696' }, // cinzento se for 0
+                                                totalReceitas === 0 && { color: '#969696' },
                                             ]}
                                         >
-                                            +{totalReceitas || 0} €
+                                            +{formatarNumero(Number(totalReceitas) || 0)} €
                                         </Text>
 
                                         <Text
@@ -117,7 +123,7 @@ const UltimosMovimentos: React.FC<Props> = ({ movimentos }) => {
                                                 totalDespesas === 0 && { color: '#969696' },
                                             ]}
                                         >
-                                            -{totalDespesas || 0} €
+                                            -{formatarNumero(Number(totalDespesas) || 0)} €
                                         </Text>
                                     </View>
 
@@ -157,7 +163,7 @@ const UltimosMovimentos: React.FC<Props> = ({ movimentos }) => {
                                                                 height: 70,
                                                                 width: 6,
                                                                 backgroundColor:
-                                                                    mov.nome_movimento === 'Despesa' ? '#FCA5A5' : '#34D399',
+                                                                    mov.nome_movimento === 'Despesa' ? '#FCA5A5' : '#A7F3D0',
                                                                 borderTopLeftRadius: i === 0 ? 100 : 0,
                                                                 borderTopRightRadius: i === 0 ? 100 : 0,
                                                                 borderBottomLeftRadius: i === movimentosHora.length - 1 ? 100 : 0,
@@ -179,6 +185,7 @@ const UltimosMovimentos: React.FC<Props> = ({ movimentos }) => {
                                                             cor={mov.cor_cat}
                                                             imagem={mov.img_cat}
                                                             tipo={mov.nome_movimento}
+                                                            onPress={() => navigation.navigate('Fatura', { id: mov.id })}
                                                         />
                                                     </View>
                                                 ))}

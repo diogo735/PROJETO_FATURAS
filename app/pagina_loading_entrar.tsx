@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { StatusBar, Platform } from 'react-native';
-
+;
 import Logo from '../assets/imagens/icon_app_porco.svg';
 import { useFonts, Nokora_400Regular, Nokora_900Black } from '@expo-google-fonts/nokora';
 import IconeRotativo from '../assets/imagens/wallpaper.svg';

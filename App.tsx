@@ -9,6 +9,7 @@ import PagLoadingEntrar from './app/pagina_loading_entrar';
 import TabNavigator from './componentes/barra_navegacao';
 import * as NavigationBar from 'expo-navigation-bar';
 import CriarMeta from './app/pagina_metas/criar_meta/criar_meta';
+import PaginaSucesso from './app/pagina_principal/pagina_sucesso_fatura';
 
 
 import PaginaMovimentos from './app/pagina_moviementos/pagina_movimentos';
@@ -26,11 +27,11 @@ import * as Notify from 'expo-notifications';
 
 
 Notify.setNotificationHandler({
-  handleNotification : async()=> ({
-    shouldPlaySound:true,
-    shouldShowAlert:true,
-    shouldSetBadge:true,
-  })    
+  handleNotification: async () => ({
+    shouldPlaySound: true,
+    shouldShowAlert: true,
+    shouldSetBadge: true,
+  })
 });
 
 export type RootStackParamList = {
@@ -41,7 +42,14 @@ export type RootStackParamList = {
   Perfil: undefined;
   Fatura: { id: number };
   CriarMeta: undefined;
-  Camera:undefined;
+  Camera: undefined;
+  PaginaSucesso: {
+    conteudoQr: string | null;
+    categoriaId: number | null;
+    nota: string | null;
+    nomeEmpresa: string | null;
+    imagemUri: string | null;
+  };
 
 };
 
@@ -58,7 +66,7 @@ const SplashScreen = (props: any) => {
       NavigationBar.setButtonStyleAsync('light');
     }
   }, []);
-  
+
 
   return (
     <View style={{ flex: 1 }}>
@@ -115,6 +123,12 @@ const CameraScreen = (props: any) => (
     <PaginaCamera {...props} />
   </View>
 );
+const PaginaSucessoScreen = (props: any) => (
+  <View style={styles.defaultContainer}>
+    <StatusBar translucent backgroundColor="transparent" style="dark" />
+    <PaginaSucesso {...props} />
+  </View>
+);
 
 
 const App: React.FC = () => {
@@ -127,8 +141,21 @@ const App: React.FC = () => {
         <Stack.Screen name="Movimentos" component={MovimentosScreen} />
         <Stack.Screen name="Metas" component={MetasScreen} />
         <Stack.Screen name="Perfil" component={PerfilScreen} />
-        <Stack.Screen name="Fatura" component={FaturaScreen} />
+        <Stack.Screen
+          name="Fatura"
+          component={FaturaScreen}
+          options={{
+            animation: 'fade',
+
+            transitionSpec: {
+              open: { animation: 'timing', config: { duration: 350 } },
+              close: { animation: 'timing', config: { duration: 250 } },
+            },
+          }}
+        />
+
         <Stack.Screen name="CriarMeta" component={CriarMetaScreen} />
+        <Stack.Screen name="PaginaSucesso" component={PaginaSucessoScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
@@ -138,7 +165,7 @@ const styles = StyleSheet.create({
   defaultContainer: {
     flex: 1,
     backgroundColor: 'white',
-    paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight ?? 0 : height*0.056,
+    paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight ?? 0 : height * 0.056,
   },
 });
 

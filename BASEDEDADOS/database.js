@@ -23,7 +23,8 @@ async function inicializarBaseDeDados() {
     await criarTabelaMovimentos();//await inserirVariosMovimentos();
     
     //faturas
-    //await criarTabelaFaturas();
+    await criarTabelaFaturas();
+    //await apagarTabelaFaturas();
   
     //metas
     await criarTabelaMetas(); //await limparMetas();

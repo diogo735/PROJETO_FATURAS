@@ -23,46 +23,47 @@ async function criarTabelaMovimentos() {
     }
 }
 
-async function inserirMovimento(valor, data_movimento, categoria_id, tipo_movimento_id, nota = '') {
+async function inserirMovimento(valor, data_movimento, categoria_id, tipo_movimento_id, nota) {
     try {
         const db = await CRIARBD();
 
-        // 1. Inserir movimento
-        await db.runAsync(
+        const result = await db.runAsync(
             `INSERT INTO movimentos (valor, data_movimento, categoria_id, tipo_movimento_id, nota) 
-         VALUES (?, ?, ?, ?, ?);`,
+             VALUES (?, ?, ?, ?, ?);`,
             [valor, data_movimento, categoria_id, tipo_movimento_id, nota]
         );
 
-        // 2. Verificar se há alguma meta com essa categoria
+        const movimentoId = result.lastInsertRowId;
+
+        // Atualiza metas (continua igual)
         const meta = await db.getFirstAsync(
             `SELECT * FROM metas 
              WHERE categoria_id = ? 
                AND meta_ativa = 1
                AND date(?) BETWEEN date(data_inicio) AND date(data_fim)`,
             [categoria_id, data_movimento]
-          );
-          
+        );
 
         if (meta) {
             const novoValor = (meta.valor_atual || 0) + valor;
 
-            // 3. Atualizar valor_atual da meta
             await db.runAsync(
                 `UPDATE metas SET valor_atual = ? WHERE id_meta = ?`,
                 [novoValor, meta.id_meta]
             );
-            // Atualiza a meta com novo valor para passar à função de verificação
             const metaAtualizada = { ...meta, valor_atual: novoValor };
             await verificar_se_envia_notificacao(metaAtualizada);
-
-            console.log(`📈 Meta ${meta.id_meta} atualizada: novo valor atual = ${novoValor}`);
         }
 
+        return movimentoId;
+
     } catch (error) {
-        console.error('❌ Erro ao inserir movimento ou atualizar meta:', error);
+        console.error('❌ Erro ao inserir movimento:', error);
+        return null;
     }
 }
+
+
 
 
 async function inserirVariosMovimentos() {
@@ -394,7 +395,19 @@ async function obterBalancoGeral(mes, ano) {
 
 //////////////////////////PAGINA DEYALHES F A T U R A S //////////
 
-
+async function obterCategoriaPorMovimentoId(movimentoId) {
+    const db = await CRIARBD();
+  
+    const result = await db.getFirstAsync(`
+      SELECT c.nome_cat as nome_categoria, c.img_cat as icone_categoria
+      FROM movimentos m
+      JOIN categorias c ON m.categoria_id = c.id
+      WHERE m.id = ?
+    `, [movimentoId]);
+  
+    return result;
+  }
+  
 
 
 
@@ -473,5 +486,7 @@ export {
     listarMovimentosUltimos30Dias,
     obterSaldoMensalAtual,
     buscarMovimentosPorMesAno,
-    obterBalancoGeral
+    obterBalancoGeral,
+    obterCategoriaPorMovimentoId
+    
 };
