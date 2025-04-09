@@ -10,7 +10,7 @@ import TabNavigator from './componentes/barra_navegacao';
 import * as NavigationBar from 'expo-navigation-bar';
 import CriarMeta from './app/pagina_metas/criar_meta/criar_meta';
 import PaginaSucesso from './app/pagina_principal/pagina_sucesso_fatura';
-
+import * as SplashScreen from 'expo-splash-screen';
 
 import PaginaMovimentos from './app/pagina_moviementos/pagina_movimentos';
 import PaginaMetas from './app/pagina_metas/pagina_metas';
@@ -25,6 +25,7 @@ import 'react-native-gesture-handler';
 import 'react-native-reanimated';
 import * as Notify from 'expo-notifications';
 
+SplashScreen.preventAutoHideAsync();
 
 Notify.setNotificationHandler({
   handleNotification: async () => ({
@@ -57,7 +58,7 @@ export type RootStackParamList = {
 const Stack = createStackNavigator<RootStackParamList>();
 
 // SPLASH: fullscreen com barra transparente (status + navigation)
-const SplashScreen = (props: any) => {
+const SplashScren = (props: any) => {
   useEffect(() => {
     if (Platform.OS === 'android') {
       // Remove cor de fundo da UI
@@ -135,7 +136,7 @@ const App: React.FC = () => {
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Splash" component={SplashScreen} />
+        <Stack.Screen name="Splash" component={SplashScren} />
         <Stack.Screen name="Camera" component={CameraScreen} options={{ headerShown: false }} />
         <Stack.Screen name="MainApp" component={MainAppScreen} />
         <Stack.Screen name="Movimentos" component={MovimentosScreen} />

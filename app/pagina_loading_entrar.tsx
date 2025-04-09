@@ -23,6 +23,7 @@ const PagLoadingEntrar = () => {
   useEffect(() => {
     const carregarBD = async () => {
       try {
+       
         await inicializarBaseDeDados();
         await verificarNotificacoesDeTodasMetas();
         await SplashScreen.hideAsync();
