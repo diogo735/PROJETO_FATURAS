@@ -4,21 +4,21 @@ import { View, Text, StyleSheet, Dimensions, TouchableOpacity, TextInput, Switch
 import { scale } from 'react-native-size-matters';
 const { height, width } = Dimensions.get('window');
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { buscarCategoriaPorId } from '../../../BASEDEDADOS/categorias';
+import { buscarCategoriaPorId } from '../../BASEDEDADOS/categorias';
 import Catgoriaicon from '../../../assets/icons/pagina_criar_meta/categorias.svg';
 import Valoricon from '../../../assets/icons/pagina_criar_meta/valor.svg';
 import Dataicon from '../../../assets/icons/pagina_criar_meta/data.svg';
 import Repetiricon from '../../../assets/icons/pagina_criar_meta/repetir.svg';
-import SwitchCustomizado from './componentes/switch_customizado';
-import AlertaCard from './componentes/alerta_card';
+import SwitchCustomizado from './criar_meta/componentes/switch_customizado';
+import AlertaCard from './criar_meta/componentes/alerta_card';
 import { ScrollView } from 'react-native';
-import ModalCategorias from './modal_categorias';
-import { Categoria } from '../../../BASEDEDADOS/tipos_tabelas';
+import ModalCategorias from './criar_meta/modal_categorias';
+import { Categoria } from '../../BASEDEDADOS/tipos_tabelas';
 import { Image } from 'react-native';
-import ModalData from './modal_data';
+import ModalData from './criar_meta/modal_data';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
-import { inserirMeta } from '../../../BASEDEDADOS/metas';
+import { inserirMeta } from '../../BASEDEDADOS/metas';
 
 
 import { Keyboard, TouchableWithoutFeedback } from 'react-native';
@@ -65,7 +65,7 @@ function getImagemCategoria(img_cat: any): ImageSourcePropType {
 }
 
 
-const CriarMeta: React.FC = () => {
+const EditarMeta: React.FC = () => {
     const [valorCalculadoAlerta, setValorCalculadoAlerta] = useState(0);
 
     const [repetir, setRepetir] = React.useState(false);
@@ -511,4 +511,4 @@ const styles = StyleSheet.create({
 
 });
 
-export default CriarMeta;
+export default EditarMeta;

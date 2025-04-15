@@ -12,6 +12,7 @@ import { listarMetas } from '../../BASEDEDADOS/metas';
 type NavigationProp = StackNavigationProp<RootStackParamList>;
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
+import ModalOpcoesMeta from './componestes_metas/modal_opcoes_meta';
 
 
 
@@ -45,6 +46,8 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({ onPress }) 
 
 const Pagina_metas: React.FC = () => {
   const [metas, setMetas] = useState<Meta[]>([]);
+  const [modalVisivel, setModalVisivel] = useState(false);
+  const [metaSelecionada, setMetaSelecionada] = useState<Meta | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -62,8 +65,8 @@ const Pagina_metas: React.FC = () => {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Metas Mensais</Text>
-        <TouchableOpacity onPress={() => alert('Opções')}>
-          <Ionicons name="ellipsis-vertical" size={24} color="white" />
+        <TouchableOpacity onPress={() => navigation.navigate('CriarMeta')}>
+          <Ionicons name="add" size={24} color="white" />
         </TouchableOpacity>
       </View>
 
@@ -81,7 +84,10 @@ const Pagina_metas: React.FC = () => {
           {metas.map((meta) => (
             <TouchableOpacity
               key={meta.id_meta}
-              onPress={() => console.log('Meta clicada:', meta.id_meta)}
+              onPress={() => {
+                setMetaSelecionada(meta);
+                setModalVisivel(true);
+              }}
               activeOpacity={0.8}
             >
               <CardMetas meta={meta} />
@@ -91,9 +97,33 @@ const Pagina_metas: React.FC = () => {
         </View>
       )}
 
-      <FloatingActionButton onPress={() => navigation.navigate('CriarMeta')} /> 
+      {metas.length === 0 && (
+        <FloatingActionButton onPress={() => navigation.navigate('CriarMeta')} />
+      )}
+
+      <ModalOpcoesMeta
+        visivel={modalVisivel}
+        aoFechar={() => setModalVisivel(false)}
+        aoVerMovimentos={() => {
+          setModalVisivel(false);
+          if (metaSelecionada?.id_meta !== undefined) {
+            navigation.navigate('MovimentosDaMeta', { id_meta: metaSelecionada.id_meta });
+          }          
+        }}
+        aoEditar={() => {
+          setModalVisivel(false);
+          //navigation.navigate('EditarMeta', { id: metaSelecionada?.id_meta });
+        }}
+        aoApagar={() => {
+          setModalVisivel(false);
+          console.log('Apagar meta:', metaSelecionada?.id_meta);
+          // confirmar exclusão e apagar da base
+        }}
+      />
+
 
     </View>
+
   );
 };
 
@@ -112,7 +142,7 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#2565A3',
-    height: height * 0.09,
+    height: height * 0.08,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',

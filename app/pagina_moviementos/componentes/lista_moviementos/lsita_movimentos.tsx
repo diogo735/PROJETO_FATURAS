@@ -70,7 +70,13 @@ const ListaMovimentosAgrupada: React.FC<Props> = ({ movimentos }) => {
             // Renderiza cada item (movimento) usando seu card
             renderItem={({ item }) => (
                 <MovimentoCard
-                    nome={item.nota} // agora o campo de nota é usado como "nome"
+                nome={
+                    item.nota?.trim()
+                      ? item.nota
+                      : item.nome_movimento === 'Despesa'
+                        ? 'Despesa sem nome'
+                        : 'Receita sem nome'
+                  }                  
                     valor={Math.abs(item.valor)}
                     hora={item.data_movimento ? moment(item.data_movimento).format('HH:mm') : '--:--'}
                     cor={item.cor_cat}

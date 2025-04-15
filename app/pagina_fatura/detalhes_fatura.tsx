@@ -18,11 +18,21 @@ import Dados from '../../assets/icons/pagina_fatura/dados.svg';
 import Pagamento from '../../assets/icons/pagina_fatura/pagamento.svg';
 import Empresa from '../../assets/icons/pagina_fatura/empresa.svg';
 import AnexoIcon from '../../assets/icons/pagina_fatura/imagem.svg';
-type FaturaRouteProp = RouteProp<RootStackParamList, 'Fatura'>;
+import { atualizarMovimentoPorFatura } from '../../BASEDEDADOS/faturas';
 import Modal from 'react-native-modal';
 import ImageViewer from 'react-native-image-zoom-viewer';
+import ModalOpcoesFatura from './componentes/modal_opcoes_fatura';
+import ModalEditarFatura from './componentes/modal_opçoes_editar';
+import { buscarCategoriaPorId } from '../../BASEDEDADOS/categorias';
+import * as FileSystem from 'expo-file-system';
+import { Platform } from 'react-native';
+import { PermissionsAndroid } from 'react-native';
+import RNFS from 'react-native-fs';
 
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 
+type FaturaRouteProp = RouteProp<RootStackParamList, 'Fatura'>;
 interface Props {
     route: FaturaRouteProp;
 }
@@ -65,24 +75,464 @@ function obterImagemCategoria(img_cat: string): ImageSourcePropType {
 
     return imagensLocais[img_cat] || imagensLocais['outros.png'];
 }
+
+
+async function converterImagemParaBase64(url: string): Promise<string | null> {
+    try {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        const reader = new FileReader();
+
+        return await new Promise((resolve) => {
+            reader.onloadend = () => resolve(reader.result?.toString() || null);
+            reader.readAsDataURL(blob);
+        });
+    } catch (error) {
+        console.error("Erro ao converter imagem:", error);
+        return null;
+    }
+}
+
 const DetalhesFatura: React.FC<Props> = ({ route }) => {
     const { id } = route.params;
     const [fatura, setFatura] = useState<Fatura | null>(null);
-    const [categoriaInfo, setCategoriaInfo] = useState<{ nome_categoria: string, icone_categoria: string } | null>(null);
+    const [categoriaInfo, setCategoriaInfo] = useState<{
+        id: number;
+        nome_categoria: string;
+        cor_categoria: string;
+        icone_categoria: string;
+    } | null>(null);
 
     const navigation = useNavigation();
     const textoVat = fatura?.nif_emitente ? `NIF: PT${fatura.nif_emitente}` : 'NIF: ---';
     const [imagemAmpliada, setImagemAmpliada] = useState(false);
 
+    const [mostrarModalOpcoes, setMostrarModalOpcoes] = useState(false);
+    const [mostrarModalEditar, setMostrarModalEditar] = useState(false);
+    const [mostrarModalSucesso, setMostrarModalSucesso] = useState(false);
+    const [mostrarModalDownload, setMostrarModalDownload] = useState(false);
+
+    const editarFatura = () => {
+        if (!categoriaInfo) {
+            console.warn('⚠️ Categoria ainda não carregada, não pode abrir o modal!');
+            return;
+        }
+
+        setMostrarModalOpcoes(false);
+        setMostrarModalEditar(true);
+    };
+
+    const partilharFatura = async () => {
+        if (!fatura) return;
+        const nomeSeguro = `Fatura_${fatura.numero_fatura.replace(/[\\/:"*?<>|]/g, "_")}.pdf`;
+        let imagemBase64 = '';
+        if (fatura.imagem_fatura) {
+            const base64 = await converterImagemParaBase64(fatura.imagem_fatura);
+            if (base64) {
+                imagemBase64 = `
+            <div style="page-break-before: always; padding: 40px; text-align: center;">
+              <h2 style="color: #2565A3; font-family: Arial;">Foto capturada da fatura:</h2>
+              <img src="${base64}" style="margin-top: 20px; width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" />
+            </div>
+          `;
+            }
+        }
+
+        const html = `
+            <html>
+                <head>
+                <meta charset="utf-8" />
+                <style>
+                    body {
+                    font-family: Arial, sans-serif;
+                    padding: 40px 40px;
+                    background-color: #F5F7FB;
+                    }
+                    .card {
+                    background: white;
+                    border-radius: 14px;
+                    padding: 40px;
+                    max-width: 100%;
+                    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+                    }
+                    .header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 30px;
+                    }
+                    .tipo-doc {
+                    font-size: 18px;
+                    color: #5A7D9A;
+                    }
+                    .categoria {
+                    background-color: #2565A3;
+                    color: white;
+                    padding: 8px 18px;
+                    border-radius: 20px;
+                    font-size: 14px;
+                    font-weight: 500;
+                    }
+                    .bloco {
+                    margin-bottom: 28px;
+                    }
+                    .titulo {
+                    font-size: 20px;
+                    color: #2565A3;
+                    font-weight: bold;
+                    margin-bottom: 10px;
+                    }
+                    .valor {
+                    font-size: 17px;
+                    color: #698B9C;
+                    }
+                    .linha {
+                    height: 1px;
+                    background-color: #D9D9D9;
+                    margin: 25px 0;
+                    }
+                    .empresa {
+                    font-size: 19px;
+                    font-weight: bold;
+                    color: #2565A3;
+                    }
+                    .vat {
+                    font-size: 17px;
+                    color: #7C9CBF;
+                    }
+                    .pagamento {
+                    font-size: 18px;
+                    color: #A0AEB9;
+                    display: flex;
+                    justify-content: space-between;
+                    margin-bottom: 8px;
+                    }
+                    .total {
+                    font-size: 24px;
+                    font-weight: bold;
+                    color: #2565A3;
+                    display: flex;
+                    justify-content: space-between;
+                    margin-top: 18px;
+                    }
+                </style>
+                </head>
+                <body>
+                <div class="card">
+                    <div class="header">
+                    <div class="tipo-doc">${fatura.tipo_documento}</div>
+                    <div class="categoria">${categoriaInfo?.nome_categoria ?? '---'}</div>
+                    </div>
+
+                    <div class="bloco">
+                    <div class="titulo">Data</div>
+                    <div class="valor">${formatarData(fatura.data_fatura)}</div>
+                    </div>
+
+                    <div class="linha"></div>
+
+                    <div class="bloco">
+                    <div class="titulo">Nº Documento</div>
+                    <div class="valor">${fatura.numero_fatura}</div>
+                    </div>
+
+                    <div class="linha"></div>
+
+                    <div class="bloco">
+                    <div class="titulo">Descrição</div>
+                    <div class="valor">${fatura.descricao || 'Sem descrição'}</div>
+                    </div>
+
+                    <div class="linha"></div>
+
+                    <div class="bloco">
+                    <div class="titulo">Empresa</div>
+                    <div class="empresa">${fatura.nome_empresa || 'Empresa Privada'}</div>
+                    <div class="vat">NIF: PT${fatura.nif_emitente || '---'}</div>
+                    </div>
+
+                    <div class="linha"></div>
+
+                    <div class="bloco">
+                    <div class="titulo">Dados</div>
+                    <div class="valor">${formatarContribuinte(fatura.nif_cliente)}</div>
+                    </div>
+
+                    <div class="linha"></div>
+
+                    <div class="bloco">
+                    <div class="titulo">Pagamento</div>
+                    <div class="pagamento"><span>Subtotal</span><span>${(fatura.total_final - fatura.total_iva).toFixed(2)}€</span></div>
+                    <div class="pagamento"><span>IVA (23%)</span><span>${fatura.total_iva.toFixed(2)}€</span></div>
+                    <div class="total"><span>Total</span><span>${fatura.total_final.toFixed(2)}€</span></div>
+                    </div>
+                </div>
+                ${imagemBase64}
+                </body>
+            </html>
+            `;
+
+
+
+        try {
+            const { uri: originalUri } = await Print.printToFileAsync({ html });
+
+            const novoCaminho = FileSystem.documentDirectory + nomeSeguro;
+
+            await FileSystem.moveAsync({
+                from: originalUri,
+                to: novoCaminho,
+            });
+
+            console.log('📄 PDF criado em:', novoCaminho);
+            await Sharing.shareAsync(novoCaminho);
+        } catch (error) {
+            console.error('❌ Erro ao gerar PDF:', error);
+        }
+
+        setMostrarModalOpcoes(false);
+    };
+
+
+
+    const downloadPDF = async () => {
+        if (!fatura) return;
+
+        const nomeSeguro = `Fatura_${fatura.numero_fatura.replace(/[\\/:"*?<>|]/g, "_")}.pdf`;
+        let imagemBase64 = '';
+        if (fatura.imagem_fatura) {
+            const base64 = await converterImagemParaBase64(fatura.imagem_fatura);
+            if (base64) {
+                imagemBase64 = `
+            <div style="page-break-before: always; padding: 40px; text-align: center;">
+              <h2 style="color: #2565A3; font-family: Arial;">Foto capturada da fatura:</h2>
+              <img src="${base64}" style="margin-top: 20px; width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" />
+            </div>
+          `;
+            }
+        }
+
+        const html = `
+            <html>
+                <head>
+                <meta charset="utf-8" />
+                <style>
+                    body {
+                    font-family: Arial, sans-serif;
+                    padding: 40px 40px;
+                    background-color: #F5F7FB;
+                    }
+                    .card {
+                    background: white;
+                    border-radius: 14px;
+                    padding: 40px;
+                    max-width: 100%;
+                    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+                    }
+                    .header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 30px;
+                    }
+                    .tipo-doc {
+                    font-size: 18px;
+                    color: #5A7D9A;
+                    }
+                    .categoria {
+                    background-color: #2565A3;
+                    color: white;
+                    padding: 8px 18px;
+                    border-radius: 20px;
+                    font-size: 14px;
+                    font-weight: 500;
+                    }
+                    .bloco {
+                    margin-bottom: 28px;
+                    }
+                    .titulo {
+                    font-size: 20px;
+                    color: #2565A3;
+                    font-weight: bold;
+                    margin-bottom: 10px;
+                    }
+                    .valor {
+                    font-size: 17px;
+                    color: #698B9C;
+                    }
+                    .linha {
+                    height: 1px;
+                    background-color: #D9D9D9;
+                    margin: 25px 0;
+                    }
+                    .empresa {
+                    font-size: 19px;
+                    font-weight: bold;
+                    color: #2565A3;
+                    }
+                    .vat {
+                    font-size: 17px;
+                    color: #7C9CBF;
+                    }
+                    .pagamento {
+                    font-size: 18px;
+                    color: #A0AEB9;
+                    display: flex;
+                    justify-content: space-between;
+                    margin-bottom: 8px;
+                    }
+                    .total {
+                    font-size: 24px;
+                    font-weight: bold;
+                    color: #2565A3;
+                    display: flex;
+                    justify-content: space-between;
+                    margin-top: 18px;
+                    }
+                </style>
+                </head>
+                <body>
+                <div class="card">
+                    <div class="header">
+                    <div class="tipo-doc">${fatura.tipo_documento}</div>
+                    <div class="categoria">${categoriaInfo?.nome_categoria ?? '---'}</div>
+                    </div>
+
+                    <div class="bloco">
+                    <div class="titulo">Data</div>
+                    <div class="valor">${formatarData(fatura.data_fatura)}</div>
+                    </div>
+
+                    <div class="linha"></div>
+
+                    <div class="bloco">
+                    <div class="titulo">Nº Documento</div>
+                    <div class="valor">${fatura.numero_fatura}</div>
+                    </div>
+
+                    <div class="linha"></div>
+
+                    <div class="bloco">
+                    <div class="titulo">Descrição</div>
+                    <div class="valor">${fatura.descricao || 'Sem descrição'}</div>
+                    </div>
+
+                    <div class="linha"></div>
+
+                    <div class="bloco">
+                    <div class="titulo">Empresa</div>
+                    <div class="empresa">${fatura.nome_empresa || 'Empresa Privada'}</div>
+                    <div class="vat">NIF: PT${fatura.nif_emitente || '---'}</div>
+                    </div>
+
+                    <div class="linha"></div>
+
+                    <div class="bloco">
+                    <div class="titulo">Dados</div>
+                    <div class="valor">${formatarContribuinte(fatura.nif_cliente)}</div>
+                    </div>
+
+                    <div class="linha"></div>
+
+                    <div class="bloco">
+                    <div class="titulo">Pagamento</div>
+                    <div class="pagamento"><span>Subtotal</span><span>${(fatura.total_final - fatura.total_iva).toFixed(2)}€</span></div>
+                    <div class="pagamento"><span>IVA (23%)</span><span>${fatura.total_iva.toFixed(2)}€</span></div>
+                    <div class="total"><span>Total</span><span>${fatura.total_final.toFixed(2)}€</span></div>
+                    </div>
+                </div>
+                ${imagemBase64}
+                </body>
+            </html>
+            `; // tua parte HTML completa aqui
+
+        try {
+            // pede permissão de escrita
+            if (Platform.OS === 'android') {
+                const granted = await PermissionsAndroid.request(
+                    PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+                    {
+                        title: 'Permissão para salvar arquivos',
+                        message: 'O app precisa de acesso à memória para guardar o PDF da fatura.',
+                        buttonPositive: 'OK',
+                    }
+                );
+
+                if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+                    alert('Permissão negada para salvar PDF');
+                    return;
+                }
+            }
+
+            const { uri: originalUri } = await Print.printToFileAsync({ html });
+
+            const destinoFinal = `${RNFS.DownloadDirectoryPath}/${nomeSeguro}`;
+
+            await RNFS.moveFile(originalUri.replace('file://', ''), destinoFinal);
+
+            console.log('✅ PDF guardado em:', destinoFinal);
+            setMostrarModalDownload(true);
+        } catch (error) {
+            console.error('❌ Erro ao guardar PDF:', error);
+            alert('Erro ao guardar o PDF');
+        }
+
+        setMostrarModalOpcoes(false);
+    };
+
+    const guardarEdicao = async (novaDescricao: string, idFatura: number, novaCategoriaId: number) => {
+        console.log('📝 Guardando alterações:', novaDescricao, novaCategoriaId);
+
+        const sucesso = await atualizarMovimentoPorFatura(idFatura, novaDescricao, novaCategoriaId);
+
+        if (sucesso) {
+            console.log('✅ Movimento atualizado com sucesso!');
+            const novaFatura = await consultarFatura(id);
+            setFatura(novaFatura);
+            setMostrarModalSucesso(true);
+            try {
+                const categoria = await obterCategoriaPorMovimentoId(novaFatura.movimento_id);
+                if (categoria) {
+                    const categoriaCompleta = await buscarCategoriaPorId(categoria.id_categoria);
+                    if (categoriaCompleta) {
+                        setCategoriaInfo({
+                            id: categoriaCompleta.id,
+                            nome_categoria: categoria.nome_categoria,
+                            cor_categoria: categoriaCompleta.cor_cat,
+                            icone_categoria: categoriaCompleta.img_cat,
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('❌ Erro ao atualizar categoria visual:', error);
+            }
+        }
+
+        setMostrarModalEditar(false);
+
+    };
+
     useEffect(() => {
         async function carregarFatura() {
             const dados = await consultarFatura(id);
             setFatura(dados);
-            // console.log('🧾 Fatura carregada:', dados);
+            //console.log('🧾 Fatura carregada:', dados);
 
             try {
                 const categoria = await obterCategoriaPorMovimentoId(dados.movimento_id);
-                setCategoriaInfo(categoria);
+                //console.log('🔎 categoria por movimento:', categoria);
+
+                if (categoria) {
+                    const categoriaCompleta = await buscarCategoriaPorId(categoria.id_categoria);
+                    if (categoriaCompleta) {
+                        setCategoriaInfo({
+                            id: categoriaCompleta.id,
+                            nome_categoria: categoria.nome_categoria,
+                            cor_categoria: categoriaCompleta.cor_cat,
+                            icone_categoria: categoriaCompleta.img_cat,
+                        });
+                    }
+                };
             } catch (error) {
                 console.error('❌ Erro ao obter categoria do movimento:', error);
             }
@@ -119,9 +569,11 @@ const DetalhesFatura: React.FC<Props> = ({ route }) => {
                     <Text style={styles.headerTitle}>Detalhes da Fatura</Text>
                 </View>
 
-                <TouchableOpacity onPress={() => console.log('Mais opções')}>
-                    <MaterialIcons name="more-vert" size={scale(24)} color="#fff" />
+                <TouchableOpacity style={styles.botaoRedondo} onPress={() => setMostrarModalOpcoes(true)}>
+                    <MaterialIcons name="more-vert" size={scale(24)} color="#FFFFFF" />
                 </TouchableOpacity>
+
+
             </View>
 
 
@@ -199,11 +651,16 @@ const DetalhesFatura: React.FC<Props> = ({ route }) => {
 
 
                             <View>
-                                <Text style={styles.nomeEmpresa}>
+                                <Text
+                                    style={styles.nomeEmpresa}
+                                    numberOfLines={2}
+                                    ellipsizeMode="tail"
+                                >
                                     {(fatura?.nome_empresa && fatura?.nome_empresa !== fatura?.nif_emitente)
                                         ? fatura.nome_empresa
                                         : 'Empresa Privada'}
                                 </Text>
+
 
                                 <Text style={styles.vat}>{textoVat}</Text>
 
@@ -303,6 +760,112 @@ const DetalhesFatura: React.FC<Props> = ({ route }) => {
                     </View>
                 </Modal>
             )}
+            <ModalOpcoesFatura
+                visivel={mostrarModalOpcoes}
+                aoFechar={() => setMostrarModalOpcoes(false)}
+                onEditar={editarFatura}
+                onDownloadPDF={downloadPDF}
+                onPartilhar={partilharFatura}
+            />
+            {fatura && (
+                <ModalEditarFatura
+                    visivel={mostrarModalEditar}
+                    aoFechar={() => setMostrarModalEditar(false)}
+                    onGuardar={guardarEdicao}
+                    idFatura={fatura.id}
+                    descricaoInicial={fatura.descricao}
+                    categoriaInicial={
+                        categoriaInfo
+                            ? {
+                                id: categoriaInfo.id,
+                                nome_cat: categoriaInfo.nome_categoria,
+                                cor_cat: categoriaInfo.cor_categoria,
+                                img_cat: categoriaInfo.icone_categoria,
+                            }
+                            : undefined
+                    }
+                />
+
+            )}
+            <Modal isVisible={mostrarModalSucesso} animationIn="zoomIn" animationOut="zoomOut" onBackdropPress={() => setMostrarModalSucesso(false)}>
+                <View style={{
+                    backgroundColor: 'white',
+                    padding: 25,
+                    borderRadius: 20,
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                }}>
+                    <MaterialIcons name="check-circle" size={50} color="#50AF4A" />
+                    <Text style={{ fontSize: 18, fontWeight: 'bold', marginTop: 15, color: '#2565A3', textAlign: 'center' }}>
+                        Fatura atualizada com sucesso!
+                    </Text>
+                    <TouchableOpacity
+                        onPress={() => setMostrarModalSucesso(false)}
+                        style={{
+                            backgroundColor: '#2565A3',
+                            borderRadius: 25,
+                            paddingVertical: 10,
+                            paddingHorizontal: 55,
+                            alignSelf: 'center',
+                            marginTop: 30,
+                        }}
+                    >
+                        <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>OK</Text>
+                    </TouchableOpacity>
+
+                </View>
+            </Modal>
+            <Modal
+                isVisible={mostrarModalDownload}
+                animationIn="zoomIn"
+                animationOut="zoomOut"
+                onBackdropPress={() => setMostrarModalDownload(false)}
+            >
+                <View
+                    style={{
+                        backgroundColor: 'white',
+                        padding: 25,
+                        borderRadius: 20,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                    }}
+                >
+                    <MaterialIcons name="file-download-done" size={50} color="#2565A3" />
+                    <Text
+                        style={{
+                            fontSize: 18,
+                            fontWeight: 'bold',
+                            marginTop: 15,
+                            color: '#2565A3',
+                            textAlign: 'center',
+                        }}
+                    >
+                        PDF guardado com sucesso!
+                    </Text>
+                    <Text style={{ marginTop: 8, fontSize: 14, color: '#5A7D9A', textAlign: 'center' }}>
+                        O ficheiro foi guardado na pasta Downloads do dispositivo.
+                    </Text>
+
+                    <TouchableOpacity
+                        onPress={() => setMostrarModalDownload(false)}
+                        style={{
+                            backgroundColor: '#2565A3',
+                            borderRadius: 25,
+                            paddingVertical: 10,
+                            paddingHorizontal: 50,
+                            alignSelf: 'center',
+                            marginTop: 25,
+                        }}
+                    >
+                        <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>OK</Text>
+                    </TouchableOpacity>
+                </View>
+            </Modal>
+
+
+
+
+
 
 
 
@@ -325,12 +888,13 @@ const styles = StyleSheet.create({
         alignSelf: 'center',
         overflow: 'hidden',
         position: 'relative',
-        //backgroundColor: 'red',
+
     },
     main: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+
     },
 
     header: {
@@ -361,9 +925,9 @@ const styles = StyleSheet.create({
         justifyContent: 'flex-start',
         alignItems: 'center',
         width: '85%',
-        top: -15,
-        height: height * 0.70,
-        // backgroundColor: '#F2F2F2',
+        top: 2,
+        height: height * 0.77,
+        // backgroundColor: 'red',
         flexDirection: 'column'
 
 
@@ -402,9 +966,13 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontSize: 12,
         fontWeight: '500',
+        flexShrink: 1,
+        flexWrap: 'wrap',
+        maxWidth: width * 0.40, // ajusta conforme o espaço disponível
+        lineHeight: 14,
     },
     bloco: {
-        marginVertical: 15,
+        marginVertical: 13,
         alignSelf: 'flex-start',
         paddingHorizontal: 10
     },
@@ -495,6 +1063,8 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
         color: '#2565A3',
+        maxWidth: width * 0.65, // evita ultrapassar o container
+        lineHeight: 20,
     },
 
     vat: {
@@ -548,14 +1118,22 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0, 0, 0, 0.6)',
         justifyContent: 'center',
         alignItems: 'center',
-      },
-      
-      txtFechar: {
+    },
+
+    txtFechar: {
         color: 'white',
         fontSize: 20,
         fontWeight: 'bold',
-      },
-      
+    },
+    botaoRedondo: {
+        backgroundColor: 'transparent', // bolha branca translúcida
+        borderRadius: 30,
+        padding: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+
+    }
+
 
 });
 

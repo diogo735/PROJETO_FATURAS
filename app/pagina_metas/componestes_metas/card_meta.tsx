@@ -57,7 +57,7 @@ const CardMetas: React.FC<CardMetasProps> = ({ meta }) => {
         img_cat,
     } = meta;
 
-   // console.log(`🚨 Meta: valor_atual = ${meta.valor_atual}, recebe_alerta = ${meta.recebe_alerta}`);
+    // console.log(`🚨 Meta: valor_atual = ${meta.valor_atual}, recebe_alerta = ${meta.recebe_alerta}`);
 
 
     const percentagem = Math.floor((meta.valor_atual / valor_meta) * 100);
@@ -92,11 +92,11 @@ const CardMetas: React.FC<CardMetasProps> = ({ meta }) => {
         <View style={[
             styles.card,
             meta.valor_atual > meta.valor_meta
-              ? { backgroundColor: '#FFE3E0' } 
-              : meta.recebe_alerta != null && meta.valor_atual > meta.recebe_alerta
-              ? { backgroundColor: '#FFF3E6' } 
-              : null
-          ]}>          
+                ? { backgroundColor: '#FFE3E0' }
+                : meta.recebe_alerta != null && meta.valor_atual > meta.recebe_alerta
+                    ? { backgroundColor: '#FFF3E6' }
+                    : null
+        ]}>
             <View style={styles.rowTop}>
                 <View style={styles.donutWrapper}>
                     <AnimatedCircularProgress
@@ -128,7 +128,12 @@ const CardMetas: React.FC<CardMetasProps> = ({ meta }) => {
                             {nome_cat}
                         </Text>
                         <Text style={styles.valores}>
-                            <Text style={styles.valorUsado}>{meta.valor_atual} €</Text> / {valor_meta}€
+                            <Text style={styles.valorUsado}>
+                                {Number(meta.valor_atual).toLocaleString('pt-PT', {
+                                    minimumFractionDigits: 0,
+                                    maximumFractionDigits: 2,
+                                })} €
+                            </Text> / {valor_meta}€
                         </Text>
                     </View>
 
@@ -255,10 +260,10 @@ const styles = StyleSheet.create({
         transform: [{ translateX: -50 }],
     },
     ultrapassou: {
-        color: 'tomato', 
+        color: 'tomato',
         fontWeight: '500',
         fontSize: 13,
-        
+
     }
 
 

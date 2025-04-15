@@ -17,7 +17,7 @@ import PaginaMetas from './app/pagina_metas/pagina_metas';
 import PaginaPerfil from './app/pagina_perfil';
 import DetalhesFatura from './app/pagina_fatura/detalhes_fatura';
 import PaginaCamera from './app/pagina_principal/pagina_camera';
-
+import MovimentosDaMeta from './app/pagina_metas/movimentos_metas/pagina_movimentos_metas';
 
 
 const { height, width } = Dimensions.get('window');
@@ -51,6 +51,7 @@ export type RootStackParamList = {
     nomeEmpresa: string | null;
     imagemUri: string | null;
   };
+  MovimentosDaMeta: { id_meta: number };
 
 };
 
@@ -130,6 +131,12 @@ const PaginaSucessoScreen = (props: any) => (
     <PaginaSucesso {...props} />
   </View>
 );
+const MovimentosMetaScreen = (props: any) => (
+  <View style={styles.defaultContainer}>
+    <StatusBar translucent backgroundColor="transparent" style="dark" />
+    <MovimentosDaMeta {...props} />
+  </View>
+);
 
 
 const App: React.FC = () => {
@@ -157,6 +164,20 @@ const App: React.FC = () => {
 
         <Stack.Screen name="CriarMeta" component={CriarMetaScreen} />
         <Stack.Screen name="PaginaSucesso" component={PaginaSucessoScreen} />
+        <Stack.Screen
+          name="MovimentosDaMeta"
+          component={MovimentosMetaScreen}
+          options={{
+            animation: 'fade',
+
+            transitionSpec: {
+              open: { animation: 'timing', config: { duration: 350 } },
+              close: { animation: 'timing', config: { duration: 250 } },
+            },
+          }}
+        />
+
+
       </Stack.Navigator>
     </NavigationContainer>
   );

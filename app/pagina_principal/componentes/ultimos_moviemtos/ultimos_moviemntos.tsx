@@ -179,7 +179,13 @@ const UltimosMovimentos: React.FC<Props> = ({ movimentos }) => {
                                                 {movimentosHora.map((mov, i) => (
                                                     <View key={i} style={{ marginBottom: i < movimentosHora.length - 1 ? 10 : 0 }}>
                                                         <MovimentoItem
-                                                            nome={mov.nota}
+                                                            nome={
+                                                                mov.nota?.trim()
+                                                                  ? mov.nota
+                                                                  : mov.nome_movimento === 'Despesa'
+                                                                    ? 'Despesa sem nome'
+                                                                    : 'Receita sem nome'
+                                                              }
                                                             valor={mov.valor}
                                                             hora={formatarHora(mov.data_movimento)}
                                                             cor={mov.cor_cat}

@@ -123,7 +123,6 @@ async function registarFatura_BDLOCAL({
       return;
     }
 
-    nota = nota?.trim() || 'Sem descrição';
 
     // 🧾 2. Inserir movimento e obter ID
     const movimentoId = await inserirMovimento(totalFinal, dataMovimento, categoriaId, tipoMovimentoId, nota);
@@ -142,7 +141,7 @@ async function registarFatura_BDLOCAL({
       nifEmitente,
       nomeEmpresa,
       nifCliente,
-      nota,
+      descricao: nota,
       totalIva,
       totalFinal,
       imagemFatura
@@ -179,16 +178,59 @@ async function consultarFatura(movimentoId) {
     return null;
   }
 }
+async function atualizarMovimentoPorFatura(faturaId, novaDescricao, novaCategoriaId) {
+  try {
+    const db = await CRIARBD();
 
+    // 1. Obter o movimento_id da fatura
+    const fatura = await db.getFirstAsync(`SELECT movimento_id FROM faturas WHERE id = ?`, [faturaId]);
 
+    if (!fatura?.movimento_id) {
+      console.warn('⚠️ Fatura não encontrada ou sem movimento ligado:', faturaId);
+      return false;
+    }
 
+    const movimentoId = fatura.movimento_id;
 
+    // 2. Obter o tipo_movimento_id da nova categoria
+    const tipo = await db.getFirstAsync(`
+      SELECT tipo_movimento_id FROM categorias WHERE id = ?
+    `, [novaCategoriaId]);
+
+    if (!tipo?.tipo_movimento_id) {
+      console.warn('⚠️ Tipo de movimento não encontrado para a categoria:', novaCategoriaId);
+      return false;
+    }
+
+    // 3. Atualizar o movimento
+    await db.runAsync(
+      `UPDATE movimentos 
+       SET nota = ?, categoria_id = ?, tipo_movimento_id = ? 
+       WHERE id = ?`,
+      [novaDescricao, novaCategoriaId, tipo.tipo_movimento_id, movimentoId]
+    );
+
+    // 4. Atualizar a descrição da fatura diretamente
+    await db.runAsync(
+      `UPDATE faturas SET descricao = ? WHERE id = ?`,
+      [novaDescricao, faturaId]
+    );
+    
+    console.log(`✅ Movimento ${movimentoId} atualizado com nova descrição, categoria e tipo_movimento.`);
+    return true;
+
+  } catch (error) {
+    console.error('❌ Erro ao atualizar movimento por fatura:', error);
+    return false;
+  }
+}
 
 
 export {
   criarTabelaFaturas,
   apagarTabelaFaturas,
   registarFatura_BDLOCAL,
-  consultarFatura
+  consultarFatura,
+  atualizarMovimentoPorFatura
 
 };

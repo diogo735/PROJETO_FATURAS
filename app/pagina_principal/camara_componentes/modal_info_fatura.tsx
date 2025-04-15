@@ -370,13 +370,13 @@ const Modal_Info_Fatura: React.FC<Props> = ({ visivel, uri, aoFechar, aoEliminar
                                         multiline
                                         numberOfLines={3}
                                         scrollEnabled={false}
-                                        maxLength={90}
+                                        maxLength={80}
                                         returnKeyType="done"
                                         blurOnSubmit={true}
                                         onSubmitEditing={() => Keyboard.dismiss()}
 
                                     />
-                                    <Text style={styles.contadorTexto}>{nota.length}/90</Text>
+                                    <Text style={styles.contadorTexto}>{nota.length}/80</Text>
                                 </View>
                             </View>
 

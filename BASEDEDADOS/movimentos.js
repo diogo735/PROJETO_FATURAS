@@ -399,7 +399,7 @@ async function obterCategoriaPorMovimentoId(movimentoId) {
     const db = await CRIARBD();
   
     const result = await db.getFirstAsync(`
-      SELECT c.nome_cat as nome_categoria, c.img_cat as icone_categoria
+      SELECT c.id as id_categoria, c.nome_cat as nome_categoria, c.img_cat as icone_categoria
       FROM movimentos m
       JOIN categorias c ON m.categoria_id = c.id
       WHERE m.id = ?
@@ -407,6 +407,37 @@ async function obterCategoriaPorMovimentoId(movimentoId) {
   
     return result;
   }
+  async function listarMovimentosPorMeta(idMeta) {
+    try {
+      const db = await CRIARBD();
+  
+      // 1. Obter a meta
+      const meta = await db.getFirstAsync(`SELECT * FROM metas WHERE id_meta = ?`, [idMeta]);
+  
+      if (!meta) {
+        console.warn('⚠️ Meta não encontrada:', idMeta);
+        return [];
+      }
+  
+      // 2. Buscar os movimentos ligados à categoria da meta e dentro do período
+      const result = await db.getAllAsync(`
+        SELECT m.*, c.nome_cat, c.cor_cat, c.img_cat, tipo.nome_movimento
+        FROM movimentos m
+        INNER JOIN categorias c ON m.categoria_id = c.id
+        INNER JOIN tipo_movimento tipo ON m.tipo_movimento_id = tipo.id
+        WHERE m.categoria_id = ?
+          AND date(m.data_movimento) BETWEEN date(?) AND date(?)
+        ORDER BY datetime(m.data_movimento) DESC
+      `, [meta.categoria_id, meta.data_inicio, meta.data_fim]);
+  
+      return result;
+    } catch (error) {
+      console.error('❌ Erro ao listar movimentos da meta:', error);
+      return [];
+    }
+  }
+  
+  
   
 
 
@@ -487,6 +518,7 @@ export {
     obterSaldoMensalAtual,
     buscarMovimentosPorMesAno,
     obterBalancoGeral,
-    obterCategoriaPorMovimentoId
+    obterCategoriaPorMovimentoId,
+    listarMovimentosPorMeta
     
 };

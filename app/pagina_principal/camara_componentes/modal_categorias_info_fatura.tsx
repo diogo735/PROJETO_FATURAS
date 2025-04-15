@@ -69,8 +69,6 @@ const ModalCategorias: React.FC<Props> = ({ visivel, aoFechar, aoSelecionarCateg
 
   const [categorias, setCategorias] = useState<(Categoria & { tipo_nome: string })[]>([]);
 
-  const [mostrarDespesas, setMostrarDespesas] = useState(true);
-  const [mostrarReceitas, setMostrarReceitas] = useState(true);
   const despesas = categorias.filter(cat => cat.tipo_nome === 'Despesa');
   const receitas = categorias.filter(cat => cat.tipo_nome === 'Receita');
   const alturaAnimadaDespesas = useState(new Animated.Value(1))[0]; // começa visível
@@ -170,7 +168,7 @@ const ModalCategorias: React.FC<Props> = ({ visivel, aoFechar, aoSelecionarCateg
               overflow: 'hidden',
               height: alturaAnimadaDespesas.interpolate({
                 inputRange: [0, 1],
-                outputRange: [0, despesas.length * 70], // altura estimada (70px por item)
+                outputRange: [0, 1000], 
               }),
             }}
           >
