@@ -18,6 +18,7 @@ import PaginaPerfil from './app/pagina_perfil';
 import DetalhesFatura from './app/pagina_fatura/detalhes_fatura';
 import PaginaCamera from './app/pagina_principal/pagina_camera';
 import MovimentosDaMeta from './app/pagina_metas/movimentos_metas/pagina_movimentos_metas';
+import EditarMeta from './app/pagina_metas/pagina_editar_meta';
 
 
 const { height, width } = Dimensions.get('window');
@@ -52,6 +53,8 @@ export type RootStackParamList = {
     imagemUri: string | null;
   };
   MovimentosDaMeta: { id_meta: number };
+  EditarMeta: { id_meta: number };
+
 
 };
 
@@ -137,6 +140,12 @@ const MovimentosMetaScreen = (props: any) => (
     <MovimentosDaMeta {...props} />
   </View>
 );
+const EditarMetaScreen = (props: any) => (
+  <View style={styles.defaultContainer}>
+    <StatusBar translucent backgroundColor="transparent" style="dark" />
+    <EditarMeta {...props} />
+  </View>
+);
 
 
 const App: React.FC = () => {
@@ -170,6 +179,18 @@ const App: React.FC = () => {
           options={{
             animation: 'fade',
 
+            transitionSpec: {
+              open: { animation: 'timing', config: { duration: 350 } },
+              close: { animation: 'timing', config: { duration: 250 } },
+            },
+          }}
+
+        />
+        <Stack.Screen
+          name="EditarMeta"
+          component={EditarMetaScreen}
+          options={{
+            animation: 'fade',
             transitionSpec: {
               open: { animation: 'timing', config: { duration: 350 } },
               close: { animation: 'timing', config: { duration: 250 } },

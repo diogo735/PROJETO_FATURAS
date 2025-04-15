@@ -1,24 +1,35 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, Text as RNText, Text } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import SwitchCustomizado from '../componentes/switch_customizado';
 import Slider from '@react-native-community/slider';
 import Animated, { FadeIn, FadeOut, useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 
+
+
 interface Props {
     alertaAtivo: boolean;
     onToggle: (value: boolean) => void;
     valor: number | null;
-    onValorCalculadoChange: (valorCalculado: number) => void; // novo!
+    valorCalculadoAlerta?: number;
+    onValorCalculadoChange: (valorCalculado: number) => void;
+    
   }
   
 
-  const AlertaCard: React.FC<Props> = ({ alertaAtivo, onToggle, valor, onValorCalculadoChange }) => {
-    const percentual = useSharedValue(75);
 
-    const delayTimer = React.useRef<NodeJS.Timeout | null>(null);
+const AlertaCard: React.FC<Props> = ({ alertaAtivo, onToggle, valor, onValorCalculadoChange, valorCalculadoAlerta }) => {
+    
 
-    const [sliderValue, setSliderValue] = useState(0.75);
+    let valorInicial = 75;
+    if (valor !== null && !isNaN(valor) && valorCalculadoAlerta && valorCalculadoAlerta > 0) {
+      valorInicial = (valorCalculadoAlerta / valor) * 100;
+    }
+    
+        
+    const percentual = useSharedValue(valorInicial);
+    const [sliderValue, setSliderValue] = useState(valorInicial);
+
 
     return (
         <View style={styles.card}>
@@ -65,12 +76,14 @@ interface Props {
                         onValueChange={(value) => {
                             setSliderValue(value)
                             if (valor !== null && !isNaN(valor)) {
-                                const calculado = Math.floor((valor * value) / 100);
-                                onValorCalculadoChange(calculado); // envia para o pai
-                              } else {
-                                onValorCalculadoChange(0);
-                              }
-                        }}
+                              const calculado = Math.floor((valor * value) / 100);
+                              onValorCalculadoChange(calculado);
+                            } else {
+                              onValorCalculadoChange(0);
+                            }
+                          }}
+                          
+                          
                         minimumTrackTintColor="#2565A3"
                         maximumTrackTintColor="#587088"
                         thumbTintColor="#2565A3"

@@ -13,7 +13,8 @@ type NavigationProp = StackNavigationProp<RootStackParamList>;
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
 import ModalOpcoesMeta from './componestes_metas/modal_opcoes_meta';
-
+import ModalConfirmarApagar from './componestes_metas/modal_apagar_meta';
+import { apagarMeta } from '../../BASEDEDADOS/metas';
 
 
 type Meta = {
@@ -48,6 +49,7 @@ const Pagina_metas: React.FC = () => {
   const [metas, setMetas] = useState<Meta[]>([]);
   const [modalVisivel, setModalVisivel] = useState(false);
   const [metaSelecionada, setMetaSelecionada] = useState<Meta | null>(null);
+  const [modalConfirmacaoVisible, setModalConfirmacaoVisible] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -58,6 +60,7 @@ const Pagina_metas: React.FC = () => {
       carregar();
     }, [])
   );
+
 
   const navigation = useNavigation<NavigationProp>();
 
@@ -108,18 +111,41 @@ const Pagina_metas: React.FC = () => {
           setModalVisivel(false);
           if (metaSelecionada?.id_meta !== undefined) {
             navigation.navigate('MovimentosDaMeta', { id_meta: metaSelecionada.id_meta });
-          }          
+          }
         }}
         aoEditar={() => {
           setModalVisivel(false);
-          //navigation.navigate('EditarMeta', { id: metaSelecionada?.id_meta });
+          if (metaSelecionada?.id_meta !== undefined) {
+            navigation.navigate('EditarMeta', { id_meta: metaSelecionada.id_meta });
+          }
         }}
+
         aoApagar={() => {
           setModalVisivel(false);
-          console.log('Apagar meta:', metaSelecionada?.id_meta);
-          // confirmar exclusão e apagar da base
+          setModalConfirmacaoVisible(true);
+        }}
+
+      />
+
+      <ModalConfirmarApagar
+        visivel={modalConfirmacaoVisible}
+        nomeMeta={metaSelecionada?.nome_cat}
+        aoCancelar={() => setModalConfirmacaoVisible(false)}
+        aoApagar={async (onSucesso, onErro) => {
+          try {
+            if (metaSelecionada?.id_meta) {
+              await apagarMeta(metaSelecionada.id_meta);
+              const novas = await listarMetas();
+              setMetas(novas);
+              onSucesso(); // ✅ mostra mensagem de sucesso
+            }
+          } catch (error) {
+            console.error('Erro ao apagar meta:', error);
+            onErro(); // ❌ mostra erro
+          }
         }}
       />
+
 
 
     </View>

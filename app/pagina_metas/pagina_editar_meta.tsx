@@ -1,14 +1,14 @@
-import { useNavigation } from '@react-navigation/native';
-import React, { useEffect, useState } from 'react';
+import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Dimensions, TouchableOpacity, TextInput, Switch, ImageSourcePropType } from 'react-native';
 import { scale } from 'react-native-size-matters';
 const { height, width } = Dimensions.get('window');
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { buscarCategoriaPorId } from '../../BASEDEDADOS/categorias';
-import Catgoriaicon from '../../../assets/icons/pagina_criar_meta/categorias.svg';
-import Valoricon from '../../../assets/icons/pagina_criar_meta/valor.svg';
-import Dataicon from '../../../assets/icons/pagina_criar_meta/data.svg';
-import Repetiricon from '../../../assets/icons/pagina_criar_meta/repetir.svg';
+import Catgoriaicon from '../../assets/icons/pagina_criar_meta/categorias.svg';
+import Valoricon from '../../assets/icons/pagina_criar_meta/valor.svg';
+import Dataicon from '../../assets/icons/pagina_criar_meta/data.svg';
+import Repetiricon from '../../assets/icons/pagina_criar_meta/repetir.svg';
 import SwitchCustomizado from './criar_meta/componentes/switch_customizado';
 import AlertaCard from './criar_meta/componentes/alerta_card';
 import { ScrollView } from 'react-native';
@@ -18,11 +18,18 @@ import { Image } from 'react-native';
 import ModalData from './criar_meta/modal_data';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
-import { inserirMeta } from '../../BASEDEDADOS/metas';
+import { atualizarMeta } from '../../BASEDEDADOS/metas';
+import { Modal, Pressable } from 'react-native';
 
+import IconeRotativo from '../../assets/imagens/wallpaper.svg';
+import { Animated } from 'react-native';
 
 import { Keyboard, TouchableWithoutFeedback } from 'react-native';
+import { buscarMetaPorId_pagina_editar } from '../../BASEDEDADOS/metas';
 
+type ParamList = {
+    EditarMeta: { id_meta: number };
+};
 
 function getImagemCategoria(img_cat: any): ImageSourcePropType {
     // Se já for um objeto (tipo require), retorna diretamente
@@ -31,7 +38,7 @@ function getImagemCategoria(img_cat: any): ImageSourcePropType {
     }
 
     if (!img_cat || typeof img_cat !== 'string') {
-        return require('../../../assets/imagens/categorias/outros.png');
+        return require('../../assets/imagens/categorias/outros.png');
     }
 
     // Se for imagem do usuário ou remota
@@ -40,25 +47,25 @@ function getImagemCategoria(img_cat: any): ImageSourcePropType {
     }
 
     const imagensLocais: Record<string, ImageSourcePropType> = {
-        'compras_pessoais.png': require('../../../assets/imagens/categorias/compras_pessoais.png'),
-        'contas_e_servicos.png': require('../../../assets/imagens/categorias/contas_e_servicos.png'),
-        'despesas_gerais.png': require('../../../assets/imagens/categorias/despesas_gerais.png'),
-        'educacao.png': require('../../../assets/imagens/categorias/educacao.png'),
-        'estimacao.png': require('../../../assets/imagens/categorias/estimacao.png'),
-        'financas.png': require('../../../assets/imagens/categorias/financas.png'),
-        'habitacao.png': require('../../../assets/imagens/categorias/habitacao.png'),
-        'lazer.png': require('../../../assets/imagens/categorias/lazer.png'),
-        'outros.png': require('../../../assets/imagens/categorias/outros.png'),
-        'restauracao.png': require('../../../assets/imagens/categorias/restauracao.png'),
-        'saude.png': require('../../../assets/imagens/categorias/saude.png'),
-        'transportes.png': require('../../../assets/imagens/categorias/transportes.png'),
-        'alugel.png': require('../../../assets/imagens/categorias/receitas/alugel.png'),
-        'caixa-de-ferramentas.png': require('../../../assets/imagens/categorias/receitas/caixa-de-ferramentas.png'),
-        'deposito.png': require('../../../assets/imagens/categorias/receitas/deposito.png'),
-        'dinheiro.png': require('../../../assets/imagens/categorias/receitas/dinheiro.png'),
-        'lucro.png': require('../../../assets/imagens/categorias/receitas/lucro.png'),
-        'presente.png': require('../../../assets/imagens/categorias/receitas/presente.png'),
-        'salario.png': require('../../../assets/imagens/categorias/receitas/salario.png'),
+        'compras_pessoais.png': require('../../assets/imagens/categorias/compras_pessoais.png'),
+        'contas_e_servicos.png': require('../../assets/imagens/categorias/contas_e_servicos.png'),
+        'despesas_gerais.png': require('../../assets/imagens/categorias/despesas_gerais.png'),
+        'educacao.png': require('../../assets/imagens/categorias/educacao.png'),
+        'estimacao.png': require('../../assets/imagens/categorias/estimacao.png'),
+        'financas.png': require('../../assets/imagens/categorias/financas.png'),
+        'habitacao.png': require('../../assets/imagens/categorias/habitacao.png'),
+        'lazer.png': require('../../assets/imagens/categorias/lazer.png'),
+        'outros.png': require('../../assets/imagens/categorias/outros.png'),
+        'restauracao.png': require('../../assets/imagens/categorias/restauracao.png'),
+        'saude.png': require('../../assets/imagens/categorias/saude.png'),
+        'transportes.png': require('../../assets/imagens/categorias/transportes.png'),
+        'alugel.png': require('../../assets/imagens/categorias/receitas/alugel.png'),
+        'caixa-de-ferramentas.png': require('../../assets/imagens/categorias/receitas/caixa-de-ferramentas.png'),
+        'deposito.png': require('../../assets/imagens/categorias/receitas/deposito.png'),
+        'dinheiro.png': require('../../assets/imagens/categorias/receitas/dinheiro.png'),
+        'lucro.png': require('../../assets/imagens/categorias/receitas/lucro.png'),
+        'presente.png': require('../../assets/imagens/categorias/receitas/presente.png'),
+        'salario.png': require('../../assets/imagens/categorias/receitas/salario.png'),
     };
 
     return imagensLocais[img_cat] || imagensLocais['outros.png'];
@@ -66,27 +73,128 @@ function getImagemCategoria(img_cat: any): ImageSourcePropType {
 
 
 const EditarMeta: React.FC = () => {
-    const [valorCalculadoAlerta, setValorCalculadoAlerta] = useState(0);
 
+    const route = useRoute<RouteProp<ParamList, 'EditarMeta'>>();
+    const { id_meta } = route.params;
+    const [valorCalculadoAlerta, setValorCalculadoAlerta] = useState(0);
     const [repetir, setRepetir] = React.useState(false);
     const [alertaAtivo, setAlertaAtivo] = React.useState(false);
-
     const [valor, setValor] = useState<number | null>(null);
-
-
     const [modalCategoriaVisivel, setModalCategoriaVisivel] = useState(false);
-
     const [categoriaSelecionada, setCategoriaSelecionada] = useState<number | null>(null);
     const [categoriaInfo, setCategoriaInfo] = useState<Categoria | null>(null);
-
     const [modalDataVisivel, setModalDataVisivel] = useState(false);
     const [dataInicio, setDataInicio] = useState<Date | null>(null);
     const [dataFim, setDataFim] = useState<Date | null>(null);
     const [rotuloDuracao, setRotuloDuracao] = useState<string>('');
     const [opcaoDuracao, setOpcaoDuracao] = useState<'' | 'semana' | 'mes' | 'semestre' | 'personalizado'>('');
     const [ultimaOpcaoConfirmada, setUltimaOpcaoConfirmada] = useState<'' | 'semana' | 'mes' | 'semestre' | 'personalizado'>('');
+    const [dadosOriginais, setDadosOriginais] = useState<any>(null);
+
+    const [metaCarregada, setMetaCarregada] = useState(false);
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+
+    const rotateAnim = useRef(new Animated.Value(0)).current;
+    const [modalSucessoVisible, setModalSucessoVisible] = useState(false);
+    const [modalErroVisible, setModalErroVisible] = useState(false);
 
 
+    const rotateInterpolation = rotateAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: ['0deg', '360deg'],
+    });
+    useEffect(() => {
+        Animated.loop(
+            Animated.timing(rotateAnim, {
+                toValue: 1,
+                duration: 1000,
+                useNativeDriver: true,
+            })
+        ).start();
+    }, []);
+
+
+    useEffect(() => {
+        const carregarMeta = async () => {
+            setMetaCarregada(false);
+            const meta = await buscarMetaPorId_pagina_editar(id_meta);
+
+            if (meta) {
+                setCategoriaSelecionada(meta.categoria_id);
+                setValor(meta.valor_meta);
+                setDataInicio(new Date(meta.data_inicio));
+                setDataFim(new Date(meta.data_fim));
+                const dataIni = new Date(meta.data_inicio);
+                const dataFim = new Date(meta.data_fim);
+
+                const tipoDuracao = calcularTipoDuracao(dataIni, dataFim);
+                setOpcaoDuracao(tipoDuracao);
+                setUltimaOpcaoConfirmada(tipoDuracao);
+                setRotuloDuracao(tipoDuracao === 'semana' ? 'Esta semana' : tipoDuracao === 'mes' ? 'Este mês' : tipoDuracao === 'semestre' ? 'Este semestre' : 'Personalizado');
+
+                setRepetir(meta.repetir_meta === 1);
+                setAlertaAtivo(meta.recebe_alerta !== null);
+                setValorCalculadoAlerta(meta.recebe_alerta ?? 0);
+
+            }
+            setDadosOriginais({
+                categoria_id: meta.categoria_id,
+                valor_meta: meta.valor_meta,
+                data_inicio: meta.data_inicio,
+                data_fim: meta.data_fim,
+                repetir_meta: meta.repetir_meta === 1,
+                alerta_ativo: meta.recebe_alerta !== null,
+                recebe_alerta: meta.recebe_alerta !== undefined ? meta.recebe_alerta : null
+
+
+            });
+
+            setMetaCarregada(true);
+            Animated.timing(fadeAnim, {
+                toValue: 1,
+                duration: 600,
+                useNativeDriver: true,
+            }).start();
+
+        };
+
+        carregarMeta();
+    }, [id_meta]);
+
+    const isMetaAlterada = () => {
+        if (!dadosOriginais) return false;
+
+        const dataInicioStr = dataInicio?.toISOString().split('T')[0];
+        const dataFimStr = dataFim?.toISOString().split('T')[0];
+
+        const alertaValorAtual = alertaAtivo ? valorCalculadoAlerta : null;
+        const alertaValorOriginal = dadosOriginais.alerta_ativo ? dadosOriginais.recebe_alerta : null;
+
+
+        return (
+            categoriaSelecionada !== dadosOriginais.categoria_id ||
+            valor !== dadosOriginais.valor_meta ||
+            dataInicioStr !== dadosOriginais.data_inicio ||
+            dataFimStr !== dadosOriginais.data_fim ||
+            repetir !== dadosOriginais.repetir_meta ||
+            alertaValorAtual !== alertaValorOriginal
+        );
+    };
+
+
+    const houveAlteracao = isMetaAlterada();
+    const alertaInvalido = alertaAtivo && valorCalculadoAlerta === 0;
+
+
+    function calcularTipoDuracao(dataInicio: Date, dataFim: Date): 'semana' | 'mes' | 'semestre' | 'personalizado' {
+        const diffDias = Math.ceil((dataFim.getTime() - dataInicio.getTime()) / (1000 * 60 * 60 * 24));
+
+        if (diffDias === 6 || diffDias === 7) return 'semana';
+        if (diffDias >= 28 && diffDias <= 31) return 'mes';
+        if (diffDias >= 181 && diffDias <= 184) return 'semestre';
+
+        return 'personalizado';
+    }
 
     useEffect(() => {
         const carregarCategoria = async () => {
@@ -100,59 +208,74 @@ const EditarMeta: React.FC = () => {
 
         carregarCategoria();
     }, [categoriaSelecionada]);
+
     useEffect(() => {
         if (!valor || valor <= 0) {
             setAlertaAtivo(false);
         }
     }, [valor]);
 
-    useFocusEffect(
-        useCallback(() => {
-            // Resetar tudo quando a tela abrir
-            setCategoriaSelecionada(null);
-            setCategoriaInfo(null);
-            setValor(null);
-            setDataInicio(null);
-            setDataFim(null);
-            setRotuloDuracao('');
-            setOpcaoDuracao('');
-            setUltimaOpcaoConfirmada('');
-            setRepetir(false);
-            setAlertaAtivo(false);
-        }, [])
-    );
+
 
     const podeCriarMeta = categoriaSelecionada !== null && valor !== null && valor > 0 && dataInicio !== null && dataFim !== null;
 
     const navigation = useNavigation();
 
 
-    const handleCriarMeta = async () => {
+    const handleAtualizarMeta = async () => {
         if (!podeCriarMeta) return;
 
         const valorFinal = alertaAtivo ? (valorCalculadoAlerta ?? 0) : null;
 
-        await inserirMeta(
-            categoriaSelecionada,
-            valor,
-            dataInicio.toISOString().split('T')[0],
-            dataFim.toISOString().split('T')[0],
-            repetir,
-            valorFinal as any
-        );
-
-        navigation.goBack();
+        try {
+            await atualizarMeta(
+                id_meta,
+                categoriaSelecionada,
+                valor,
+                dataInicio.toISOString().split('T')[0],
+                dataFim.toISOString().split('T')[0],
+                repetir,
+                valorFinal
+            );
+          
+            setModalSucessoVisible(true);
+        } catch (error) {
+            console.error('❌ Erro ao atualizar meta:', error);
+            
+            setModalErroVisible(true);
+        }
     };
+
+
+
+    if (!metaCarregada) {
+        return (
+            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+                <Animated.View
+                    style={{
+                        transform: [{ rotate: rotateInterpolation }],
+                        marginBottom: 20,
+                    }}
+                >
+                    <IconeRotativo width={50} height={50} fill="#2565A3" />
+                </Animated.View>
+                <Text style={{ color: '#2565A3', fontWeight: 'bold' }}>
+                    A carregar meta...
+                </Text>
+            </View>
+        );
+    }
 
 
     return (
 
-        <View style={styles.container}>
+        <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
+
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()}>
                     <Ionicons name="close" size={26} color="#164878" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Nova Meta Mensal</Text>
+                <Text style={styles.headerTitle}>Editar Meta</Text>
             </View>
             <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
                 <View style={{ flex: 1 }}>
@@ -266,6 +389,7 @@ const EditarMeta: React.FC = () => {
 
                         <AlertaCard
                             alertaAtivo={alertaAtivo}
+                            valorCalculadoAlerta={valorCalculadoAlerta}
                             onToggle={(ativo) => {
                                 if (valor && valor > 0) {
                                     setAlertaAtivo(ativo);
@@ -276,23 +400,21 @@ const EditarMeta: React.FC = () => {
                         />
 
 
+
                     </ScrollView>
                     <View style={styles.footer}>
-                        <TouchableOpacity style={[
-                            styles.botaoCriarMeta,
-                            { opacity: podeCriarMeta ? 1 : 0.5 }
-                        ]}
-                            onPress={() => {
-                                if (podeCriarMeta) {
-                                    handleCriarMeta();
-                                    console.log('Criar Meta');
-                                }
-                            }}
-                            disabled={!podeCriarMeta}
+                        <TouchableOpacity
+                            style={[styles.botaoCriarMeta, { opacity: podeCriarMeta && houveAlteracao && !alertaInvalido ? 1 : 0.5 }]}
+
+                            onPress={handleAtualizarMeta}
+                            disabled={!podeCriarMeta || !houveAlteracao || alertaInvalido}
                         >
                             <Ionicons name="checkmark" size={22} color="#fff" />
-                            <Text style={styles.botaoTexto}>Criar Meta</Text>
+                            <Text style={styles.botaoTexto}>Guardar Alterações</Text>
                         </TouchableOpacity>
+
+
+
                     </View>
                 </View>
             </TouchableWithoutFeedback>
@@ -302,6 +424,7 @@ const EditarMeta: React.FC = () => {
                 aoSelecionarCategoria={(cat) => {
                     setCategoriaSelecionada(cat);
                 }}
+                categoriaSelecionada={categoriaSelecionada}
 
             />
             <ModalData
@@ -320,12 +443,47 @@ const EditarMeta: React.FC = () => {
                     setModalDataVisivel(false);
                 }}
             />
+            <Modal transparent visible={modalSucessoVisible} animationType="fade">
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalBox}>
+                        <Ionicons name="checkmark-circle" size={48} color="#4CAF50" />
+                        <Text style={styles.modalTitulo}>Meta Atualizada!</Text>
+                        <Pressable
+                            style={[styles.modalBotao]}
+                            onPress={() => {
+                                setModalSucessoVisible(false);
+                                navigation.goBack();
+                            }}
+                        >
+                            <Text style={styles.modalBotaoTexto}>OK</Text>
+                        </Pressable>
+                    </View>
+                </View>
+            </Modal>
+
+            <Modal transparent visible={modalErroVisible} animationType="fade">
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalBox}>
+                        <Ionicons name="close-circle" size={48} color="#E53935" />
+                        <Text style={styles.modalTitulo}>Erro ao Atualizar</Text>
+                        <Pressable
+                            style={[styles.modalBotao]}
+                            onPress={() => {
+                                setModalErroVisible(false);
+                                navigation.goBack();
+                            }}
+                        >
+                            <Text style={styles.modalBotaoTexto}>OK</Text>
+                        </Pressable>
+                    </View>
+                </View>
+            </Modal>
 
 
 
 
 
-        </View>
+        </Animated.View>
     );
 };
 
@@ -507,6 +665,39 @@ const styles = StyleSheet.create({
         backgroundColor: 'transparent',
     },
 
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    modalBox: {
+        backgroundColor: '#fff',
+        padding: 25,
+        borderRadius: 20,
+        width: '80%',
+        alignItems: 'center',
+    },
+    modalTitulo: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginVertical: 15,
+        color:"#2565A3",
+        textAlign: 'center',
+    },
+    modalBotao: {
+        marginTop: 10,
+        paddingVertical: 10,
+        paddingHorizontal: 60,
+        borderRadius: 99,
+        backgroundColor:'#164878'
+
+    },
+    modalBotaoTexto: {
+        color: '#fff',
+        fontWeight: 'bold',
+        fontSize: 16,
+    }
 
 
 });

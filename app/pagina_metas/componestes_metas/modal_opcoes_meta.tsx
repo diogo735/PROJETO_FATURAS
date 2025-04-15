@@ -11,6 +11,7 @@ interface Props {
   aoVerMovimentos: () => void;
   aoEditar: () => void;
   aoApagar: () => void;
+  
 }
 
 const ModalOpcoesMeta: React.FC<Props> = ({ visivel, aoFechar, aoVerMovimentos, aoEditar, aoApagar }) => {
@@ -21,6 +22,8 @@ const ModalOpcoesMeta: React.FC<Props> = ({ visivel, aoFechar, aoVerMovimentos, 
       onBackButtonPress={aoFechar}
       backdropOpacity={0.4}
       useNativeDriver
+       //animationIn="fadeIn"
+      animationOut="fadeOut"
     >
       <View style={styles.modalBox}>
         <Text style={styles.titulo}>Opções da Meta</Text>
@@ -38,7 +41,7 @@ const ModalOpcoesMeta: React.FC<Props> = ({ visivel, aoFechar, aoVerMovimentos, 
 
         <TouchableOpacity style={styles.botaoApagar} onPress={aoApagar}>
           <MaterialIcons name="delete" size={22} color="white" />
-          <Text style={styles.textoBotaoBranco}>Apagar Meta</Text>
+          <Text style={styles.textoBotaoBranco}>Eliminar Meta</Text>
         </TouchableOpacity>
       </View>
     </Modal>

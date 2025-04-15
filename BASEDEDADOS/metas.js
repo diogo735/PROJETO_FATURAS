@@ -235,6 +235,84 @@ async function verificarNotificacoesDeTodasMetas() {
   }
 }
 
+async function buscarMetaPorId_pagina_editar(id_meta) {
+  try {
+    const db = await CRIARBD();
+    const meta = await db.getFirstAsync(`
+      SELECT 
+        id_meta,
+        categoria_id,
+        valor_meta,
+        data_inicio,
+        data_fim,
+        repetir_meta,
+        recebe_alerta
+      FROM metas
+      WHERE id_meta = ?;
+    `, [id_meta]);
+
+    return meta;
+  } catch (error) {
+    console.error('❌ Erro ao buscar meta por ID para edição:', error);
+    return null;
+  }
+}
+async function atualizarMeta(id_meta, categoria_id, valor_meta, data_inicio, data_fim, repetir_meta, recebe_alerta) {
+  const db = await CRIARBD();
+
+  // 1. Atualiza os campos principais da meta
+  await db.runAsync(
+    `UPDATE metas
+     SET categoria_id = ?, valor_meta = ?, data_inicio = ?, data_fim = ?, repetir_meta = ?, recebe_alerta = ?
+     WHERE id_meta = ?`,
+    [categoria_id, valor_meta, data_inicio, data_fim, repetir_meta ? 1 : 0, recebe_alerta, id_meta]
+  );
+
+  // 2. Recalcula o valor_atual da meta com base nos movimentos
+  const movimentos = await db.getAllAsync(
+    `SELECT valor, data_movimento FROM movimentos WHERE categoria_id = ?`,
+    [categoria_id]
+  );
+
+  const total = movimentos
+    .filter(m => {
+      const data = new Date(m.data_movimento);
+      return data >= new Date(data_inicio) && data <= new Date(data_fim);
+    })
+    .reduce((soma, mov) => soma + mov.valor, 0);
+
+  await db.runAsync(
+    `UPDATE metas SET valor_atual = ? WHERE id_meta = ?`,
+    [total, id_meta]
+  );
+
+  // 3. Buscar nome da categoria para notificação
+  const categoria = await db.getFirstAsync(
+    `SELECT nome_cat FROM categorias WHERE id = ?`,
+    [categoria_id]
+  );
+
+  // 4. Verificar se deve enviar notificação
+  await verificar_se_envia_notificacao({
+    id_meta,
+    categoria_id,
+    valor_meta,
+    valor_atual: total,
+    data_inicio,
+    data_fim,
+    repetir_meta,
+    recebe_alerta,
+    notificado_limite_user: 0,
+    notificado_valor_meta: 0,
+    meta_ativa: 1,
+    nome_cat: categoria?.nome_cat ?? 'Categoria',
+  });
+
+  console.log(`✅ Meta atualizada com recalculo. valor_atual = ${total}`);
+}
+
+
+
 export {
   criarTabelaMetas,
   inserirMeta,
@@ -244,5 +322,7 @@ export {
   buscarMetaPorId,
   apagarTabelaMetas,
   verificar_se_envia_notificacao,
-  verificarNotificacoesDeTodasMetas
+  verificarNotificacoesDeTodasMetas,
+  buscarMetaPorId_pagina_editar,
+  atualizarMeta
 };

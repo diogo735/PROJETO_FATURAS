@@ -12,6 +12,7 @@ interface Props {
   visivel: boolean;
   aoFechar: () => void;
   aoSelecionarCategoria: (categoriaId: number | null) => void;
+  categoriaSelecionada?: number | null;
 }
 function getImagemCategoria(img_cat: any): ImageSourcePropType {
   // Se já for um objeto (tipo require), retorna diretamente
@@ -53,10 +54,17 @@ function getImagemCategoria(img_cat: any): ImageSourcePropType {
   return imagensLocais[img_cat] || imagensLocais['outros.png'];
 }
 
-const ModalCategorias: React.FC<Props> = ({ visivel, aoFechar, aoSelecionarCategoria }) => {
+const ModalCategorias: React.FC<Props> = ({ visivel, aoFechar, aoSelecionarCategoria, categoriaSelecionada }) => {
   const [categoriaSelecionadaId, setCategoriaSelecionadaId] = useState<number | null>(null);
 
   const [categorias, setCategorias] = useState<Categoria[]>([]);
+
+ useEffect(() => {
+  if (visivel && typeof categoriaSelecionada === 'number') {
+    setCategoriaSelecionadaId(categoriaSelecionada);
+  }
+}, [visivel, categoriaSelecionada]);
+
 
   useEffect(() => {
     const carregarCategorias = async () => {
@@ -93,7 +101,7 @@ const ModalCategorias: React.FC<Props> = ({ visivel, aoFechar, aoSelecionarCateg
                 aoSelecionarCategoria(novaSelecao);
                 setCategoriaSelecionadaId(novaSelecao);
                 setTimeout(() => {
-                  aoFechar(); 
+                  aoFechar();
                 }, 200);
               }}
 
