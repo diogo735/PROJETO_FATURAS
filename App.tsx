@@ -14,13 +14,15 @@ import * as SplashScreen from 'expo-splash-screen';
 
 import PaginaMovimentos from './app/pagina_moviementos/pagina_movimentos';
 import PaginaMetas from './app/pagina_metas/pagina_metas';
-import PaginaPerfil from './app/pagina_perfil';
+import Pagina_perfil from './app/pagina_perfil/pagina_perfil';
 import DetalhesFatura from './app/pagina_fatura/detalhes_fatura';
 import PaginaCamera from './app/pagina_principal/pagina_camera';
 import MovimentosDaMeta from './app/pagina_metas/movimentos_metas/pagina_movimentos_metas';
 import EditarMeta from './app/pagina_metas/pagina_editar_meta';
-
-
+import PaginaCategorias from './app/pagina_perfil/pagina_categorias/pagina_categorias';
+import CriarCategoria from './app/pagina_perfil/pagina_categorias/criar_categoria/criar_categoria';
+import EditarSubCategoria
+ from './app/pagina_perfil/pagina_categorias/editar_categoria/editar_categoria';
 const { height, width } = Dimensions.get('window');
 import 'react-native-gesture-handler';
 import 'react-native-reanimated';
@@ -48,13 +50,16 @@ export type RootStackParamList = {
   PaginaSucesso: {
     conteudoQr: string | null;
     categoriaId: number | null;
+    subcategoriaId: number | null;
     nota: string | null;
     nomeEmpresa: string | null;
     imagemUri: string | null;
   };
   MovimentosDaMeta: { id_meta: number };
   EditarMeta: { id_meta: number };
-
+  PaginaCategorias: undefined;
+  CriarCategoria: { tipo: 'Despesas' | 'Receitas'; onCategoriaCriada?: () => void };
+  EditarSubcategoria: { id_subcategoria: number };
 
 };
 
@@ -106,7 +111,7 @@ const MetasScreen = (props: any) => (
 const PerfilScreen = (props: any) => (
   <View style={styles.defaultContainer}>
     <StatusBar translucent backgroundColor="transparent" style="dark" />
-    <PaginaPerfil {...props} />
+    <Pagina_perfil {...props} />
   </View>
 );
 
@@ -146,7 +151,26 @@ const EditarMetaScreen = (props: any) => (
     <EditarMeta {...props} />
   </View>
 );
+const CategoriasScreen = (props: any) => (
+  <View style={styles.defaultContainer}>
+    <StatusBar translucent backgroundColor="transparent" style="dark" />
+    <PaginaCategorias {...props} />
+  </View>
+);
 
+const CriarCategoriaScreen = (props: any) => (
+  <View style={styles.defaultContainer}>
+    <StatusBar translucent backgroundColor="transparent" style="dark" />
+    <CriarCategoria {...props} />
+  </View>
+);
+
+const EditarSubcategoriaScreen = (props: any) => (
+  <View style={styles.defaultContainer}>
+    <StatusBar translucent backgroundColor="transparent" style="dark" />
+    <EditarSubCategoria {...props} />
+  </View>
+);
 
 const App: React.FC = () => {
   return (
@@ -197,6 +221,38 @@ const App: React.FC = () => {
             },
           }}
         />
+
+        <Stack.Screen name="PaginaCategorias" component={CategoriasScreen}
+          options={{
+            animation: 'fade',
+            transitionSpec: {
+              open: { animation: 'timing', config: { duration: 350 } },
+              close: { animation: 'timing', config: { duration: 250 } },
+            },
+          }} />
+        <Stack.Screen
+          name="CriarCategoria"
+          component={CriarCategoriaScreen}
+          options={{
+            animation: 'fade',
+            transitionSpec: {
+              open: { animation: 'timing', config: { duration: 350 } },
+              close: { animation: 'timing', config: { duration: 250 } },
+            },
+          }}
+        />
+        <Stack.Screen
+          name="EditarSubcategoria"
+          component={EditarSubcategoriaScreen} // você pode criar isso como CriarCategoriaScreen
+          options={{
+            animation: 'fade',
+            transitionSpec: {
+              open: { animation: 'timing', config: { duration: 350 } },
+              close: { animation: 'timing', config: { duration: 250 } },
+            },
+          }}
+        />
+
 
 
       </Stack.Navigator>

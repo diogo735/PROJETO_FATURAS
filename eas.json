@@ -7,6 +7,12 @@
         "buildType": "apk"
       }
     },
+    "production-apk": {
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease"
+      }
+    },
     "preview": {
       "android": {
         "buildType": "apk"

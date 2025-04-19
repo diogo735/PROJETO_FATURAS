@@ -18,10 +18,13 @@ import { Categoria } from '../../../BASEDEDADOS/tipos_tabelas';
 import ImageViewer from 'react-native-image-zoom-viewer';
 import { TouchableWithoutFeedback } from 'react-native';
 
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../../App';
-
+import { listarSubCategorias } from '../../../BASEDEDADOS/sub_categorias';
+import { SubCategoria } from '../../../BASEDEDADOS/tipos_tabelas';
+import FontAwesome from 'react-native-vector-icons/FontAwesome';
+import { BackHandler } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 interface Props {
@@ -70,6 +73,9 @@ const Modal_Info_Fatura: React.FC<Props> = ({ visivel, uri, aoFechar, aoEliminar
     const [nomeEmpresa, setNomeEmpresa] = useState<string | null>(null);
     const rotateValue = useRef(new Animated.Value(0)).current;
 
+
+    const [subcategorias, setSubcategorias] = useState<SubCategoria[]>([]);
+    const [categorias, setCategorias] = useState<any[]>([]);
     type NavigationProps = StackNavigationProp<RootStackParamList, 'PaginaSucesso'>;
     const navigation = useNavigation<NavigationProps>();
 
@@ -97,10 +103,11 @@ const Modal_Info_Fatura: React.FC<Props> = ({ visivel, uri, aoFechar, aoEliminar
         }
 
         return () => {
-            isMounted = false; // previne loop após fechar
+            isMounted = false;
         };
     }, [visivel]);
 
+    const fadeAnim = useRef(new Animated.Value(1)).current;
 
 
     const rotateInterpolation = rotateValue.interpolate({
@@ -108,13 +115,25 @@ const Modal_Info_Fatura: React.FC<Props> = ({ visivel, uri, aoFechar, aoEliminar
         outputRange: ['0deg', '360deg'],
     });
 
-    const aoFecharModal = () => {
-
-        setDadosInterpretados(null);  // Limpa a interpretação
+    const trocarComFade = (callback: () => void) => {
+        Animated.timing(fadeAnim, {
+            toValue: 0,
+            duration: 250,
+            useNativeDriver: true,
+        }).start(() => {
+            callback();
+            Animated.timing(fadeAnim, {
+                toValue: 1,
+                duration: 250,
+                useNativeDriver: true,
+            }).start();
+        });
     };
 
 
-    const [categorias, setCategorias] = useState<any[]>([]);
+
+
+
 
     function formatarData(dataStr: string): string {
         if (!dataStr || dataStr.length !== 8) return '---';
@@ -145,6 +164,17 @@ const Modal_Info_Fatura: React.FC<Props> = ({ visivel, uri, aoFechar, aoEliminar
             certificado: dados.R,
         };
     }
+    useEffect(() => {
+        if (visivel) {
+            setNota('');
+            setCategoriaSelecionada(null);
+            setCategoriaSelecionadaId(null);
+            setSubcategoriaSelecionada(null);
+            setSubcategoriaSelecionadaId(null);
+            setDadosInterpretados(null);
+            setQrInvalido(false);
+        }
+    }, [visivel]);
 
     useEffect(() => {
         //console.log('📦 Conteúdo do QR recebido:', conteudoQr);
@@ -156,13 +186,19 @@ const Modal_Info_Fatura: React.FC<Props> = ({ visivel, uri, aoFechar, aoEliminar
             if (conteudoQr) {
                 const timeout = setTimeout(async () => {
                     try {
-                        const dados = await interpretarQr(conteudoQr); // agora é async
+                        const dados = await interpretarQr(conteudoQr);
                         setDadosInterpretados(dados);
-                        setQrInvalido(false);
+                        trocarComFade(() => {
+                            setQrInvalido(false);
+                        });
+
                     } catch (error) {
                         console.warn('❌ Erro ao interpretar QR:', error);
                         setDadosInterpretados(null);
-                        setQrInvalido(true);
+                        trocarComFade(() => {
+                            setQrInvalido(true);
+                        });
+
                     }
                     setLoadingQr(false);
                 }, 2000);
@@ -170,27 +206,56 @@ const Modal_Info_Fatura: React.FC<Props> = ({ visivel, uri, aoFechar, aoEliminar
                 return () => clearTimeout(timeout);
             } else {
                 setTimeout(() => {
-                    setDadosInterpretados(null);
-                    setQrInvalido(true);
-                    setLoadingQr(false);
+                    setDadosInterpretados(null); setQrInvalido(true);
+                    trocarComFade(() => {
+                        setLoadingQr(false);
+                    });
+
                 }, 2000);
             }
         }
     }, [visivel, conteudoQr]);
 
-
-
-
     useEffect(() => {
-        const carregarCategorias = async () => {
-            const lista = await listarCategoriasComTipo();
-            if (lista) {
-                setCategorias(lista);
-            }
+        const carregarCategoriasESubcategorias = async () => {
+            const listaCat = await listarCategoriasComTipo();
+            const listaSub = await listarSubCategorias();
+            if (listaCat) setCategorias(listaCat);
+            if (listaSub) setSubcategorias(listaSub);
         };
 
-        carregarCategorias();
-    }, []);
+        if (visivel) {
+            carregarCategoriasESubcategorias();
+        }
+    }, [visivel]);
+
+    const forcarRecarregarCategorias = () => {
+        const carregar = async () => {
+            const listaCat = await listarCategoriasComTipo();
+            const listaSub = await listarSubCategorias();
+            if (listaCat) setCategorias(listaCat);
+            if (listaSub) setSubcategorias(listaSub);
+        };
+
+        carregar();
+    };
+
+
+    useFocusEffect(
+        React.useCallback(() => {
+            const onBackPress = () => {
+                if (mostrarModalCategoria) {
+                    setMostrarModalCategoria(false); // Fecha o modal de categorias
+                    return true; // Impede comportamento padrão
+                }
+                return false; // Permite comportamento normal se modal já estiver fechado
+            };
+
+            BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+            return () => BackHandler.removeEventListener('hardwareBackPress', onBackPress);
+        }, [mostrarModalCategoria])
+    );
 
 
     function formatarContribuinte(nif?: string) {
@@ -200,12 +265,41 @@ const Modal_Info_Fatura: React.FC<Props> = ({ visivel, uri, aoFechar, aoEliminar
         return nif;
     }
 
+
+
+    const [categoriaSelecionadaId, setCategoriaSelecionadaId] = useState<number | null>(null);
+    const [subcategoriaSelecionada, setSubcategoriaSelecionada] = useState<SubCategoria | null>(null);
+    const [subcategoriaSelecionadaId, setSubcategoriaSelecionadaId] = useState<number | null>(null);
+
     useEffect(() => {
-        if (visivel) {
-            setNota('');
-            setCategoriaSelecionada(null);
+        if (categoriaSelecionadaId && categorias.length > 0) {
+            const categoria = categorias.find(cat => cat.id === categoriaSelecionadaId);
+            if (categoria) {
+                console.log('✅ Categoria aplicada após carregamento:', categoria);
+                setCategoriaSelecionada(categoria);
+            }
         }
-    }, [visivel]);
+    }, [categoriaSelecionadaId, categorias]);
+
+    useEffect(() => {
+        if (subcategoriaSelecionadaId && subcategorias.length > 0) {
+            const sub = subcategorias.find(s => s.id === subcategoriaSelecionadaId);
+            if (sub) {
+                console.log('✅ Subcategoria aplicada após carregamento:', sub);
+                setSubcategoriaSelecionada(sub);
+            }
+        }
+    }, [subcategoriaSelecionadaId, subcategorias]);
+
+    const subcategoriaInfo = subcategoriaSelecionada;
+
+    const carregandoGeral =
+        loadingQr ||
+        categorias.length === 0 ||
+        subcategorias.length === 0;
+
+
+
 
     return (
         <Modal isVisible={visivel} onBackdropPress={aoFechar} style={{ justifyContent: 'flex-end', margin: 0 }}>
@@ -214,243 +308,283 @@ const Modal_Info_Fatura: React.FC<Props> = ({ visivel, uri, aoFechar, aoEliminar
                 <View style={styles.backgroundSvg}>
                     <FundoSvg width="100%" height="100%" preserveAspectRatio="xMidYMid slice" />
                 </View>
+                <Animated.View style={{ opacity: fadeAnim, flex: 1 }}>
+                    {carregandoGeral ? (
+                        <View style={[styles.loadingContainer, { height: alturaInfo || 400 }]}>
+                            <Animated.View style={{
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                transform: [{ rotate: rotateInterpolation }]
+                            }}>
+                                <IconeRotativo
+                                    width={70}
+                                    height={70}
+                                    fill="#2565A3"
+                                />
+                            </Animated.View>
 
-                {loadingQr ? (
-                    <View style={[styles.loadingContainer, { height: alturaInfo || 400 }]}>
-                        <Animated.View style={{
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            transform: [{ rotate: rotateInterpolation }]
-                        }}>
-                            <IconeRotativo
-                                width={70}
-                                height={70}
-                                fill="#2565A3"
+                            <Text style={{ marginTop: 15, color: '#2565A3', fontWeight: 'bold' }}>A ler fatura...</Text>
+                        </View>
+
+
+                    ) : qrInvalido ? (
+                        <View style={styles.loadingContainer}>
+                            <Image
+                                source={ErroQrIcon}
+                                style={{ width: 84, height: 84, marginBottom: 15 }}
+                                resizeMode="contain"
                             />
-                        </Animated.View>
+                            <Text style={{ color: '#2565A3', fontSize: 16, fontWeight: 'bold' }}>
+                                QR inválido ou
+                                não detetado !
+                            </Text>
+                            <TouchableOpacity
+                                style={styles.botaoTentarNovamente}
+                                onPress={aoFechar} // ou outra função como voltar à câmera
+                            >
+                                <Text style={styles.textoBotaoTentar}>Tente novamente</Text>
+                            </TouchableOpacity>
 
-                        <Text style={{ marginTop: 15, color: '#2565A3', fontWeight: 'bold' }}>A ler fatura...</Text>
-                    </View>
+                        </View>
 
+                    ) : (
+                        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                            <View style={styles.content}>
 
-                ) : qrInvalido ? (
-                    <View style={styles.loadingContainer}>
-                        <Image
-                            source={ErroQrIcon}
-                            style={{ width: 84, height: 84, marginBottom: 15 }}
-                            resizeMode="contain"
-                        />
-                        <Text style={{ color: '#2565A3', fontSize: 16, fontWeight: 'bold' }}>
-                            QR inválido ou
-                            não detetado !
-                        </Text>
-                        <TouchableOpacity
-                            style={styles.botaoTentarNovamente}
-                            onPress={aoFechar} // ou outra função como voltar à câmera
-                        >
-                            <Text style={styles.textoBotaoTentar}>Tente novamente</Text>
-                        </TouchableOpacity>
+                                {/* SVG como fundo absoluto */}
 
-                    </View>
-
-                ) : (
-                    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                        <View style={styles.content}>
-
-                            {/* SVG como fundo absoluto */}
-
-                            <View style={styles.tituloBox}>
-                                <InfoIcon width={22} height={22} style={styles.iconeInfo} />
-                                <Text style={styles.tituloTexto}>Informações da Fatura</Text>
-                            </View>
-                            <View style={styles.linhaHorizontal}>
-                                <View
-                                    style={styles.info_container}
-                                    onLayout={(event) => {
-                                        const { height } = event.nativeEvent.layout;
-                                        setAlturaInfo(height);
-                                    }}
-                                >
-                                    {/* Estabelecimento */}
-                                    <View style={styles.linhaInfo}>
-                                        <Text style={styles.label}>Estabelecimento:</Text>
-                                        {loadingQr ? (
-                                            <Text style={[styles.valor, { fontStyle: 'italic' }]}>A interpretar QR...</Text>
-                                        ) : (
-                                            <Text style={styles.valor}>{dadosInterpretados?.emissor || '---'}</Text>
-                                        )}
-                                    </View>
-
-                                    {/* Contribuinte */}
-                                    <View style={styles.linhaInfo}>
-                                        <Text style={styles.label}>Nº de Contribuinte:</Text>
-                                        <Text style={styles.valor}>{formatarContribuinte(dadosInterpretados?.contribuinte)}</Text>
-
-                                    </View>
-
-                                    {/* Data da fatura */}
-
-                                    <View style={styles.linhaInfo}>
-                                        <Text style={styles.label}>Data:</Text>
-                                        {loadingQr ? (
-                                            <Text style={[styles.valor, { fontStyle: 'italic' }]}>a carregar...</Text>
-                                        ) : (
-                                            <Text style={styles.valor}>{dadosInterpretados?.data || '---'}</Text>
-                                        )}
-                                    </View>
-                                    <View style={styles.linhaInfo}>
-                                        <Text style={styles.label}>Tipo:</Text>
-                                        <TouchableOpacity
-                                            onPress={() => setMostrarModalCategoria(true)}
-                                            style={[
-                                                styles.tipoBox,
-                                                {
-                                                    backgroundColor: categoriaSelecionada ? categoriaSelecionada.cor_cat : '#5DADE2',
-                                                },
-                                            ]}
-                                        >
-                                            {categoriaSelecionada ? (
-                                                <>
-                                                    <Image
-                                                        source={getImagemCategoria(categoriaSelecionada.img_cat)}
-                                                        style={styles.tipoIcone}
-                                                    />
-                                                    <Text style={styles.tipoTexto}>{categoriaSelecionada.nome_cat}</Text>
-                                                    <Image
-                                                        source={require('../../../assets/icons/pagina_camera/editar.svg')}
-                                                        style={styles.iconeEditar}
-                                                    />
-                                                </>
+                                <View style={styles.tituloBox}>
+                                    <InfoIcon width={22} height={22} style={styles.iconeInfo} />
+                                    <Text style={styles.tituloTexto}>Informações da Fatura</Text>
+                                </View>
+                                <View style={styles.linhaHorizontal}>
+                                    <View
+                                        style={styles.info_container}
+                                        onLayout={(event) => {
+                                            const { height } = event.nativeEvent.layout;
+                                            setAlturaInfo(height);
+                                        }}
+                                    >
+                                        {/* Estabelecimento */}
+                                        <View style={styles.linhaInfo}>
+                                            <Text style={styles.label}>Estabelecimento:</Text>
+                                            {loadingQr ? (
+                                                <Text style={[styles.valor, { fontStyle: 'italic' }]}>A interpretar QR...</Text>
                                             ) : (
-                                                <Text style={[styles.tipoTexto, { color: 'white' }]}>Selecionar</Text>
+                                                <Text style={styles.valor}>{dadosInterpretados?.emissor || '---'}</Text>
                                             )}
+                                        </View>
+
+                                        {/* Contribuinte */}
+                                        <View style={styles.linhaInfo}>
+                                            <Text style={styles.label}>Nº de Contribuinte:</Text>
+                                            <Text style={styles.valor}>{formatarContribuinte(dadosInterpretados?.contribuinte)}</Text>
+
+                                        </View>
+
+                                        {/* Data da fatura */}
+
+                                        <View style={styles.linhaInfo}>
+                                            <Text style={styles.label}>Data:</Text>
+                                            {loadingQr ? (
+                                                <Text style={[styles.valor, { fontStyle: 'italic' }]}>a carregar...</Text>
+                                            ) : (
+                                                <Text style={styles.valor}>{dadosInterpretados?.data || '---'}</Text>
+                                            )}
+                                        </View>
+                                        <View style={styles.linhaInfo}>
+                                            <Text style={styles.label}>Tipo:</Text>
+                                            <TouchableOpacity
+                                                onPress={() => {
+                                                    console.log('📌 Categoria atual:', categoriaSelecionada);
+                                                    console.log('📌 Subcategoria atual:', subcategoriaInfo);
+                                                    setMostrarModalCategoria(true);
+                                                }}
+                                                style={[
+                                                    styles.tipoBox,
+                                                    {
+                                                        backgroundColor:
+                                                            categoriaSelecionada?.cor_cat ??
+                                                            subcategoriaInfo?.cor_subcat ??
+                                                            '#5DADE2',
+                                                    },
+                                                ]}
+                                            >
+                                                {categoriaSelecionada ? (
+                                                    <>
+                                                        <Image
+                                                            source={getImagemCategoria(categoriaSelecionada.img_cat)}
+                                                            style={styles.tipoIcone}
+                                                        />
+                                                        <Text style={styles.tipoTexto}>{categoriaSelecionada.nome_cat}</Text>
+                                                        <Image
+                                                            source={require('../../../assets/icons/pagina_camera/editar.svg')}
+                                                            style={styles.iconeEditar}
+                                                        />
+                                                    </>
+                                                ) : subcategoriaInfo ? (
+                                                    <>
+                                                        <View style={styles.tipoIconeWrapper}>
+                                                            <FontAwesome
+                                                                name={subcategoriaInfo.icone_nome}
+                                                                size={18}
+                                                                color="#fff"
+                                                            />
+                                                        </View>
+                                                        <Text style={styles.tipoTexto}>{subcategoriaInfo.nome_subcat}</Text>
+                                                        <Image
+                                                            source={require('../../../assets/icons/pagina_camera/editar.svg')}
+                                                            style={styles.iconeEditar}
+                                                        />
+                                                    </>
+                                                ) : (
+                                                    <Text style={[styles.tipoTexto, { color: 'white' }]}>Selecionar</Text>
+                                                )}
+                                            </TouchableOpacity>
+
+
+                                        </View>
+
+
+                                        {/* Total */}
+                                        <View style={[styles.linhavalor, { marginTop: 20 }]}>
+                                            <Text style={styles.label}>Valor:</Text>
+                                            {loadingQr ? (
+                                                <Text style={[styles.valor, { fontStyle: 'italic' }]}>a carregar...</Text>
+                                            ) : (
+                                                <Text style={styles.valor}>{dadosInterpretados?.total || '---'}</Text>
+                                            )}
+                                        </View>
+                                    </View>
+
+
+
+                                    {uri && (
+                                        <TouchableOpacity onPress={() => setImagemAmpliada(true)}>
+                                            <Image
+                                                source={{ uri }}
+                                                style={[styles.image, { height: alturaInfo }]}
+                                                resizeMode="cover"
+                                            />
                                         </TouchableOpacity>
+                                    )}
 
-                                    </View>
 
 
-                                    {/* Total */}
-                                    <View style={[styles.linhavalor, { marginTop: 20 }]}>
-                                        <Text style={styles.label}>Valor:</Text>
-                                        {loadingQr ? (
-                                            <Text style={[styles.valor, { fontStyle: 'italic' }]}>a carregar...</Text>
-                                        ) : (
-                                            <Text style={styles.valor}>{dadosInterpretados?.total || '---'}</Text>
-                                        )}
-                                    </View>
                                 </View>
+                                <View style={styles.caixaNotas}>
+                                    <View style={styles.iconeNota}>
+                                        <NotasIcon width={22} height={22} />
+                                    </View>
 
+                                    <View style={{ flex: 1, position: 'relative' }}>
+                                        <TextInput
+                                            value={nota}
+                                            onChangeText={setNota}
+                                            placeholder="Adicionar notas..."
+                                            placeholderTextColor="#6C8CA1"
+                                            style={styles.inputNota}
+                                            multiline
+                                            numberOfLines={3}
+                                            scrollEnabled={false}
+                                            maxLength={80}
+                                            returnKeyType="done"
+                                            blurOnSubmit={true}
+                                            onSubmitEditing={() => Keyboard.dismiss()}
 
-
-                                {uri && (
-                                    <TouchableOpacity onPress={() => setImagemAmpliada(true)}>
-                                        <Image
-                                            source={{ uri }}
-                                            style={[styles.image, { height: alturaInfo }]}
-                                            resizeMode="cover"
                                         />
+                                        <Text style={styles.contadorTexto}>{nota.length}/80</Text>
+                                    </View>
+                                </View>
+
+                                <View style={styles.separador} />
+
+                                <View style={styles.botoesContainer}>
+                                    <TouchableOpacity
+                                        style={styles.btnEliminar}
+                                        onPress={() => {
+                                            //setNota('');
+                                            //setCategoriaSelecionada(null); 
+                                            aoFechar();
+                                            //aoEliminar(); 
+                                        }}
+                                    >
+                                        <LixoIcon width={18} height={18} style={styles.iconeBotao} />
+                                        <Text style={styles.txtBotao}>Eliminar</Text>
                                     </TouchableOpacity>
-                                )}
 
 
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.btnGuardar,
+                                            !categoriaSelecionada && !subcategoriaSelecionada && { opacity: 0.5 }
+                                        ]}
+                                        disabled={!categoriaSelecionada && !subcategoriaSelecionada}
+                                        onPress={() => {
+                                            Keyboard.dismiss();
 
-                            </View>
-                            <View style={styles.caixaNotas}>
-                                <View style={styles.iconeNota}>
-                                    <NotasIcon width={22} height={22} />
+                                            if (!categoriaSelecionada && !subcategoriaSelecionada) {
+                                                console.log('❌ Deve selecionar uma categoria ou subcategoria.');
+                                                return;
+                                            }
+
+
+                                            console.log('✅ Nota guardada:', nota);
+                                            aoFechar();
+                                            setTimeout(() => {
+                                                navigation.navigate('PaginaSucesso', {
+                                                    conteudoQr: conteudoQr ?? null,
+                                                    categoriaId: categoriaSelecionada?.id ?? null,
+                                                    subcategoriaId: subcategoriaSelecionada?.id ?? null,
+                                                    nota: nota || null,
+                                                    nomeEmpresa: dadosInterpretados?.emissor ?? null,
+                                                    imagemUri: uri ?? null,
+                                                });
+
+                                            }, 300);
+                                        }}
+                                    >
+                                        <CheckIcon width={18} height={18} style={styles.iconeBotao} />
+                                        <Text style={styles.txtBotao}>Guardar</Text>
+                                    </TouchableOpacity>
+
+
                                 </View>
 
-                                <View style={{ flex: 1, position: 'relative' }}>
-                                    <TextInput
-                                        value={nota}
-                                        onChangeText={setNota}
-                                        placeholder="Adicionar notas..."
-                                        placeholderTextColor="#6C8CA1"
-                                        style={styles.inputNota}
-                                        multiline
-                                        numberOfLines={3}
-                                        scrollEnabled={false}
-                                        maxLength={80}
-                                        returnKeyType="done"
-                                        blurOnSubmit={true}
-                                        onSubmitEditing={() => Keyboard.dismiss()}
 
-                                    />
-                                    <Text style={styles.contadorTexto}>{nota.length}/80</Text>
-                                </View>
-                            </View>
-
-                            <View style={styles.separador} />
-
-                            <View style={styles.botoesContainer}>
-                                <TouchableOpacity
-                                    style={styles.btnEliminar}
-                                    onPress={() => {
-                                        setNota('');
-                                        setCategoriaSelecionada(null);
-                                        aoEliminar(); // chama o reset da tela principal
-                                        aoFecharModal(); // limpa os dados do QR e do modal
-                                    }}
-                                >
-                                    <LixoIcon width={18} height={18} style={styles.iconeBotao} />
-                                    <Text style={styles.txtBotao}>Eliminar</Text>
-                                </TouchableOpacity>
-
-
-                                <TouchableOpacity
-                                    style={[
-                                        styles.btnGuardar,
-                                        !categoriaSelecionada && { opacity: 0.5 }
-                                    ]}
-                                    disabled={!categoriaSelecionada}
-                                    onPress={() => {
-                                        Keyboard.dismiss();
-
-                                        if (!categoriaSelecionada) {
-                                            console.log('❌ Categoria obrigatória.');
-                                            return;
-                                        }
-
-                                        
-
-                                        console.log('✅ Nota guardada:', nota);
-                                        aoFechar();
-                                        setTimeout(() => {
-                                            navigation.navigate('PaginaSucesso', {
-                                                conteudoQr: conteudoQr ?? null,
-                                                categoriaId: categoriaSelecionada?.id ?? null,
-                                                nota: nota || null,
-                                                nomeEmpresa: dadosInterpretados?.emissor ?? null,
-                                                imagemUri: uri ?? null,
-                                            });
-
-                                        }, 300);
-                                    }}
-                                >
-                                    <CheckIcon width={18} height={18} style={styles.iconeBotao} />
-                                    <Text style={styles.txtBotao}>Guardar</Text>
-                                </TouchableOpacity>
-
-
-                            </View>
-
-
-                        </View></TouchableWithoutFeedback>
-                )}
+                            </View></TouchableWithoutFeedback>
+                    )}</Animated.View>
             </View>
             <ModalCategorias
                 visivel={mostrarModalCategoria}
                 aoFechar={() => setMostrarModalCategoria(false)}
                 aoSelecionarCategoria={(idSelecionado) => {
-                    const categoria = categorias.find(cat => cat.id === idSelecionado);
-                    if (categoria) {
-                        setCategoriaSelecionada(categoria);
+                    if (idSelecionado !== null) {
+                        setCategoriaSelecionadaId(idSelecionado); // salva o ID
+                        setSubcategoriaSelecionada(null);
                     } else {
+                        setCategoriaSelecionada(null);
+                        setCategoriaSelecionadaId(null);
+                        setSubcategoriaSelecionada(null);
+                    }
+                }}
+                aoSelecionarSubcategoria={(id) => {
+                    if (id !== null) {
+                        setSubcategoriaSelecionadaId(id);
+                        setCategoriaSelecionada(null);
+                    } else {
+                        setSubcategoriaSelecionada(null);
+                        setSubcategoriaSelecionadaId(null);
                         setCategoriaSelecionada(null);
                     }
                 }}
+
+                onCategoriaCriada={forcarRecarregarCategorias}
                 categoriaAtual={categoriaSelecionada}
+                subcategoriaAtual={subcategoriaSelecionada?.id ?? null}
+
             />
+
             {uri && (
                 <Modal isVisible={imagemAmpliada} onBackdropPress={() => setImagemAmpliada(false)} style={{ margin: 0 }}>
                     <View style={{ flex: 1 }}>
@@ -724,6 +858,16 @@ const styles = StyleSheet.create({
         top: 20,
         right: 20,
         zIndex: 10,
+    },
+    tipoIconeWrapper: {
+        width: 23,
+        height: 23,
+        borderRadius: 99,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'transparent',
+        marginRight: 6,
+        marginLeft: 22,
     },
 
 

@@ -90,7 +90,7 @@ async function inserirFatura({
     );
 
     const faturaId = result.lastInsertRowId;
-  
+
     return faturaId;
 
   } catch (error) {
@@ -102,6 +102,7 @@ async function inserirFatura({
 async function registarFatura_BDLOCAL({
   dataMovimento,
   categoriaId,
+  subcategoriaId,
   nota,
   tipoDocumento,
   numeroFatura,
@@ -116,16 +117,34 @@ async function registarFatura_BDLOCAL({
   try {
     const db = await CRIARBD();
 
-    // 🔍 1. Buscar tipo_movimento_id pela categoria
-    const tipoMovimentoId = await obterTipoMovimentoPorCategoria(categoriaId);
-    if (!tipoMovimentoId) {
-      console.warn('⚠️ Tipo de movimento não encontrado para a categoria:', categoriaId);
-      return;
+    let categoriaIdFinal = categoriaId;
+    let subCategoriaIdFinal = subcategoriaId ?? null;
+
+    if (subcategoriaId) {
+      const subcat = await db.getFirstAsync(
+        `SELECT categoria_id FROM sub_categorias WHERE id = ?`,
+        [subcategoriaId]
+      );
+
+      if (!subcat) {
+        console.warn('⚠️ Subcategoria não encontrada:', subcategoriaId);
+        return;
+      }
+
+      categoriaIdFinal = subcat.categoria_id;
     }
 
 
+
     // 🧾 2. Inserir movimento e obter ID
-    const movimentoId = await inserirMovimento(totalFinal, dataMovimento, categoriaId, tipoMovimentoId, nota);
+    const movimentoId = await inserirMovimento(
+      totalFinal,
+      dataMovimento,
+      categoriaIdFinal,
+      subCategoriaIdFinal,
+      nota
+    );
+    
 
     if (!movimentoId) {
       console.warn('⚠️ Movimento não foi criado. Cancelando registro de fatura.');
@@ -215,7 +234,7 @@ async function atualizarMovimentoPorFatura(faturaId, novaDescricao, novaCategori
       `UPDATE faturas SET descricao = ? WHERE id = ?`,
       [novaDescricao, faturaId]
     );
-    
+
     console.log(`✅ Movimento ${movimentoId} atualizado com nova descrição, categoria e tipo_movimento.`);
     return true;
 

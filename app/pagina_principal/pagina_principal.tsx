@@ -105,7 +105,7 @@ const Pagina_principal: React.FC = () => {
         {/**/}
         <Animated.View style={[styles.containerGrafico, estiloAnimado]}>
           {carregarGrafico ? (
-            <View style={{ height: width * 0.804 + 100 }} /> //  ocupa o mesmo espaço do gráfico 
+            <View style={{ height: width * 0.804 + 100 }} />  
           ) : (
             <Grafico_Circular categorias={dadosGrafico} tipoSelecionado={tipoSelecionado} />
           )}

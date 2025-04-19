@@ -40,7 +40,7 @@ async function listarTiposMovimento() {
     try {
       const db = await CRIARBD();
         const result = await db.getAllAsync('SELECT * FROM tipo_movimento;');
-        console.log('📌 Tipos de movimento encontrados:', result);
+        //console.log('📌 Tipos de movimento encontrados:', result);
         return result;
     } catch (error) {
         console.error('❌ Erro ao buscar tipos de movimento:', error);

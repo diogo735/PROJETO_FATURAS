@@ -56,7 +56,8 @@ export default function PaginaSucesso() {
 
 
   const route = useRoute<PaginaSucessoRouteProp>();
-  const { conteudoQr, categoriaId, nota, nomeEmpresa, imagemUri } = route.params;
+  const { conteudoQr, categoriaId, subcategoriaId, nota, nomeEmpresa, imagemUri } = route.params;
+
   const dadosFatura = interpretarQrConteudo(conteudoQr ?? '');
 
   const navigation = useNavigation();
@@ -118,6 +119,7 @@ export default function PaginaSucesso() {
       const faturaIdCriada = await registarFatura_BDLOCAL({
         dataMovimento: obterDataHoraAtual(),
         categoriaId,
+        subcategoriaId,
         nota,
         tipoDocumento: dadosFatura.tipoDocumento,
         numeroFatura: dadosFatura.numeroDocumento,
@@ -125,7 +127,7 @@ export default function PaginaSucesso() {
         nifEmitente: dadosFatura.nifEmpresa,
         nomeEmpresa,
         nifCliente: dadosFatura.nifCliente,
-        totalIva:  parseFloat(dadosFatura.iva13 || '0'),
+        totalIva: parseFloat(dadosFatura.iva13 || '0'),
         totalFinal: parseFloat(dadosFatura.total || '0'),
         imagemFatura: imagemSalva
       });
@@ -174,7 +176,7 @@ export default function PaginaSucesso() {
         return [chave, valor];
       })
     );
-   
+
     function formatarData(dataStr?: string): string {
       if (!dataStr || dataStr.length !== 8) return '---';
       return `${dataStr.slice(6, 8)}/${dataStr.slice(4, 6)}/${dataStr.slice(0, 4)}`;

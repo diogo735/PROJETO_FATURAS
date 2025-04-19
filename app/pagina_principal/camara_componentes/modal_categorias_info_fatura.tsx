@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions, ScrollView, ImageSourcePropType } from 'react-native';
 import Modal from 'react-native-modal';
 import { listarCategoriasComTipo } from '../../../BASEDEDADOS/categorias';
@@ -7,16 +7,30 @@ import { Image } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import SetaDespesas from '../../../assets/icons/pagina_camera/despesa.svg';
 import SetaReceitas from '../../../assets/icons/pagina_camera/receita.svg';
-const { width } = Dimensions.get('window');
+
 import { LayoutAnimation, Platform, UIManager } from 'react-native';
 import { Animated, Easing } from 'react-native';
+import Iconratio from '../../../assets/imagens/wallpaper.svg';
+import { listarSubCategorias } from '../../../BASEDEDADOS/sub_categorias';
+import { SubCategoria } from '../../../BASEDEDADOS/tipos_tabelas';
+import { useIsFocused } from '@react-navigation/native';
 
+import SubcategoriaSelecionavel from './card_subcategoria';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { RootStackParamList } from '../../../App';
+const { width, height } = Dimensions.get('window');
 interface Props {
   visivel: boolean;
   aoFechar: () => void;
   aoSelecionarCategoria: (categoriaId: number | null) => void;
   categoriaAtual?: (Categoria & { tipo_nome: string }) | null;
+  subcategoriaAtual?: number | null;
+  aoSelecionarSubcategoria: (subCategoriaId: number | null) => void;
+  onCategoriaCriada?: () => void;
 }
+import { BackHandler } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 
 
 
@@ -64,65 +78,128 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-const ModalCategorias: React.FC<Props> = ({ visivel, aoFechar, aoSelecionarCategoria, categoriaAtual }) => {
+const ModalCategorias: React.FC<Props> = ({ visivel, aoFechar, aoSelecionarCategoria, categoriaAtual, aoSelecionarSubcategoria, subcategoriaAtual, onCategoriaCriada }) => {
   const [categoriaSelecionadaId, setCategoriaSelecionadaId] = useState<number | null>(null);
 
   const [categorias, setCategorias] = useState<(Categoria & { tipo_nome: string })[]>([]);
-
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const despesas = categorias.filter(cat => cat.tipo_nome === 'Despesa');
   const receitas = categorias.filter(cat => cat.tipo_nome === 'Receita');
-  const alturaAnimadaDespesas = useState(new Animated.Value(1))[0]; // começa visível
-  const [alturaDespesasVisivel, setAlturaDespesasVisivel] = useState(true);
-  const alturaAnimadaReceitas = useState(new Animated.Value(0))[0]; // começa fechado
-  const [alturaReceitasVisivel, setAlturaReceitasVisivel] = useState(false);
 
-  const animarDespesas = () => {
-    const paraAbrir = !alturaDespesasVisivel;
+  const [subcategorias, setSubcategorias] = useState<SubCategoria[]>([]);
+  const [subSelecionadaId, setSubSelecionadaId] = useState<number | null>(null);
+  const [carregando, setCarregando] = useState(false);
 
-    Animated.timing(alturaAnimadaDespesas, {
-      toValue: paraAbrir ? 1 : 0,
-      duration: 300,
-      easing: Easing.ease,
-      useNativeDriver: false,
-    }).start();
 
-    setAlturaDespesasVisivel(paraAbrir);
+  const [mostrarDespesas, setMostrarDespesas] = useState(true);
+
+  const despesasAnim = useRef(new Animated.Value(1)).current;
+  const receitasAnim = useRef(new Animated.Value(1)).current;
+  const alturaRealReceitas = useRef(0);
+  const [mostrarReceitas, setMostrarReceitas] = useState(true);
+  const rotacaoDespesas = useRef(new Animated.Value(1)).current;
+  const rotacaoReceitas = useRef(new Animated.Value(1)).current;
+  const alturaRealDespesas = useRef(0);
+
+  const rotacaoDespesasInterpolada = rotacaoDespesas.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['180deg', '0deg'], // ← invertido
+  });
+
+  const rotacaoReceitasInterpolada = rotacaoReceitas.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['180deg', '0deg'], // ← invertido
+  });
+
+
+  const animarDespesas = (abrir: boolean) => {
+    Animated.parallel([
+      Animated.timing(despesasAnim, {
+        toValue: abrir ? 1 : 0,
+        duration: 250,
+        useNativeDriver: false,
+      }),
+      Animated.timing(rotacaoDespesas, {
+        toValue: abrir ? 1 : 0,
+        duration: 250,
+        useNativeDriver: false,
+      }),
+    ]).start(() => {
+      setMostrarDespesas(abrir);
+    });
   };
 
-  const animarReceitas = () => {
-    const paraAbrir = !alturaReceitasVisivel;
 
-    Animated.timing(alturaAnimadaReceitas, {
-      toValue: paraAbrir ? 1 : 0,
-      duration: 300,
-      easing: Easing.ease,
-      useNativeDriver: false,
-    }).start();
+  const toggleDespesas = () => {
+    animarDespesas(!mostrarDespesas);
+  };
 
-    setAlturaReceitasVisivel(paraAbrir);
+  const animarReceitas = (abrir: boolean) => {
+    Animated.parallel([
+      Animated.timing(receitasAnim, {
+        toValue: abrir ? 1 : 0,
+        duration: 250,
+        useNativeDriver: false,
+      }),
+      Animated.timing(rotacaoReceitas, {
+        toValue: abrir ? 1 : 0,
+        duration: 250,
+        useNativeDriver: false,
+      }),
+    ]).start(() => {
+      setMostrarReceitas(abrir);
+    });
   };
 
 
+  const toggleReceitas = () => {
+    animarReceitas(!mostrarReceitas);
+  };
+
+
+
+
+
+
+//NAO ESTA A MOSTRA NA PRIMEIRA VEZ AS DESPEAS É PRESISO CLICAR DUAS VEZES NO BOTAO
   useEffect(() => {
     if (visivel) {
       const ehReceita = !!(categoriaAtual && categoriaAtual.tipo_nome === 'Receita');
 
+      despesasAnim.setValue(ehReceita ? 1 : 0);
+      receitasAnim.setValue(ehReceita ? 1 : 0);
+      rotacaoDespesas.setValue(ehReceita ? 1 :0);
+      rotacaoReceitas.setValue(ehReceita ? 1 : 0);
+      setMostrarDespesas(true);
+      setMostrarReceitas(ehReceita);
 
-      alturaAnimadaDespesas.setValue(ehReceita ? 0 : 1);
-      alturaAnimadaReceitas.setValue(ehReceita ? 1 : 0);
-
-      setAlturaDespesasVisivel(!ehReceita);
-      setAlturaReceitasVisivel(ehReceita);
+      setCategoriaSelecionadaId(categoriaAtual?.id ?? null);
+      setSubSelecionadaId(subcategoriaAtual ?? null);
     }
   }, [visivel]);
 
 
 
 
+
+
+
+
+  const carregarCategorias = async () => {
+    setCarregando(true); // Mostra spinner
+    const lista = await listarCategoriasComTipo();
+    const subs = await listarSubCategorias();
+    if (lista) setCategorias(lista);
+    if (subs) setSubcategorias(subs);
+    setCarregando(false);
+  };
+
   useEffect(() => {
     const carregarCategorias = async () => {
       const lista = await listarCategoriasComTipo();
+      const subs = await listarSubCategorias();
       if (lista) setCategorias(lista);
+      if (subs) setSubcategorias(subs);
     };
 
     carregarCategorias();
@@ -130,6 +207,45 @@ const ModalCategorias: React.FC<Props> = ({ visivel, aoFechar, aoSelecionarCateg
 
 
 
+  const getSubcategoriasDaCategoria = (categoriaId: number) => {
+    return subcategorias.filter(sub => sub.categoria_id === categoriaId);
+  };
+
+  const [modalCriarVisivel, setModalCriarVisivel] = useState(false);
+
+  const rotateValue = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    let isMounted = true;
+
+    if (visivel) {
+      rotateValue.setValue(0);
+
+      const animateRotation = () => {
+        Animated.timing(rotateValue, {
+          toValue: 1,
+          duration: 1100,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }).start(() => {
+          if (isMounted) {
+            rotateValue.setValue(0);
+            animateRotation();
+          }
+        });
+      };
+
+      animateRotation();
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, [visivel]);
+  const rotateInterpolation = rotateValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
+  const alturaModal = height * 0.7;
 
   return (
     <Modal
@@ -139,113 +255,276 @@ const ModalCategorias: React.FC<Props> = ({ visivel, aoFechar, aoSelecionarCateg
       animationInTiming={300}
       animationOutTiming={300}
       onBackdropPress={aoFechar}
+      onBackButtonPress={aoFechar}
       onSwipeComplete={aoFechar}
       swipeDirection="down"
+      useNativeDriver={false}
       style={styles.modal}
     >
-      <View style={styles.container}>
+      <View style={[styles.container, carregando && { minHeight: alturaModal }]}>
         <View style={styles.handle} />
-        <Text style={styles.titulo}>Selecionar Categoria</Text>
+        {carregando ? (
+          <View style={[styles.loadingContainer, { minHeight: alturaModal }]}>
+            <Animated.View style={{
+              justifyContent: 'center',
+              alignItems: 'center',
+              transform: [{ rotate: rotateInterpolation }]
+            }}>
+              <Iconratio
+                width={55}
+                height={55}
+                fill="#2565A3"
+              />
+            </Animated.View>
 
-        <ScrollView contentContainerStyle={{ paddingVertical: 1 }} showsVerticalScrollIndicator={false}>
+            <Text style={{ marginTop: 15, color: '#2565A3', fontWeight: 'bold' }}>A carregar categorias...</Text>
+          </View>
+        ) : (
+          <>
+            <View style={styles.tituloLinha}>
+              <Text style={styles.titulo}>Selecionar Categoria</Text>
 
-          {/* Grupo DESPESAS */}
-          <TouchableOpacity onPress={animarDespesas}
-            style={styles.grupoHeader}>
-            <View style={styles.headerEsquerda}>
-              <SetaDespesas width={18} height={18} style={{ marginRight: 10 }} />
-              <Text style={[styles.grupoTitulo, { color: '#FF5733' }]}>Despesas</Text>
+              <TouchableOpacity onPress={() => setModalCriarVisivel(true)}>
+                <Text style={styles.botaoCriarTexto}>+ Criar categoria</Text>
+              </TouchableOpacity>
             </View>
-            <Ionicons name={alturaDespesasVisivel ? 'chevron-up' : 'chevron-down'} size={20} color="#FF5733" />
-          </TouchableOpacity>
 
 
+            <ScrollView contentContainerStyle={{ paddingVertical: 1 }} showsVerticalScrollIndicator={false}>
+
+              {/* Grupo DESPESAS */}
+              <TouchableOpacity onPress={toggleDespesas}
+                style={styles.grupoHeader}>
+                <View style={styles.headerEsquerda}>
+                  <SetaDespesas width={18} height={18} style={{ marginRight: 10 }} />
+                  <Text style={[styles.grupoTitulo, { color: '#FF5733' }]}>Despesas</Text>
+                </View>
+                <Animated.View style={{ transform: [{ rotate: rotacaoDespesasInterpolada }] }}>
+                  <Ionicons name="chevron-up" size={20} color="#FF5733" />
+                </Animated.View>
 
 
+              </TouchableOpacity>
 
-          <Animated.View
-            style={{
-              overflow: 'hidden',
-              height: alturaAnimadaDespesas.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0, 1000], 
-              }),
-            }}
-          >
-            {despesas.map((cat) => (
-              <TouchableOpacity
-                key={cat.id}
-                style={styles.card}
-                onPress={() => {
-                  const novaSelecao = categoriaSelecionadaId === cat.id ? null : cat.id;
-                  aoSelecionarCategoria(novaSelecao);
-                  setCategoriaSelecionadaId(novaSelecao);
-                  setTimeout(() => {
-                    aoFechar();
-                  }, 200);
+              <View
+                style={{ position: 'absolute', opacity: 0, zIndex: -1, left: 0, right: 0 }}
+                onLayout={(e) => {
+                  alturaRealDespesas.current = e.nativeEvent.layout.height;
                 }}
               >
-                <View style={[styles.iconeWrapper, { backgroundColor: cat.cor_cat }]}>
-                  <Image source={getImagemCategoria(cat.img_cat)} style={styles.icone} resizeMode="contain" />
-                </View>
-                <Text style={styles.nomeCategoria}>{cat.nome_cat}</Text>
-                {categoriaSelecionadaId === cat.id ? (
-                  <View style={styles.radioSelecionado}><Ionicons name="checkmark" size={15} color="#fff" /></View>
-                ) : (
-                  <View style={styles.radio} />
-                )}
-              </TouchableOpacity>
-            ))}
-          </Animated.View>
+                {despesas.map((cat) => (
+                  <React.Fragment key={cat.id}>
+                    <TouchableOpacity style={styles.card} activeOpacity={1}>
+                      <View style={[styles.iconeWrapper, { backgroundColor: cat.cor_cat }]} />
+                      <Text style={styles.nomeCategoria}>{cat.nome_cat}</Text>
+                      <View style={styles.radio} />
+                    </TouchableOpacity>
+                    {getSubcategoriasDaCategoria(cat.id).map((sub) => (
+                      <SubcategoriaSelecionavel
+                        key={sub.id}
+                        subcategoria={sub}
+                        selecionadaId={null}
+                        aoSelecionar={() => { }}
+                      />
+                    ))}
 
+                  </React.Fragment>
+                ))}
+              </View>
 
-          {/* Grupo RECEITAS */}
-          <TouchableOpacity onPress={animarReceitas} style={styles.grupoHeader}>
-            <View style={styles.headerEsquerda}>
-              <SetaReceitas width={18} height={18} style={{ marginRight: 10 }} />
-              <Text style={[styles.grupoTitulo, { color: '#4AAF53' }]}>Receitas</Text>
-            </View>
-            <Ionicons name={alturaReceitasVisivel ? 'chevron-up' : 'chevron-down'} size={20} color="#4AAF53" />
-          </TouchableOpacity>
-
-
-          <Animated.View
-            style={{
-              overflow: 'hidden',
-              height: alturaAnimadaReceitas.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0, receitas.length * 70], // ajuste se a altura for diferente
-              }),
-            }}
-          >
-            {receitas.map((cat) => (
-              <TouchableOpacity
-                key={cat.id}
-                style={styles.card}
-                onPress={() => {
-                  const novaSelecao = categoriaSelecionadaId === cat.id ? null : cat.id;
-                  aoSelecionarCategoria(novaSelecao);
-                  setCategoriaSelecionadaId(novaSelecao);
-                  setTimeout(() => {
-                    aoFechar();
-                  }, 200);
+              <Animated.View
+                style={{
+                  overflow: 'hidden',
+                  height: despesasAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, alturaRealDespesas.current],
+                  }),
                 }}
               >
-                <View style={[styles.iconeWrapper, { backgroundColor: cat.cor_cat }]}>
-                  <Image source={getImagemCategoria(cat.img_cat)} style={styles.icone} resizeMode="contain" />
+                {despesas.map((cat) => (
+                  <React.Fragment key={cat.id}>
+                    <TouchableOpacity
+                      style={styles.card}
+                      onPress={() => {
+                        const novaSelecao = categoriaSelecionadaId === cat.id ? null : cat.id;
+                        aoSelecionarCategoria(novaSelecao);
+                        aoSelecionarSubcategoria(null);
+                        setCategoriaSelecionadaId(novaSelecao);
+                        setSubSelecionadaId(null);
+                        setTimeout(() => {
+                          aoFechar();
+                        }, 200);
+                      }}
+                    >
+                      <View style={[styles.iconeWrapper, { backgroundColor: cat.cor_cat }]}>
+                        <Image source={getImagemCategoria(cat.img_cat)} style={styles.icone} resizeMode="contain" />
+                      </View>
+                      <Text style={styles.nomeCategoria}>{cat.nome_cat}</Text>
+                      {categoriaSelecionadaId === cat.id ? (
+                        <View style={styles.radioSelecionado}><Ionicons name="checkmark" size={15} color="#fff" /></View>
+                      ) : (
+                        <View style={styles.radio} />
+                      )}
+                    </TouchableOpacity>
+
+                    {getSubcategoriasDaCategoria(cat.id).map((sub) => (
+                      <SubcategoriaSelecionavel
+                        key={sub.id}
+                        subcategoria={sub}
+                        selecionadaId={subSelecionadaId}
+                        aoSelecionar={(id) => {
+                          const isMesmaSelecionada = subSelecionadaId === id;
+                          const novaSelecao = isMesmaSelecionada ? null : id;
+                          setSubSelecionadaId(novaSelecao);
+                          setCategoriaSelecionadaId(null);
+                          aoSelecionarSubcategoria(novaSelecao);
+                          aoSelecionarCategoria(null);
+                          aoFechar();
+                        }}
+                      />
+                    ))}
+                  </React.Fragment>
+                ))}
+              </Animated.View>
+
+
+
+
+              {/* Grupo RECEITAS */}
+              <TouchableOpacity onPress={toggleReceitas} style={styles.grupoHeader}>
+                <View style={styles.headerEsquerda}>
+                  <SetaReceitas width={18} height={18} style={{ marginRight: 10 }} />
+                  <Text style={[styles.grupoTitulo, { color: '#4AAF53' }]}>Receitas</Text>
                 </View>
-                <Text style={styles.nomeCategoria}>{cat.nome_cat}</Text>
-                {categoriaSelecionadaId === cat.id ? (
-                  <View style={styles.radioSelecionado}><Ionicons name="checkmark" size={15} color="#fff" /></View>
-                ) : (
-                  <View style={styles.radio} />
-                )}
+                <Animated.View style={{ transform: [{ rotate: rotacaoReceitasInterpolada }] }}>
+                  <Ionicons name="chevron-up" size={20} color="#4AAF53" />
+                </Animated.View>
+
               </TouchableOpacity>
-            ))}
-          </Animated.View>
+
+              <View
+                style={{ position: 'absolute', opacity: 0, zIndex: -1, left: 0, right: 0 }}
+                onLayout={(e) => {
+                  alturaRealReceitas.current = e.nativeEvent.layout.height;
+                }}
+              >
+                {receitas.map((cat) => (
+                  <React.Fragment key={cat.id}>
+                    <TouchableOpacity style={styles.card} activeOpacity={1}>
+                      <View style={[styles.iconeWrapper, { backgroundColor: cat.cor_cat }]} />
+                      <Text style={styles.nomeCategoria}>{cat.nome_cat}</Text>
+                      <View style={styles.radio} />
+                    </TouchableOpacity>
+                    {getSubcategoriasDaCategoria(cat.id).map((sub) => (
+                      <SubcategoriaSelecionavel
+                        key={sub.id}
+                        subcategoria={sub}
+                        selecionadaId={null}
+                        aoSelecionar={() => { }}
+                      />
+                    ))}
+                  </React.Fragment>
+                ))}
+              </View>
+
+              <Animated.View
+                style={{
+                  overflow: 'hidden',
+                  height: receitasAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, alturaRealReceitas.current],
+                  }),
+                }}
+              >
+                {receitas.map((cat) => (
+                  <React.Fragment key={cat.id}>
+                    <TouchableOpacity
+                      style={styles.card}
+                      onPress={() => {
+                        const novaSelecao = categoriaSelecionadaId === cat.id ? null : cat.id;
+                        aoSelecionarCategoria(novaSelecao);
+                        aoSelecionarSubcategoria(null);
+                        setCategoriaSelecionadaId(novaSelecao);
+                        setSubSelecionadaId(null);
+                        setTimeout(() => {
+                          aoFechar();
+                        }, 200);
+                      }}
+                    >
+                      <View style={[styles.iconeWrapper, { backgroundColor: cat.cor_cat }]}>
+                        <Image source={getImagemCategoria(cat.img_cat)} style={styles.icone} resizeMode="contain" />
+                      </View>
+                      <Text style={styles.nomeCategoria}>{cat.nome_cat}</Text>
+                      {categoriaSelecionadaId === cat.id ? (
+                        <View style={styles.radioSelecionado}><Ionicons name="checkmark" size={15} color="#fff" /></View>
+                      ) : (
+                        <View style={styles.radio} />
+                      )}
+                    </TouchableOpacity>
+
+                    {getSubcategoriasDaCategoria(cat.id).map((sub) => (
+                      <SubcategoriaSelecionavel
+                        key={sub.id}
+                        subcategoria={sub}
+                        selecionadaId={subSelecionadaId}
+                        aoSelecionar={(id) => {
+                          const isMesmaSelecionada = subSelecionadaId === id;
+                          const novaSelecao = isMesmaSelecionada ? null : id;
+                          setSubSelecionadaId(novaSelecao);
+                          setCategoriaSelecionadaId(null);
+                          aoSelecionarSubcategoria(novaSelecao);
+                          aoSelecionarCategoria(null);
+                          aoFechar();
+                        }}
+                      />
+                    ))}
+                  </React.Fragment>
+                ))}
+              </Animated.View>
 
 
-        </ScrollView>
+            </ScrollView>
+          </>
+        )}
+        <Modal isVisible={modalCriarVisivel} onBackdropPress={() => setModalCriarVisivel(false)}>
+          <View style={styles.modalCriarCategoria}>
+            <Text style={styles.modalTitulo}>Tipo de Categoria</Text>
+            <View style={styles.linhaSeparadora} />
+            <TouchableOpacity
+              style={[styles.botaoOpcao, { backgroundColor: '#FF3B30' }]}
+              onPress={() => {
+                setModalCriarVisivel(false);
+                navigation.navigate('CriarCategoria', {
+                  tipo: 'Despesas',
+                  onCategoriaCriada: () => {
+                    carregarCategorias();
+                    onCategoriaCriada?.();
+                  }
+                });
+              }}
+            >
+              <Ionicons name="add" size={16} color="#fff" />
+              <Text style={styles.textoOpcao}>Criar categoria Despesa</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.botaoOpcao, { backgroundColor: '#34C759' }]}
+              onPress={() => {
+                setModalCriarVisivel(false);
+                navigation.navigate('CriarCategoria', {
+                  tipo: 'Receitas',
+                  onCategoriaCriada: () => {
+                    carregarCategorias();
+                    onCategoriaCriada?.();
+                  }
+                });
+              }}
+            >
+              <Ionicons name="add" size={16} color="#fff" />
+              <Text style={styles.textoOpcao}>Criar categoria Receita</Text>
+            </TouchableOpacity>
+          </View>
+        </Modal>
 
       </View>
     </Modal>
@@ -262,7 +541,7 @@ const styles = StyleSheet.create({
     padding: 15,
     borderTopLeftRadius: 18,
     borderTopRightRadius: 18,
-    maxHeight: '70%',
+    maxHeight: height * 0.7
   },
   handle: {
     width: 40,
@@ -276,7 +555,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#164878',
-    marginBottom: 12,
+    marginBottom: 0,
   },
   item: {
     paddingVertical: 12,
@@ -351,9 +630,65 @@ const styles = StyleSheet.create({
   headerEsquerda: {
     flexDirection: 'row',
     alignItems: 'center',
-  }
+  },
 
+  tituloLinha: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 5,
+  },
+  botaoCriarTexto: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 14,
+    backgroundColor: '#2867A4',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 99,
+  },
+  modalCriarCategoria: {
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 16,
+    alignItems: 'center',
+  },
+  modalTitulo: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#164878',
+  },
+  botaoOpcao: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    marginTop: 15,
+    width: '100%',
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 6
+  },
+  textoOpcao: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  linhaSeparadora: {
+    height: 1,
+    width: '100%',
+    backgroundColor: '#E0E0E0',
 
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+
+  },
 });
 
 export default ModalCategorias;

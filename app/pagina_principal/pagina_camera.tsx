@@ -87,21 +87,28 @@ export default function PaginaCamera() {
       console.warn('⚠️ A câmara ainda não está pronta.');
       return;
     }
-  
+
     try {
-      const foto = await cameraRef.current.takePictureAsync({ base64: true, quality: 1 });
+      // // 🔥 ABRE o modal imediatamente
+
+      const foto = await cameraRef.current.takePictureAsync({
+        base64: false,
+        quality: 0.6
+      });
+      setMostrarFotoModal(true);
       if (foto?.uri) {
         setFotoCapturada(foto.uri);
         setFlashLigado(false);
-        setMostrarFotoModal(true);
       } else {
         console.warn('⚠️ Nenhuma foto foi capturada.');
+        setMostrarFotoModal(false); 
       }
     } catch (error) {
       console.error('Erro ao tirar foto:', error);
+      setMostrarFotoModal(false);
     }
   };
-  
+
 
   useEffect(() => {
     if (permission?.granted) {

@@ -17,6 +17,14 @@ export interface Movimento {
   valor: number;
   data_movimento: string; 
   categoria_id: number; 
-  tipo_movimento_id: number;
+  sub_categoria_id?: number | null; 
   nota?: string; 
+}
+
+export interface SubCategoria {
+  id: number;
+  nome_subcat: string;
+  icone_nome: string;        
+  cor_subcat: string;        
+  categoria_id: number;      
 }

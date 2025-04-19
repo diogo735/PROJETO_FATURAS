@@ -14,7 +14,6 @@ async function criarTabelaCategorias() {
           FOREIGN KEY (tipo_movimento_id) REFERENCES tipo_movimento(id)
       );`
     );
-    //console.log('✅ Tabela "categorias" criada com sucesso!');
   } catch (error) {
     console.error('❌ Erro ao criar tabela "categorias":', error);
   }
@@ -174,6 +173,31 @@ async function inserirCategoria(img_cat, cor_cat, nome_cat) {
       return [];
     }
   }
+
+  async function listarCategoriasReceita() {
+    try {
+      const db = await CRIARBD();
+  
+      const tipo = await db.getFirstAsync(`
+        SELECT id FROM tipo_movimento WHERE nome_movimento = 'Receita';
+      `);
+  
+      if (!tipo) {
+        console.error("❌ Tipo 'Receita' não encontrado.");
+        return [];
+      }
+  
+      const result = await db.getAllAsync(`
+        SELECT * FROM categorias WHERE tipo_movimento_id = ?;
+      `, [tipo.id]);
+  
+      return result;
+    } catch (error) {
+      console.error('❌ Erro ao buscar categorias de despesa:', error);
+      return [];
+    }
+  }
+
   async function listarCategoriasComTipo() {
     try {
       const db = await CRIARBD();
@@ -229,6 +253,7 @@ export { criarTabelaCategorias,
     apagarTodasCategorias,
     deletarTabelaCategorias,
     listarCategoriasDespesa,
+    listarCategoriasReceita,
     listarCategoriasComTipo,
     buscarCategoriaPorId
 

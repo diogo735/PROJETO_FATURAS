@@ -6,7 +6,7 @@ import { Dimensions } from 'react-native';
 import Pagina_principal from '../app/pagina_principal/pagina_principal';
 import Pagina_movimentos from '../app//pagina_moviementos/pagina_movimentos';
 import Pagina_metas from '../app/pagina_metas/pagina_metas';
-import Pagina_perfil from '../app/pagina_perfil';
+import Pagina_perfil from '../app/pagina_perfil/pagina_perfil';
 import { BottomTabBar } from '@react-navigation/bottom-tabs';
 import { GestureResponderEvent } from 'react-native';
 const { width: largura, height: altura } = Dimensions.get('window');
@@ -24,22 +24,6 @@ import { StackNavigationProp } from '@react-navigation/stack';
 const Tab = createBottomTabNavigator();
 
 const FundoImagem = require('../assets/imagens/FUNDO.png');
-
-
-// Componente do botão central elevado
-interface CustomTabBarButtonProps {
-    children: React.ReactNode;
-    onPress?: (event: GestureResponderEvent) => void;
-}
-
-const CustomTabBarButton: React.FC<CustomTabBarButtonProps> = ({ children, onPress }) => (
-    <TouchableOpacity
-        style={styles.customButton}
-        onPress={onPress}
-    >
-        <View style={styles.innerButton}>{children}</View>
-    </TouchableOpacity>
-);
 
 const TabNavigator = () => {
     return (
@@ -80,8 +64,39 @@ const TabNavigator = () => {
 
             })}
         >
-            <Tab.Screen name="Home" component={Pagina_principal} options={{ lazy: false }} />
-            <Tab.Screen name="Movimentos" component={Pagina_movimentos} options={{ lazy: false }} />
+            <Tab.Screen
+                name="Home"
+                component={Pagina_principal}
+                options={{
+                    lazy: false,
+                    tabBarButton: (props) => (
+                        <TouchableOpacity
+                            style={props.style}
+                            onPress={props.onPress}
+                            activeOpacity={1}
+                        >
+                            {props.children}
+                        </TouchableOpacity>
+                    ),
+                }}
+            />
+
+            <Tab.Screen
+                name="Movimentos"
+                component={Pagina_movimentos}
+                options={{
+                    lazy: false,
+                    tabBarButton: (props) => (
+                        <TouchableOpacity
+                            style={props.style}
+                            onPress={props.onPress}
+                            activeOpacity={1}
+                        >
+                            {props.children}
+                        </TouchableOpacity>
+                    ),
+                }}
+            />
 
             {/* Botão Central Personalizado */}
             <Tab.Screen
@@ -108,8 +123,38 @@ const TabNavigator = () => {
 
 
 
-            <Tab.Screen name="Metas" component={Pagina_metas} options={{ lazy: false }} />
-            <Tab.Screen name="Perfil" component={Pagina_perfil} options={{ lazy: false }} />
+            <Tab.Screen
+                name="Metas"
+                component={Pagina_metas}
+                options={{
+                    lazy: false,
+                    tabBarButton: (props) => (
+                        <TouchableOpacity
+                            style={props.style}
+                            onPress={props.onPress}
+                            activeOpacity={1}
+                        >
+                            {props.children}
+                        </TouchableOpacity>
+                    ),
+                }}
+            />
+            <Tab.Screen
+                name="Perfil"
+                component={Pagina_perfil}
+                options={{
+                    lazy: false,
+                    tabBarButton: (props) => (
+                        <TouchableOpacity
+                            style={props.style}
+                            onPress={props.onPress}
+                            activeOpacity={1}
+                        >
+                            {props.children}
+                        </TouchableOpacity>
+                    ),
+                }}
+            />
         </Tab.Navigator>
 
     );
@@ -137,6 +182,7 @@ const styles = StyleSheet.create({
         shadowColor: 'transparent',
         paddingBottom: 5,
         overflow: 'visible',
+        borderTopWidth: 0
     },
     customButton: {
         top: -altura * 0.022,
