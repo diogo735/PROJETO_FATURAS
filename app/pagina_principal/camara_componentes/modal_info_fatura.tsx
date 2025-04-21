@@ -17,7 +17,7 @@ import { ImageSourcePropType } from 'react-native';
 import { Categoria } from '../../../BASEDEDADOS/tipos_tabelas';
 import ImageViewer from 'react-native-image-zoom-viewer';
 import { TouchableWithoutFeedback } from 'react-native';
-
+import Icon_editar from '../../../assets/icons/pagina_camera/editar_nome.svg';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../../App';
@@ -78,6 +78,9 @@ const Modal_Info_Fatura: React.FC<Props> = ({ visivel, uri, aoFechar, aoEliminar
     const [categorias, setCategorias] = useState<any[]>([]);
     type NavigationProps = StackNavigationProp<RootStackParamList, 'PaginaSucesso'>;
     const navigation = useNavigation<NavigationProps>();
+    const [alturaNotas, setAlturaNotas] = useState(width * 0.25);
+    const [mostrarModalEdicao, setMostrarModalEdicao] = useState(false);
+    const [emissorEditado, setEmissorEditado] = useState<string | null>(null);
 
     useEffect(() => {
         let isMounted = true;
@@ -173,6 +176,8 @@ const Modal_Info_Fatura: React.FC<Props> = ({ visivel, uri, aoFechar, aoEliminar
             setSubcategoriaSelecionadaId(null);
             setDadosInterpretados(null);
             setQrInvalido(false);
+            setEmissorEditado(null);
+
         }
     }, [visivel]);
 
@@ -365,11 +370,39 @@ const Modal_Info_Fatura: React.FC<Props> = ({ visivel, uri, aoFechar, aoEliminar
                                     >
                                         {/* Estabelecimento */}
                                         <View style={styles.linhaInfo}>
-                                            <Text style={styles.label}>Estabelecimento:</Text>
+                                            <View style={[{ flexDirection: 'row', alignItems: 'center' }]}>
+                                                <Text style={styles.label}>Estabelecimento:</Text>
+
+                                                <TouchableOpacity onPress={() => {
+                                                    setEmissorEditado(dadosInterpretados?.emissor ?? '');
+                                                    setMostrarModalEdicao(true);
+                                                }}
+                                                    style={{ marginLeft: 6 }}>
+                                                    <Icon_editar width={25} height={25} />
+                                                </TouchableOpacity>
+                                            </View>
+
                                             {loadingQr ? (
                                                 <Text style={[styles.valor, { fontStyle: 'italic' }]}>A interpretar QR...</Text>
                                             ) : (
-                                                <Text style={styles.valor}>{dadosInterpretados?.emissor || '---'}</Text>
+                                                //<Text style={styles.valor}>{dadosInterpretados?.emissor || '---'}</Text>
+                                                <Text
+                                                    style={styles.valor}
+                                                    numberOfLines={2}
+                                                    ellipsizeMode="tail"
+                                                    onPress={() => {
+                                                        setEmissorEditado(dadosInterpretados?.emissor ?? '');
+                                                        setMostrarModalEdicao(true);
+                                                    }}
+
+                                                    onTextLayout={(event) => {
+                                                        const numLinhas = event.nativeEvent.lines.length;
+                                                        setAlturaNotas(numLinhas > 1 ? width * 0.20 : width * 0.25);
+                                                    }}
+                                                >
+                                                    {dadosInterpretados?.emissor || '---'}
+                                                </Text>
+
                                             )}
                                         </View>
 
@@ -470,7 +503,8 @@ const Modal_Info_Fatura: React.FC<Props> = ({ visivel, uri, aoFechar, aoEliminar
 
 
                                 </View>
-                                <View style={styles.caixaNotas}>
+                                <View style={[styles.caixaNotas, { height: alturaNotas }]}>
+
                                     <View style={styles.iconeNota}>
                                         <NotasIcon width={22} height={22} />
                                     </View>
@@ -602,6 +636,85 @@ const Modal_Info_Fatura: React.FC<Props> = ({ visivel, uri, aoFechar, aoEliminar
             )}
 
 
+            <Modal isVisible={mostrarModalEdicao} onBackButtonPress={() => setMostrarModalEdicao(false)} >
+                <View style={{ backgroundColor: 'white', padding: 20, borderRadius: 12 }}>
+                    <Text style={{ fontWeight: 'bold', fontSize: 19, marginBottom: 10, color: '#164878' }}>Editar establecimento</Text>
+
+                    <TextInput
+                        value={emissorEditado ?? ''}
+                        onChangeText={(text) => {
+                            if (text.length <= 20) {
+                                setEmissorEditado(text);
+                            }
+                        }}
+                        placeholder="Digite o nome"
+                        style={{
+                            borderWidth: 1,
+                            borderColor: '#ccc',
+                            borderRadius: 8,
+                            paddingHorizontal: 12,
+                            paddingVertical: 8,
+                            marginBottom: 10,
+                            fontWeight: 'bold',
+                            fontSize: 16,
+
+                        }}
+                    />
+
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 }}>
+                        {/* Botão Eliminar */}
+                        <TouchableOpacity
+                            onPress={() => setMostrarModalEdicao(false)}
+                            style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                backgroundColor: '#E76A5A',
+                                paddingVertical: 10,
+                                paddingHorizontal: 30,
+                                borderRadius: 50,
+                            }}
+                        >
+                            <Text style={{ color: 'white', fontWeight: '600', fontSize: 16 }}>Cancelar</Text>
+                        </TouchableOpacity>
+
+                        {/* Botão Guardar */}
+                        <TouchableOpacity
+                            onPress={() => {
+                                Keyboard.dismiss();
+
+                                setTimeout(() => {
+                                    if (dadosInterpretados) {
+                                        const nomeLimpo = emissorEditado?.trim();
+
+                                        setDadosInterpretados({
+                                            ...dadosInterpretados,
+                                            emissor: nomeLimpo === '' || nomeLimpo == null
+                                                ? dadosInterpretados.emissor
+                                                : nomeLimpo,
+                                        });
+                                    }
+
+                                    setMostrarModalEdicao(false);
+                                    setEmissorEditado(null); // limpa para a próxima edição
+                                }, 150);
+                            }}
+
+                            style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                backgroundColor: '#164878',
+                                paddingVertical: 10,
+                                paddingHorizontal: 30,
+                                borderRadius: 50,
+                            }}
+                        >
+
+                            <Text style={{ color: 'white', fontWeight: '600', fontSize: 16 }}>Guardar</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                </View>
+            </Modal>
 
 
 
@@ -723,7 +836,7 @@ const styles = StyleSheet.create({
     info_container: {
         marginTop: 10,
         flex: 1,
-        // backgroundColor: 'red'
+        //backgroundColor: 'red'
     },
     linhaHorizontal: {
         flexDirection: 'row',
@@ -741,7 +854,7 @@ const styles = StyleSheet.create({
         marginHorizontal: 10,
         marginTop: 10,
         backgroundColor: 'white',
-        height: width * 0.25
+
     },
 
     iconeNota: {

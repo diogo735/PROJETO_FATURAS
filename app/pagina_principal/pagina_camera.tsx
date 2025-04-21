@@ -18,7 +18,7 @@ const screenRatio = height / width;
 import { CameraView, useCameraPermissions, CameraType } from 'expo-camera';
 import FaturaVerde from '../../assets/icons/pagina_camera/detetou_fatura.svg';
 import FaturaLaranja from '../../assets/icons/pagina_camera/nao_detetou_fatura.svg';
-import IconEditar from '../../assets/icons/pagina_camera/escrever.svg';
+import IconEditar from '../../assets/icons/pagina_camera/galeria.svg';
 import FlshIcon from '../../assets/icons/pagina_camera/flash.svg';
 import Flashoff from '../../assets/icons/pagina_camera/flash-off.svg';
 import Modal_Info_Fatura from './camara_componentes/modal_info_fatura';
@@ -55,10 +55,6 @@ export default function PaginaCamera() {
       NavigationBar.setButtonStyleAsync('dark');
     };
   }, []);
-
-
-
-
   const handleQrDetectado = ({ data }: { data: string }) => {
     if (!data.includes('H:')) {
       console.log('QR ignorado (sem ATCUD)');
@@ -77,8 +73,6 @@ export default function PaginaCamera() {
       setQrDetectado(false);
     }, 300);
   };
-
-
   const tirarFoto = async () => {
     if (!cameraPronta || !cameraRef.current) {
       console.warn('⚠️ A câmara ainda não está pronta.');
@@ -112,8 +106,6 @@ export default function PaginaCamera() {
       setMostrarFotoModal(false);
     }
   };
-
-
 
   useEffect(() => {
     if (permission?.granted) {
@@ -162,20 +154,25 @@ export default function PaginaCamera() {
         const imageUri = result.assets[0].uri;
 
         const qrResults = await BarCodeScanner.scanFromURLAsync(imageUri);
+        setFotoCapturada(imageUri);
 
-        if (qrResults.length > 0) {
-          Alert.alert('QR Code Detetado', qrResults[0].data);
-        } else {
-          Alert.alert('Nenhum QR code', 'Não foi encontrado QR code na imagem selecionada.');
-        }
+      // ✅ Se encontrou QR code, envia o conteúdo
+      if (qrResults.length > 0) {
+        setConteudoQr(qrResults[0].data);
       } else {
-        console.log('Seleção cancelada.');
+        setConteudoQr(null); // Para forçar o modal a mostrar que não encontrou
       }
-    } catch (error) {
-      console.error('Erro ao ler QR code:', error);
-      Alert.alert('Erro', 'Ocorreu um erro ao tentar ler o QR code.');
+
+      // ✅ Abre o modal
+      setMostrarFotoModal(true);
+    } else {
+      console.log('Seleção cancelada.');
     }
-  };
+  } catch (error) {
+    console.error('Erro ao ler QR code:', error);
+    Alert.alert('Erro', 'Ocorreu um erro ao tentar ler o QR code.');
+  }
+};
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'right', 'left']}>

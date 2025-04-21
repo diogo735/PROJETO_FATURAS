@@ -162,21 +162,31 @@ const ModalCategorias: React.FC<Props> = ({ visivel, aoFechar, aoSelecionarCateg
 
 
 //NAO ESTA A MOSTRA NA PRIMEIRA VEZ AS DESPEAS É PRESISO CLICAR DUAS VEZES NO BOTAO
-  useEffect(() => {
-    if (visivel) {
-      const ehReceita = !!(categoriaAtual && categoriaAtual.tipo_nome === 'Receita');
+useEffect(() => {
+  if (visivel) {
+    const ehReceita = categoriaAtual?.tipo_nome === 'Receita';
+    const ehDespesa = categoriaAtual?.tipo_nome === 'Despesa';
 
-      despesasAnim.setValue(ehReceita ? 1 : 0);
-      receitasAnim.setValue(ehReceita ? 1 : 0);
-      rotacaoDespesas.setValue(ehReceita ? 1 :0);
-      rotacaoReceitas.setValue(ehReceita ? 1 : 0);
-      setMostrarDespesas(true);
-      setMostrarReceitas(ehReceita);
+    const mostrarSoDespesas = !ehReceita && !ehDespesa;
 
-      setCategoriaSelecionadaId(categoriaAtual?.id ?? null);
-      setSubSelecionadaId(subcategoriaAtual ?? null);
-    }
-  }, [visivel]);
+    // Animações visuais
+    despesasAnim.setValue(ehDespesa || mostrarSoDespesas ? 1 : 0);
+    receitasAnim.setValue(ehReceita ? 1 : 0);
+
+    // Ícones de seta
+    rotacaoDespesas.setValue(ehDespesa || mostrarSoDespesas ? 1 : 0);
+    rotacaoReceitas.setValue(ehReceita ? 1 : 0);
+
+    // Estados de controle (abertura)
+    setMostrarDespesas(ehDespesa || mostrarSoDespesas);
+    setMostrarReceitas(ehReceita);
+
+    setCategoriaSelecionadaId(categoriaAtual?.id ?? null);
+    setSubSelecionadaId(subcategoriaAtual ?? null);
+  }
+}, [visivel]);
+
+
 
 
 
