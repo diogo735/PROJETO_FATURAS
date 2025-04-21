@@ -294,7 +294,7 @@ const Modal_Info_Fatura: React.FC<Props> = ({ visivel, uri, aoFechar, aoEliminar
     const subcategoriaInfo = subcategoriaSelecionada;
 
     const carregandoGeral =
-        loadingQr 
+        loadingQr
 
 
 

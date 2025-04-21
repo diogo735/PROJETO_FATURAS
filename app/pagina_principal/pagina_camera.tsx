@@ -22,7 +22,8 @@ import IconEditar from '../../assets/icons/pagina_camera/escrever.svg';
 import FlshIcon from '../../assets/icons/pagina_camera/flash.svg';
 import Flashoff from '../../assets/icons/pagina_camera/flash-off.svg';
 import Modal_Info_Fatura from './camara_componentes/modal_info_fatura';
-
+import * as RNImagePicker from 'expo-image-picker';
+import { BarCodeScanner } from 'expo-barcode-scanner';
 export default function PaginaCamera() {
   const [facing, setFacing] = useState<CameraType>('back');
   const [permission, requestPermission] = useCameraPermissions();
@@ -83,25 +84,25 @@ export default function PaginaCamera() {
       console.warn('⚠️ A câmara ainda não está pronta.');
       return;
     }
-  
+
     try {
       // 📸 Captura da foto
       const foto = await cameraRef.current.takePictureAsync({
         base64: false,
         quality: 0.6,
       });
-  
+
       if (foto?.uri) {
         // 🧼 Desativa o flash (caso estivesse ligado)
         setFlashLigado(false);
-  
+
         // 🖼️ Define a URI da foto capturada
         setFotoCapturada(foto.uri);
-  
+
         // ⏳ Dá um pequeno delay antes de mostrar o modal
         setTimeout(() => {
           setMostrarFotoModal(true);
-        }, 100); 
+        }, 100);
       } else {
         console.warn('⚠️ Nenhuma foto foi capturada.');
         setMostrarFotoModal(false);
@@ -111,7 +112,7 @@ export default function PaginaCamera() {
       setMostrarFotoModal(false);
     }
   };
-  
+
 
 
   useEffect(() => {
@@ -140,6 +141,41 @@ export default function PaginaCamera() {
     }
   }, [permission, mostrarPermissaoOverlay]);
 
+
+
+  const decode = async () => {
+    try {
+      const { status } = await RNImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (status !== 'granted') {
+        Alert.alert('Permissão negada', 'Você precisa permitir o acesso à galeria.');
+        return;
+      }
+
+      const result = await RNImagePicker.launchImageLibraryAsync({
+        mediaTypes: RNImagePicker.MediaTypeOptions.Images,
+        allowsMultipleSelection: false,
+        quality: 1,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const imageUri = result.assets[0].uri;
+
+        const qrResults = await BarCodeScanner.scanFromURLAsync(imageUri);
+
+        if (qrResults.length > 0) {
+          Alert.alert('QR Code Detetado', qrResults[0].data);
+        } else {
+          Alert.alert('Nenhum QR code', 'Não foi encontrado QR code na imagem selecionada.');
+        }
+      } else {
+        console.log('Seleção cancelada.');
+      }
+    } catch (error) {
+      console.error('Erro ao ler QR code:', error);
+      Alert.alert('Erro', 'Ocorreu um erro ao tentar ler o QR code.');
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'right', 'left']}>
@@ -216,9 +252,10 @@ export default function PaginaCamera() {
 
           <View style={styles.bottomControls}>
 
-            <TouchableOpacity style={styles.sideButton} onPress={() => console.log('Editar')} disabled={mostrarPermissaoOverlay}>
+            <TouchableOpacity style={styles.sideButton} onPress={decode} disabled={mostrarPermissaoOverlay}>
               <IconEditar width={25} height={25} />
             </TouchableOpacity>
+
 
 
             <TouchableOpacity style={styles.captureOuter} onPress={tirarFoto} disabled={mostrarPermissaoOverlay}>

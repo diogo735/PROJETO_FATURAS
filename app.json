@@ -45,7 +45,8 @@
     "plugins": [
       "expo-sqlite",
       "expo-font",
-      "expo-camera"
+      "expo-camera",
+      "expo-barcode-scanner"
     ],
     "extra": {
       "eas": {
