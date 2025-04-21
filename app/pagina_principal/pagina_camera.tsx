@@ -63,8 +63,6 @@ export default function PaginaCamera() {
       console.log('QR ignorado (sem ATCUD)');
       return;
     }
-
-    //console.log('QR válido com ATCUD:', data);
     setConteudoQr(data);
     setQrDetectado(true);
 
@@ -80,34 +78,40 @@ export default function PaginaCamera() {
   };
 
 
-
-
   const tirarFoto = async () => {
     if (!cameraPronta || !cameraRef.current) {
       console.warn('⚠️ A câmara ainda não está pronta.');
       return;
     }
-
+  
     try {
-      // // 🔥 ABRE o modal imediatamente
-
+      // 📸 Captura da foto
       const foto = await cameraRef.current.takePictureAsync({
         base64: false,
-        quality: 0.6
+        quality: 0.6,
       });
-      setMostrarFotoModal(true);
+  
       if (foto?.uri) {
-        setFotoCapturada(foto.uri);
+        // 🧼 Desativa o flash (caso estivesse ligado)
         setFlashLigado(false);
+  
+        // 🖼️ Define a URI da foto capturada
+        setFotoCapturada(foto.uri);
+  
+        // ⏳ Dá um pequeno delay antes de mostrar o modal
+        setTimeout(() => {
+          setMostrarFotoModal(true);
+        }, 100); 
       } else {
         console.warn('⚠️ Nenhuma foto foi capturada.');
-        setMostrarFotoModal(false); 
+        setMostrarFotoModal(false);
       }
     } catch (error) {
-      console.error('Erro ao tirar foto:', error);
+      console.error('❌ Erro ao tirar foto:', error);
       setMostrarFotoModal(false);
     }
   };
+  
 
 
   useEffect(() => {
