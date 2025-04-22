@@ -23,6 +23,8 @@ import PaginaCategorias from './app/pagina_perfil/pagina_categorias/pagina_categ
 import CriarCategoria from './app/pagina_perfil/pagina_categorias/criar_categoria/criar_categoria';
 import EditarSubCategoria
  from './app/pagina_perfil/pagina_categorias/editar_categoria/editar_categoria';
+import PaginaNotificacoes from './app/pagina_principal/pagina_notificacoes/pagina_notificacoes';
+
 const { height, width } = Dimensions.get('window');
 import 'react-native-gesture-handler';
 import 'react-native-reanimated';
@@ -60,6 +62,8 @@ export type RootStackParamList = {
   PaginaCategorias: undefined;
   CriarCategoria: { tipo: 'Despesas' | 'Receitas'; onCategoriaCriada?: () => void };
   EditarSubcategoria: { id_subcategoria: number };
+  Notificacoes: undefined;
+
 
 };
 
@@ -172,6 +176,14 @@ const EditarSubcategoriaScreen = (props: any) => (
   </View>
 );
 
+const NotificacoesScreen = (props: any) => (
+  <View style={styles.defaultContainer}>
+    <StatusBar translucent backgroundColor="transparent" style="dark" />
+    <PaginaNotificacoes {...props} />
+  </View>
+);
+
+
 const App: React.FC = () => {
   return (
     <NavigationContainer>
@@ -252,6 +264,8 @@ const App: React.FC = () => {
             },
           }}
         />
+        <Stack.Screen name="Notificacoes" component={NotificacoesScreen} />
+
 
 
 

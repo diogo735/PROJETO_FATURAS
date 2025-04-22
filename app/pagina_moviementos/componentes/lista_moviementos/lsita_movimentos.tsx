@@ -24,6 +24,8 @@ interface Movimento {
     categoria_id: number;
     img_cat: string;
     cor_cat: string;
+    img_subcat?: string;
+    cor_subcat?: string;
 }
 
 interface Props {
@@ -70,17 +72,18 @@ const ListaMovimentosAgrupada: React.FC<Props> = ({ movimentos }) => {
             // Renderiza cada item (movimento) usando seu card
             renderItem={({ item }) => (
                 <MovimentoCard
-                nome={
-                    item.nota?.trim()
-                      ? item.nota
-                      : item.nome_movimento === 'Despesa'
-                        ? 'Despesa sem nome'
-                        : 'Receita sem nome'
-                  }                  
+                    nome={
+                        item.nota?.trim()
+                            ? item.nota
+                            : item.nome_movimento === 'Despesa'
+                                ? 'Despesa sem nome'
+                                : 'Receita sem nome'
+                    }
                     valor={Math.abs(item.valor)}
                     hora={item.data_movimento ? moment(item.data_movimento).format('HH:mm') : '--:--'}
-                    cor={item.cor_cat}
-                    imagem={item.img_cat}
+                    cor={item.cor_subcat || item.cor_cat}
+                    imagem={item.img_subcat || item.img_cat}
+
                     tipo={item.nome_movimento === 'Despesa' ? 'Despesa' : 'Receita'}
                     onPress={() => navigation.navigate('Fatura', { id: item.id })}
                 />

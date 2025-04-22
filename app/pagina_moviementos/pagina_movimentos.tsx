@@ -15,7 +15,7 @@ import { Image } from 'react-native';
 import ModalFiltros from './componentes/modal_filtros';
 import { useFocusEffect } from '@react-navigation/native';
 import { Animated } from 'react-native';
-
+import IconRotativo from '../../assets/imagens/wallpaper.svg';
 import { useCallback } from 'react';
 
 
@@ -46,6 +46,10 @@ const Pagina_movimentos: React.FC = () => {
 
   const hoje = new Date();
   const anoAtual = hoje.getFullYear();
+  const [carregando, setCarregando] = useState(true);
+  const rotateAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const [primeiroFoco, setPrimeiroFoco] = useState(true);
 
   const gerarMeses = () => {
     const lista = [];
@@ -87,15 +91,49 @@ const Pagina_movimentos: React.FC = () => {
 
   useFocusEffect(
     useCallback(() => {
-      if (mesSelecionado) {
-        const mes = mesSelecionado.mesIndex + 1;
-        const ano = mesSelecionado.ano;
-        carregarMovimentos(mes, ano);
-        carregarBalanco(mes, ano);
+      if (primeiroFoco) {
+        const mesDefault = mesAtual ?? meses[12];
+        //console.log('📆 Primeiro foco — selecionando mês atual:', mesDefault.nome, mesDefault.ano);
+        setMesSelecionado(mesDefault);
+        setPrimeiroFoco(false);
       }
-    }, [mesSelecionado, filtrosAplicados])
+  
+      setFiltrosAplicados(null);
+    }, [])
   );
   
+  useEffect(() => {
+    if (!mesSelecionado) return;
+  
+    const mes = mesSelecionado.mesIndex + 1;
+    const ano = mesSelecionado.ano;
+  
+    setCarregando(true);
+    fadeAnim.setValue(0);
+  
+    const carregamentoCompleto = Promise.all([
+      carregarMovimentos(mes, ano),
+      carregarBalanco(mes, ano),
+      new Promise(resolve => setTimeout(resolve, 1000))
+    ]);
+  
+    carregamentoCompleto.finally(() => {
+      setCarregando(false);
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }).start();
+    });
+  }, [mesSelecionado, filtrosAplicados]);
+  
+  
+  
+  
+  
+
+
+
 
   const carregarBalanco = async (mes: number, ano: number) => {
     try {
@@ -113,8 +151,8 @@ const Pagina_movimentos: React.FC = () => {
 
       let filtrados = [...todosMovimentos];
 
-      console.log("📦 Todos os movimentos carregados:", todosMovimentos.length);
-      console.log("📋 Filtros aplicados:", filtrosAplicados);
+     // console.log("📦 Todos os movimentos carregados:", todosMovimentos.length);
+      //console.log("📋 Filtros aplicados:", filtrosAplicados);
 
       if (filtrosAplicados) {
         const {
@@ -174,7 +212,7 @@ const Pagina_movimentos: React.FC = () => {
           }
         }//console.log("📊 Ordenar por:", ordenacaoSelecionada);
       }
-      console.log("✅ Movimentos após filtro:", filtrados.length);
+      //console.log("✅ Movimentos após filtro:", filtrados.length);
       setMovimentos(filtrados);
     } catch (error) {
       console.error("Erro ao carregar movimentos:", error);
@@ -232,6 +270,31 @@ const Pagina_movimentos: React.FC = () => {
       setFiltrosAplicados(null);
     }, [])
   );
+
+  useEffect(() => {
+    let animation: Animated.CompositeAnimation;
+
+    if (carregando) {
+      rotateAnim.setValue(0); // 🔁 reset
+      animation = Animated.loop(
+        Animated.timing(rotateAnim, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        })
+      );
+      animation.start();
+    }
+
+    return () => {
+      if (animation) {
+        animation.stop(); // 🛑 para caso o componente re-renderize
+      }
+    };
+  }, [carregando]);
+
+
+
 
   return (
     <View style={styles.container}>
@@ -313,25 +376,47 @@ const Pagina_movimentos: React.FC = () => {
 
       {/* nclua aqui o conteúdo da lista */}
       <View style={styles.corpoLista}>
-        <ScrollView contentContainerStyle={{ paddingBottom: 110 }} showsVerticalScrollIndicator={false}>
-          {movimentos.length === 0 ? (
-            <View style={styles.semMovimentosContainer}>
-              <Image
-                source={require('../../assets/imagens/sem_movimentos.png')}
-                style={styles.imagemSemMovimento}
-                resizeMode="contain"
-              />
-              <Text style={styles.textoSemMovimento}>
-                Nenhum movimento para {mesSelecionado?.nome}
-              </Text>
-            </View>
-          ) : (
-            <>
-              <BalancoGeral resumo={balancoGeral} expandidoInicial={!temFiltrosAtivos()} />
-              <ListaMovimentosAgrupada movimentos={movimentos} />
-            </>
-          )}
-        </ScrollView>
+
+
+        {carregando ? (
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <Animated.View
+              style={{
+                transform: [{
+                  rotate: rotateAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['0deg', '360deg'],
+                  }),
+                }],
+                marginBottom: 20,
+              }}
+            >
+              <IconRotativo width={50} height={50} fill="#2565A3" />
+            </Animated.View>
+            <Text style={{ color: '#2565A3', fontWeight: 'bold' }}>A carregar movimentos...</Text>
+          </View>
+        ) : (
+          <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
+            <ScrollView contentContainerStyle={{ paddingBottom: 110 }} showsVerticalScrollIndicator={false}>
+              {movimentos.length === 0 ? (
+                <View style={styles.semMovimentosContainer}>
+                  <Image
+                    source={require('../../assets/imagens/sem_movimentos.png')}
+                    style={styles.imagemSemMovimento}
+                    resizeMode="contain"
+                  />
+                  <Text style={styles.textoSemMovimento}>
+                    Nenhum movimento para {mesSelecionado?.nome}
+                  </Text>
+                </View>
+              ) : (
+                <>
+                  <BalancoGeral resumo={balancoGeral} expandidoInicial={!temFiltrosAtivos()} />
+                  <ListaMovimentosAgrupada movimentos={movimentos} />
+                </>
+              )}
+            </ScrollView></Animated.View>
+        )}
         <ModalFiltros
           visivel={filtrosVisiveis}
           aoFechar={() => setFiltrosVisiveis(false)}

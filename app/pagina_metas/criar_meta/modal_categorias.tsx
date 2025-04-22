@@ -5,6 +5,9 @@ import { listarCategoriasDespesa } from '../../../BASEDEDADOS/categorias';
 import { Categoria } from '../../../BASEDEDADOS/tipos_tabelas';
 import { Image } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { listarSubCategorias } from '../../../BASEDEDADOS/sub_categorias';
+import { SubCategoria } from '../../../BASEDEDADOS/tipos_tabelas';
+import SubcategoriaSelecionavel from '../../pagina_principal/camara_componentes/card_subcategoria';
 
 const { width } = Dimensions.get('window');
 
@@ -13,6 +16,7 @@ interface Props {
   aoFechar: () => void;
   aoSelecionarCategoria: (categoriaId: number | null) => void;
   categoriaSelecionada?: number | null;
+  aoSelecionarSubcategoria?: (subCategoriaId: number | null) => void;
 }
 function getImagemCategoria(img_cat: any): ImageSourcePropType {
   // Se já for um objeto (tipo require), retorna diretamente
@@ -54,25 +58,32 @@ function getImagemCategoria(img_cat: any): ImageSourcePropType {
   return imagensLocais[img_cat] || imagensLocais['outros.png'];
 }
 
-const ModalCategorias: React.FC<Props> = ({ visivel, aoFechar, aoSelecionarCategoria, categoriaSelecionada }) => {
+const ModalCategorias: React.FC<Props> = ({ visivel, aoFechar, aoSelecionarCategoria, categoriaSelecionada, aoSelecionarSubcategoria }) => {
   const [categoriaSelecionadaId, setCategoriaSelecionadaId] = useState<number | null>(null);
-
+  const [subcategorias, setSubcategorias] = useState<SubCategoria[]>([]);
+  const [subSelecionadaId, setSubSelecionadaId] = useState<number | null>(null);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
 
- useEffect(() => {
-  if (visivel && typeof categoriaSelecionada === 'number') {
-    setCategoriaSelecionadaId(categoriaSelecionada);
-  }
-}, [visivel, categoriaSelecionada]);
+  useEffect(() => {
+    if (visivel && typeof categoriaSelecionada === 'number') {
+      setCategoriaSelecionadaId(categoriaSelecionada);
+    }
+  }, [visivel, categoriaSelecionada]);
 
 
   useEffect(() => {
     const carregarCategorias = async () => {
       const lista = await listarCategoriasDespesa();
+      const subs = await listarSubCategorias();
       if (lista) setCategorias(lista);
+      if (subs) setSubcategorias(subs);
     };
     carregarCategorias();
   }, []);
+
+  const getSubcategoriasDaCategoria = (categoriaId: number) => {
+    return subcategorias.filter(sub => sub.categoria_id === categoriaId);
+  };
 
 
   return (
@@ -93,43 +104,54 @@ const ModalCategorias: React.FC<Props> = ({ visivel, aoFechar, aoSelecionarCateg
 
         <ScrollView contentContainerStyle={{ paddingVertical: 1 }} showsVerticalScrollIndicator={false}>
           {categorias.map((cat) => (
-            <TouchableOpacity
-              key={cat.id}
-              style={styles.card}
-              onPress={() => {
-                const novaSelecao = categoriaSelecionadaId === cat.id ? null : cat.id;
-                aoSelecionarCategoria(novaSelecao);
-                setCategoriaSelecionadaId(novaSelecao);
-                setTimeout(() => {
-                  aoFechar();
-                }, 200);
-              }}
-
-
-            >
-
-              <View style={[styles.iconeWrapper, { backgroundColor: cat.cor_cat }]}>
-                <Image
-                  source={getImagemCategoria(cat.img_cat)}
-                  style={styles.icone}
-                  resizeMode="contain"
-                />
-              </View>
-
-
-              <Text style={styles.nomeCategoria}>{cat.nome_cat}</Text>
-
-
-              {categoriaSelecionadaId === cat.id ? (
-                <View style={styles.radioSelecionado}>
-                  <Ionicons name="checkmark" size={15} color="#fff" />
+            <React.Fragment key={cat.id}>
+              <TouchableOpacity
+                style={styles.card}
+                onPress={() => {
+                  setCategoriaSelecionadaId(cat.id);
+                  setSubSelecionadaId(null);
+                  aoSelecionarCategoria(cat.id);
+                  aoSelecionarSubcategoria?.(null);
+                  setTimeout(() => aoFechar(), 200);
+                }}
+                
+              >
+                <View style={[styles.iconeWrapper, { backgroundColor: cat.cor_cat }]}>
+                  <Image
+                    source={getImagemCategoria(cat.img_cat)}
+                    style={styles.icone}
+                    resizeMode="contain"
+                  />
                 </View>
-              ) : (
-                <View style={styles.radio} />
-              )}
+                <Text style={styles.nomeCategoria}>{cat.nome_cat}</Text>
+                {categoriaSelecionadaId === cat.id ? (
+                  <View style={styles.radioSelecionado}>
+                    <Ionicons name="checkmark" size={15} color="#fff" />
+                  </View>
+                ) : (
+                  <View style={styles.radio} />
+                )}
+              </TouchableOpacity>
 
-            </TouchableOpacity>
+              {getSubcategoriasDaCategoria(cat.id).map((sub) => (
+                <SubcategoriaSelecionavel
+                  key={sub.id}
+                  subcategoria={sub}
+                  selecionadaId={subSelecionadaId}
+                  aoSelecionar={(id) => {
+                    setSubSelecionadaId(id);
+                    setCategoriaSelecionadaId(null); // limpa categoria
+                    aoSelecionarCategoria(null);
+                    aoSelecionarSubcategoria?.(id);
+                    setTimeout(() => aoFechar(), 200);
+                  }}
+                />
+              ))}
+
+
+            </React.Fragment>
           ))}
+
 
 
         </ScrollView>
@@ -221,6 +243,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
   },
+
 
 });
 

@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 import { ImageSourcePropType } from 'react-native';
 import MovimentoItem from '../../../pagina_principal/componentes/ultimos_moviemtos/movimento_item';
+import FontAwesome from 'react-native-vector-icons/FontAwesome';
 
 function getImagemCategoria(img_cat: string): ImageSourcePropType {
     if (!img_cat) {
@@ -57,8 +58,13 @@ const MovimentoCard: React.FC<Props> = ({ nome, valor, hora, cor, imagem, tipo, 
         <TouchableOpacity style={styles.card} onPress={onPress}>
             {/* Ícone com fundo colorido */}
             <View style={[styles.iconeWrapper, { backgroundColor: cor }]}>
-                <Image source={getImagemCategoria(imagem)} style={styles.icone} resizeMode="contain" />
-            </View>
+  {typeof imagem === 'string' && !imagem.endsWith('.png') && !imagem.startsWith('http') && !imagem.startsWith('file') ? (
+    <FontAwesome name={imagem} size={20} color="#fff" />
+  ) : (
+    <Image source={getImagemCategoria(imagem)} style={styles.icone} resizeMode="contain" />
+  )}
+</View>
+
 
             {/* Texto e hora */}
             <View style={styles.textoContainer}>

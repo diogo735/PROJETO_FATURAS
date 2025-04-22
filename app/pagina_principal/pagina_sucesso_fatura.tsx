@@ -115,8 +115,7 @@ export default function PaginaSucesso() {
         imagemSalva = await salvarImagemPermanentemente(imagemUri);
         setImagemSalva(imagemSalva);
       }
-      console.log('📄 Tipo de documento:', dadosFatura.tipoDocumento);
-      const faturaIdCriada = await registarFatura_BDLOCAL({
+      const dadosParaSalvar = {
         dataMovimento: obterDataHoraAtual(),
         categoriaId,
         subcategoriaId,
@@ -130,7 +129,11 @@ export default function PaginaSucesso() {
         totalIva: parseFloat(dadosFatura.iva13 || '0'),
         totalFinal: parseFloat(dadosFatura.total || '0'),
         imagemFatura: imagemSalva
-      });
+      };
+
+      console.log('📦 Dados que vão ser enviados para o BD:', dadosParaSalvar);
+
+      const faturaIdCriada = await registarFatura_BDLOCAL(dadosParaSalvar);
 
       setFaturaId(faturaIdCriada);
 
@@ -170,6 +173,7 @@ export default function PaginaSucesso() {
     );
   };
   function interpretarQrConteudo(qr: string) {
+    //console.log('🧾 QR bruto recebido:', qr);
     const dados = Object.fromEntries(
       qr.split('*').map(parte => {
         const [chave, valor] = parte.split(':');
@@ -192,10 +196,8 @@ export default function PaginaSucesso() {
       numeroDocumento: dados.G || '---',
       atcud: dados.H || '---',
       paisIva: dados.I1 || '---',
-      baseIva23: dados.I5 || '---',
-      iva23: dados.I6 || '---',
       baseIva13: dados.I7 || '---',
-      iva13: dados.I8 || '---',
+      iva13: dados.I4 || dados.I8 || dados.N || '0',
       isento: dados.N || '---',
       total: dados.O || '---',
       hash: dados.Q || '---',

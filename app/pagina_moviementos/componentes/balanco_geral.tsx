@@ -27,7 +27,7 @@ const BalancoGeral: React.FC<Props> = ({ resumo, expandidoInicial }) => {
     const toggleExpandir = () => {
         Animated.timing(alturaAnimada, {
             toValue: expandido ? 0 : 1,
-            duration: 300,
+            duration: 180,
             useNativeDriver: false,
         }).start();
         setExpandido(!expandido);

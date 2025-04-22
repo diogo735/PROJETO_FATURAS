@@ -153,20 +153,28 @@ const Modal_Info_Fatura: React.FC<Props> = ({ visivel, uri, aoFechar, aoEliminar
             const [chave, valor] = parte.split(':');
             return [chave, valor];
         }));
+        //console.log('🧾 QR bruto:', qr);
+
         const nomeEmpresaInfo = await obterInfoEmpresaPorNif(dados.A);
-        return {
+
+        const resultado = {
             emissor: nomeEmpresaInfo || `${dados.A}`,
             contribuinte: dados.B,
             tipo: dados.D === 'FS' ? 'Fatura Simplificada' : dados.D,
             data: formatarData(dados.F),
             numero: dados.G,
             atcud: dados.H,
-            totalLiquido: dados.I7 + ' €',
-            iva: dados.I8 + ' €',
-            total: dados.O + ' €',
+            totalLiquido: dados.I3 || '0',
+            iva13: dados.I4 || '0',
+            total: dados.O,
             certificado: dados.R,
         };
+
+       // console.log('📦 Dados interpretados do QR:', resultado);
+
+        return resultado;
     }
+
     useEffect(() => {
         if (visivel) {
             setNota('');
@@ -483,7 +491,10 @@ const Modal_Info_Fatura: React.FC<Props> = ({ visivel, uri, aoFechar, aoEliminar
                                             {loadingQr ? (
                                                 <Text style={[styles.valor, { fontStyle: 'italic' }]}>a carregar...</Text>
                                             ) : (
-                                                <Text style={styles.valor}>{dadosInterpretados?.total || '---'}</Text>
+                                                <Text style={styles.valor}>
+                                                    {dadosInterpretados?.total ? `${parseFloat(dadosInterpretados.total).toFixed(2)} €` : '---'}
+                                                </Text>
+
                                             )}
                                         </View>
                                     </View>

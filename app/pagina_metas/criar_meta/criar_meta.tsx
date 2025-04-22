@@ -19,7 +19,9 @@ import ModalData from './modal_data';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
 import { inserirMeta } from '../../../BASEDEDADOS/metas';
-
+import { buscarSubCategoriaPorId } from '../../../BASEDEDADOS/sub_categorias';
+import { SubCategoria } from '../../../BASEDEDADOS/tipos_tabelas';
+import FontAwesome from 'react-native-vector-icons/FontAwesome';
 
 import { Keyboard, TouchableWithoutFeedback } from 'react-native';
 
@@ -85,21 +87,47 @@ const CriarMeta: React.FC = () => {
     const [rotuloDuracao, setRotuloDuracao] = useState<string>('');
     const [opcaoDuracao, setOpcaoDuracao] = useState<'' | 'semana' | 'mes' | 'semestre' | 'personalizado'>('');
     const [ultimaOpcaoConfirmada, setUltimaOpcaoConfirmada] = useState<'' | 'semana' | 'mes' | 'semestre' | 'personalizado'>('');
+    const [subcategoriaSelecionada, setSubcategoriaSelecionada] = useState<number | null>(null);
+    const [subcategoriaInfo, setSubcategoriaInfo] = useState<SubCategoria | null>(null);
 
 
 
     useEffect(() => {
-        const carregarCategoria = async () => {
-            if (categoriaSelecionada !== null) {
-                const categoria = await buscarCategoriaPorId(categoriaSelecionada);
+
+        if (categoriaSelecionada !== null) {
+            buscarCategoriaPorId(categoriaSelecionada).then((categoria) => {
                 setCategoriaInfo(categoria);
+                setSubcategoriaInfo(null); // limpa visual
+            });
+        } else {
+            setCategoriaInfo(null);
+        }
+    }, [categoriaSelecionada]);
+
+
+
+    useEffect(() => {
+        if (!modalCategoriaVisivel && categoriaSelecionada !== null) {
+            buscarCategoriaPorId(categoriaSelecionada).then(setCategoriaInfo);
+        }
+    }, [modalCategoriaVisivel]);
+
+    useEffect(() => {
+        const carregarSub = async () => {
+            if (subcategoriaSelecionada !== null) {
+
+                const sub = await buscarSubCategoriaPorId(subcategoriaSelecionada);
+                setSubcategoriaInfo(sub);
             } else {
-                setCategoriaInfo(null);
+
+                setSubcategoriaInfo(null);
             }
         };
 
-        carregarCategoria();
-    }, [categoriaSelecionada]);
+        carregarSub();
+    }, [subcategoriaSelecionada]);
+
+
     useEffect(() => {
         if (!valor || valor <= 0) {
             setAlertaAtivo(false);
@@ -122,7 +150,9 @@ const CriarMeta: React.FC = () => {
         }, [])
     );
 
-    const podeCriarMeta = categoriaSelecionada !== null && valor !== null && valor > 0 && dataInicio !== null && dataFim !== null;
+    const podeCriarMeta = (categoriaSelecionada !== null || subcategoriaSelecionada !== null)
+        && valor !== null && valor > 0
+        && dataInicio !== null && dataFim !== null;
 
     const navigation = useNavigation();
 
@@ -131,15 +161,20 @@ const CriarMeta: React.FC = () => {
         if (!podeCriarMeta) return;
 
         const valorFinal = alertaAtivo ? (valorCalculadoAlerta ?? 0) : null;
-
+        if ((categoriaSelecionada && subcategoriaSelecionada) || (!categoriaSelecionada && !subcategoriaSelecionada)) {
+            alert("Por favor selecione apenas uma categoria ou subcategoria.");
+            return;
+          }
         await inserirMeta(
             categoriaSelecionada,
+            subcategoriaSelecionada,
             valor,
             dataInicio.toISOString().split('T')[0],
             dataFim.toISOString().split('T')[0],
             repetir,
             valorFinal as any
         );
+        
 
         navigation.goBack();
     };
@@ -168,38 +203,34 @@ const CriarMeta: React.FC = () => {
                                 <TouchableOpacity
                                     style={[
                                         styles.pickerButton,
-                                        { backgroundColor: categoriaInfo?.cor_cat || '#5DADE2' }
+                                        { backgroundColor: subcategoriaInfo?.cor_subcat || categoriaInfo?.cor_cat || '#5DADE2' }
                                     ]}
                                     onPress={() => {
                                         setModalCategoriaVisivel(true);
                                     }}
                                 >
-                                    {categoriaInfo ? (
+                                    {subcategoriaInfo ? (
                                         <>
-                                            <Image
-                                                source={getImagemCategoria(categoriaInfo.img_cat)}
-                                                style={{ width: 22, height: 22 }}
-                                                resizeMode="contain"
-                                            />
-                                            <Text
-                                                style={styles.pickerText}
-                                                numberOfLines={1}
-                                                ellipsizeMode="tail"
-                                            >
-                                                {categoriaInfo.nome_cat}
-                                            </Text>
+                                            <View style={{
+                                                width: 22, height: 22, borderRadius: 99,
+                                                backgroundColor: subcategoriaInfo.cor_subcat,
+                                                justifyContent: 'center', alignItems: 'center'
+                                            }}>
+                                                <FontAwesome name={subcategoriaInfo.icone_nome} size={20} color="#fff" />
+                                            </View>
+                                            <Text style={styles.pickerText}>{subcategoriaInfo.nome_subcat}</Text>
+                                        </>
+                                    ) : categoriaInfo ? (
+                                        <>
+                                            <Image source={getImagemCategoria(categoriaInfo.img_cat)} style={{ width: 22, height: 22 }} />
+                                            <Text style={styles.pickerText}>{categoriaInfo.nome_cat}</Text>
                                         </>
                                     ) : (
                                         <>
-                                            <Text
-                                                style={styles.pickerText}
-                                                numberOfLines={1}
-                                                ellipsizeMode="tail"
-                                            >
-                                                Selecionar
-                                            </Text>
+                                            <Text style={styles.pickerText}>Selecionar</Text>
                                         </>
                                     )}
+
 
                                     <Ionicons name="chevron-down" size={18} color="#fff" />
                                 </TouchableOpacity>
@@ -301,9 +332,19 @@ const CriarMeta: React.FC = () => {
                 aoFechar={() => setModalCategoriaVisivel(false)}
                 aoSelecionarCategoria={(cat) => {
                     setCategoriaSelecionada(cat);
+                    setSubcategoriaSelecionada(null);
                 }}
 
+                aoSelecionarSubcategoria={(sub) => {
+                    if (sub !== null) {
+                        setCategoriaSelecionada(null);
+                        setSubcategoriaSelecionada(sub);
+                    }
+                }}
+
+                categoriaSelecionada={categoriaSelecionada}
             />
+
             <ModalData
                 visivel={modalDataVisivel}
                 opcaoSelecionada={opcaoDuracao}

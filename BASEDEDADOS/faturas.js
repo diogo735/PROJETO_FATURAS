@@ -197,7 +197,15 @@ async function consultarFatura(movimentoId) {
     return null;
   }
 }
-async function atualizarMovimentoPorFatura(faturaId, novaDescricao, novaCategoriaId) {
+
+/**
+ * @param {number} faturaId
+ * @param {string} novaDescricao
+ * @param {?number} categoriaId
+ * @param {?number} subcategoriaId
+ * @returns {Promise<boolean>}
+ */
+async function atualizarMovimentoPorFatura(faturaId, novaDescricao, categoriaId = null, subcategoriaId = null) {
   try {
     const db = await CRIARBD();
 
@@ -211,31 +219,62 @@ async function atualizarMovimentoPorFatura(faturaId, novaDescricao, novaCategori
 
     const movimentoId = fatura.movimento_id;
 
-    // 2. Obter o tipo_movimento_id da nova categoria
-    const tipo = await db.getFirstAsync(`
-      SELECT tipo_movimento_id FROM categorias WHERE id = ?
-    `, [novaCategoriaId]);
+    let categoriaFinalId = categoriaId;
+    let tipoMovimentoId = null;
+
+    // 2. Se recebeu apenas subcategoriaId, buscar a categoria correspondente
+    if (!categoriaId && subcategoriaId) {
+      const subcat = await db.getFirstAsync(
+        `SELECT categoria_id FROM sub_categorias WHERE id = ?`,
+        [subcategoriaId]
+      );
+
+      if (!subcat?.categoria_id) {
+        console.warn('⚠️ Categoria não encontrada para subcategoria:', subcategoriaId);
+        return false;
+      }
+
+      categoriaFinalId = subcat.categoria_id;
+    }
+
+    // 3. Buscar tipo_movimento_id a partir da categoriaFinalId
+    const tipo = await db.getFirstAsync(
+      `SELECT tipo_movimento_id FROM categorias WHERE id = ?`,
+      [categoriaFinalId]
+    );
 
     if (!tipo?.tipo_movimento_id) {
-      console.warn('⚠️ Tipo de movimento não encontrado para a categoria:', novaCategoriaId);
+      console.warn('⚠️ Tipo de movimento não encontrado para categoria:', categoriaFinalId);
       return false;
     }
 
-    // 3. Atualizar o movimento
+    tipoMovimentoId = tipo.tipo_movimento_id;
+
+    // 4. Atualizar o movimento
     await db.runAsync(
       `UPDATE movimentos 
-       SET nota = ?, categoria_id = ?, tipo_movimento_id = ? 
+       SET nota = ?, categoria_id = ?, sub_categoria_id = ?
        WHERE id = ?`,
-      [novaDescricao, novaCategoriaId, tipo.tipo_movimento_id, movimentoId]
+      [
+        novaDescricao,
+        categoriaFinalId,
+        subcategoriaId ?? null,
+        movimentoId
+      ]
     );
 
-    // 4. Atualizar a descrição da fatura diretamente
+    // 5. Atualizar a descrição da fatura
     await db.runAsync(
       `UPDATE faturas SET descricao = ? WHERE id = ?`,
       [novaDescricao, faturaId]
     );
 
-    console.log(`✅ Movimento ${movimentoId} atualizado com nova descrição, categoria e tipo_movimento.`);
+    console.log(`✅ Movimento ${movimentoId} atualizado com:
+      - categoria_id: ${categoriaFinalId}
+      - sub_categoria_id: ${subcategoriaId ?? 'null'}
+      - tipo_movimento_id: ${tipoMovimentoId}
+      - descrição: ${novaDescricao}`);
+
     return true;
 
   } catch (error) {
@@ -243,6 +282,7 @@ async function atualizarMovimentoPorFatura(faturaId, novaDescricao, novaCategori
     return false;
   }
 }
+
 
 
 export {

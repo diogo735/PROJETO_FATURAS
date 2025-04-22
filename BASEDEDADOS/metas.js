@@ -6,7 +6,8 @@ async function criarTabelaMetas() {
     await db.execAsync(`
       CREATE TABLE IF NOT EXISTS metas (
         id_meta INTEGER PRIMARY KEY AUTOINCREMENT,
-        categoria_id INTEGER NOT NULL,
+        categoria_id INTEGER,
+        sub_categoria_id INTEGER,
         valor_meta REAL NOT NULL,
         valor_atual REAL DEFAULT 0,
         data_inicio TEXT NOT NULL,
@@ -16,7 +17,8 @@ async function criarTabelaMetas() {
         notificado_limite_user INTEGER DEFAULT 0,
         notificado_valor_meta INTEGER DEFAULT 0,
         meta_ativa INTEGER DEFAULT 1,
-        FOREIGN KEY (categoria_id) REFERENCES categorias(id) ON DELETE CASCADE
+        FOREIGN KEY (categoria_id) REFERENCES categorias(id) ON DELETE CASCADE,
+        FOREIGN KEY (sub_categoria_id) REFERENCES sub_categorias(id) ON DELETE CASCADE
       );
     `);
     //console.log("✅ Tabela 'metas' criada com sucesso!");
@@ -25,31 +27,56 @@ async function criarTabelaMetas() {
   }
 }
 
-async function inserirMeta(categoria_id, valor_meta, data_inicio, data_fim, repetir_meta, recebe_alerta, valor_atual = 0) {
+async function inserirMeta(categoria_id, sub_categoria_id, valor_meta, data_inicio, data_fim, repetir_meta, recebe_alerta, valor_atual = 0) {
   try {
     const db = await CRIARBD();
-    console.log("📥 Dados que serão inseridos:", [
-      categoria_id, valor_meta, 0, data_inicio, data_fim, repetir_meta ? 1 : 0, recebe_alerta
-    ]);
 
+    console.log("📥 Dados que serão inseridos:", {
+      categoria_id,
+      sub_categoria_id,
+      valor_meta,
+      data_inicio,
+      data_fim,
+      repetir_meta,
+      recebe_alerta
+    });
 
-    // 1. Inserir a meta inicialmente com valor_atual = 0
+    // 1. Inserir a meta com categoria e/ou subcategoria
     const result = await db.runAsync(
       `INSERT INTO metas (
-        categoria_id, valor_meta, valor_atual, data_inicio, data_fim, repetir_meta, recebe_alerta, notificado_limite_user,notificado_valor_meta,meta_ativa
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?,?,?);`,
-      [categoria_id, valor_meta, 0, data_inicio, data_fim, repetir_meta ? 1 : 0, recebe_alerta, 0, 0,1]
+        categoria_id, sub_categoria_id, valor_meta, valor_atual, data_inicio, data_fim, repetir_meta, recebe_alerta, notificado_limite_user, notificado_valor_meta, meta_ativa
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+      [
+        categoria_id,
+        sub_categoria_id,
+        valor_meta,
+        0, // valor_atual inicial
+        data_inicio,
+        data_fim,
+        repetir_meta ? 1 : 0,
+        recebe_alerta,
+        0, 0, 1
+      ]
     );
 
     console.log(`✅ Meta inserida! ID: ${result.lastInsertRowId}`);
 
-    // 2. Buscar os movimentos da categoria dentro do intervalo de datas
-    const movimentos = await db.getAllAsync(
-      `SELECT valor, data_movimento FROM movimentos WHERE categoria_id = ?`,
-      [categoria_id]
-    );
+    // 2. Buscar movimentos (da categoria OU subcategoria)
+    let movimentos = [];
 
-    // 3. Filtrar por intervalo de data e somar os valores
+    if (categoria_id !== null) {
+      movimentos = await db.getAllAsync(
+        `SELECT valor, data_movimento FROM movimentos WHERE categoria_id = ?`,
+        [categoria_id]
+      );
+    } else if (sub_categoria_id !== null) {
+      movimentos = await db.getAllAsync(
+        `SELECT valor, data_movimento FROM movimentos WHERE sub_categoria_id = ?`,
+        [sub_categoria_id]
+      );
+    }
+
+    // 3. Somar apenas os valores dentro do intervalo de datas
     const total = movimentos
       .filter(m => {
         const data = new Date(m.data_movimento);
@@ -57,21 +84,33 @@ async function inserirMeta(categoria_id, valor_meta, data_inicio, data_fim, repe
       })
       .reduce((soma, mov) => soma + mov.valor, 0);
 
-    // 4. Atualizar o campo valor_atual da meta com o total somado
+    // 4. Atualizar o campo valor_atual da meta
     await db.runAsync(
       `UPDATE metas SET valor_atual = ? WHERE id_meta = ?`,
       [total, result.lastInsertRowId]
     );
-    // 🔎 Buscar nome da categoria para notificação
-    const categoria = await db.getFirstAsync(
-      `SELECT nome_cat FROM categorias WHERE id = ?`,
-      [categoria_id]
-    );
 
-    // ✅ Chamar função de verificação de notificação
+    // 5. Buscar nome da categoria para notificação
+    let nome_cat = 'Meta';
+    if (categoria_id !== null) {
+      const cat = await db.getFirstAsync(
+        `SELECT nome_cat FROM categorias WHERE id = ?`,
+        [categoria_id]
+      );
+      nome_cat = cat?.nome_cat ?? 'Categoria';
+    } else if (sub_categoria_id !== null) {
+      const sub = await db.getFirstAsync(
+        `SELECT nome_subcat FROM sub_categorias WHERE id = ?`,
+        [sub_categoria_id]
+      );
+      nome_cat = sub?.nome_subcat ?? 'Subcategoria';
+    }
+
+    // 6. Enviar notificação
     await verificar_se_envia_notificacao({
       id_meta: result.lastInsertRowId,
       categoria_id,
+      sub_categoria_id,
       valor_meta,
       valor_atual: total,
       data_inicio,
@@ -80,8 +119,8 @@ async function inserirMeta(categoria_id, valor_meta, data_inicio, data_fim, repe
       recebe_alerta,
       notificado_limite_user: 0,
       notificado_valor_meta: 0,
-      meta_ativa: 1, 
-      nome_cat: categoria?.nome_cat ?? 'Categoria',
+      meta_ativa: 1,
+      nome_cat
     });
 
     console.log(`🔄 Meta atualizada com valor atual: ${total}`);
@@ -91,21 +130,31 @@ async function inserirMeta(categoria_id, valor_meta, data_inicio, data_fim, repe
 }
 
 
+
 async function listarMetas() {
   try {
     const db = await CRIARBD();
     const result = await db.getAllAsync(`
-        SELECT metas.*, categorias.nome_cat, categorias.cor_cat, categorias.img_cat
-        FROM metas
-        INNER JOIN categorias ON metas.categoria_id = categorias.id
-        ORDER BY data_inicio DESC;
-      `);
+      SELECT 
+        metas.*,
+        categorias.nome_cat,
+        categorias.cor_cat,
+        categorias.img_cat,
+        sub_categorias.nome_subcat,
+        sub_categorias.cor_subcat,
+        sub_categorias.icone_nome
+      FROM metas
+      LEFT JOIN categorias ON metas.categoria_id = categorias.id
+      LEFT JOIN sub_categorias ON metas.sub_categoria_id = sub_categorias.id
+      ORDER BY data_inicio DESC;
+    `);
     return result;
   } catch (error) {
     console.error('❌ Erro ao listar metas:', error);
     return [];
   }
 }
+
 
 async function apagarMeta(id_meta) {
   try {
@@ -174,12 +223,18 @@ async function verificar_se_envia_notificacao(meta) {
       return;
     }
 
+    let nomeMeta = meta.nome_cat ?? 'Meta';
+
+    if (!meta.nome_cat && meta.sub_categoria_id) {
+      const sub = await db.getFirstAsync(`SELECT nome_subcat FROM sub_categorias WHERE id = ?`, [meta.sub_categoria_id]);
+      nomeMeta = sub?.nome_subcat ?? 'Meta';
+    }
     // 🔔 Notificação para o limite personalizado (recebe_alerta)
     if (meta.recebe_alerta && !meta.notificado_limite_user && meta.valor_atual >= meta.recebe_alerta) {
       await Notify.scheduleNotificationAsync({
         content: {
           title: 'Limite de Alerta Atingido!',
-          body: `Você atingiu o limite de ${meta.recebe_alerta}€ definido para "${meta.nome_cat}".`,
+          body: `Você atingiu o limite de ${meta.recebe_alerta}€ definido para "${meta.nomeMeta}".`,
           sound: true,
         },
         trigger: null,
@@ -196,7 +251,7 @@ async function verificar_se_envia_notificacao(meta) {
       await Notify.scheduleNotificationAsync({
         content: {
           title: 'Valor da Meta Atingido',
-          body: `Ultrapassaste o valor para a meta de "${meta.nome_cat}"!`,
+          body: `Ultrapassaste o valor para a meta de "${meta.nomeMeta}"!`,
           sound: true,
         },
         trigger: null,
@@ -213,16 +268,19 @@ async function verificar_se_envia_notificacao(meta) {
   }
 }
 
-
 async function verificarNotificacoesDeTodasMetas() {
   try {
     const db = await CRIARBD();
 
     const metas = await db.getAllAsync(`
-      SELECT metas.*, categorias.nome_cat 
-      FROM metas 
-      INNER JOIN categorias ON metas.categoria_id = categorias.id
-      WHERE metas.meta_ativa = 1 
+      SELECT 
+        metas.*, 
+        categorias.nome_cat, 
+        sub_categorias.nome_subcat 
+      FROM metas
+      LEFT JOIN categorias ON metas.categoria_id = categorias.id
+      LEFT JOIN sub_categorias ON metas.sub_categoria_id = sub_categorias.id
+      WHERE metas.meta_ativa = 1;
     `);
 
     for (const meta of metas) {
@@ -234,6 +292,7 @@ async function verificarNotificacoesDeTodasMetas() {
     console.error('❌ Erro ao verificar notificações de metas:', error);
   }
 }
+
 
 async function buscarMetaPorId_pagina_editar(id_meta) {
   try {

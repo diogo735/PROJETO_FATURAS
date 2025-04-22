@@ -1,47 +1,48 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 import { ImageSourcePropType } from 'react-native';
+import FontAwesome from 'react-native-vector-icons/FontAwesome';
 
 function getImagemCategoria(img_cat: string): ImageSourcePropType {
     if (!img_cat || typeof img_cat !== 'string') {
-      return require('../../../../assets/imagens/categorias/outros.png');
+        return require('../../../../assets/imagens/categorias/outros.png');
     }
-  
+
     if (img_cat.startsWith('file') || img_cat.startsWith('http')) {
-      return { uri: img_cat };
+        return { uri: img_cat };
     }
-  
+
     const imagensLocais: Record<string, ImageSourcePropType> = {
-      'compras_pessoais.png': require('../../../../assets/imagens/categorias/compras_pessoais.png'),
-      'contas_e_servicos.png': require('../../../../assets/imagens/categorias/contas_e_servicos.png'),
-      'despesas_gerais.png': require('../../../../assets/imagens/categorias/despesas_gerais.png'),
-      'educacao.png': require('../../../../assets/imagens/categorias/educacao.png'),
-      'estimacao.png': require('../../../../assets/imagens/categorias/estimacao.png'),
-      'financas.png': require('../../../../assets/imagens/categorias/financas.png'),
-      'habitacao.png': require('../../../../assets/imagens/categorias/habitacao.png'),
-      'lazer.png': require('../../../../assets/imagens/categorias/lazer.png'),
-      'outros.png': require('../../../../assets/imagens/categorias/outros.png'),
-      'restauracao.png': require('../../../../assets/imagens/categorias/restauracao.png'),
-      'saude.png': require('../../../../assets/imagens/categorias/saude.png'),
-      'transportes.png': require('../../../../assets/imagens/categorias/transportes.png'),
-      'alugel.png': require('../../../../assets/imagens/categorias/receitas/alugel.png'),
-      'caixa-de-ferramentas.png': require('../../../../assets/imagens/categorias/receitas/caixa-de-ferramentas.png'),
-      'deposito.png': require('../../../../assets/imagens/categorias/receitas/deposito.png'),
-      'dinheiro.png': require('../../../../assets/imagens/categorias/receitas/dinheiro.png'),
-      'lucro.png': require('../../../../assets/imagens/categorias/receitas/lucro.png'),
-      'presente.png': require('../../../../assets/imagens/categorias/receitas/presente.png'),
-      'salario.png': require('../../../../assets/imagens/categorias/receitas/salario.png'),
+        'compras_pessoais.png': require('../../../../assets/imagens/categorias/compras_pessoais.png'),
+        'contas_e_servicos.png': require('../../../../assets/imagens/categorias/contas_e_servicos.png'),
+        'despesas_gerais.png': require('../../../../assets/imagens/categorias/despesas_gerais.png'),
+        'educacao.png': require('../../../../assets/imagens/categorias/educacao.png'),
+        'estimacao.png': require('../../../../assets/imagens/categorias/estimacao.png'),
+        'financas.png': require('../../../../assets/imagens/categorias/financas.png'),
+        'habitacao.png': require('../../../../assets/imagens/categorias/habitacao.png'),
+        'lazer.png': require('../../../../assets/imagens/categorias/lazer.png'),
+        'outros.png': require('../../../../assets/imagens/categorias/outros.png'),
+        'restauracao.png': require('../../../../assets/imagens/categorias/restauracao.png'),
+        'saude.png': require('../../../../assets/imagens/categorias/saude.png'),
+        'transportes.png': require('../../../../assets/imagens/categorias/transportes.png'),
+        'alugel.png': require('../../../../assets/imagens/categorias/receitas/alugel.png'),
+        'caixa-de-ferramentas.png': require('../../../../assets/imagens/categorias/receitas/caixa-de-ferramentas.png'),
+        'deposito.png': require('../../../../assets/imagens/categorias/receitas/deposito.png'),
+        'dinheiro.png': require('../../../../assets/imagens/categorias/receitas/dinheiro.png'),
+        'lucro.png': require('../../../../assets/imagens/categorias/receitas/lucro.png'),
+        'presente.png': require('../../../../assets/imagens/categorias/receitas/presente.png'),
+        'salario.png': require('../../../../assets/imagens/categorias/receitas/salario.png'),
     };
-  
+
     if (img_cat in imagensLocais) {
-      return imagensLocais[img_cat];
+        return imagensLocais[img_cat];
     } else {
-      console.warn(`⚠️ Imagem não encontrada para categoria: '${img_cat}'`);
-      return imagensLocais['outros.png'];
+        console.warn(`⚠️ Imagem não encontrada para categoria: '${img_cat}'`);
+        return imagensLocais['outros.png'];
     }
-  }
-  
-  
+}
+
+
 interface Props {
     nome: string;
     valor: number;
@@ -60,7 +61,11 @@ const MovimentoItem: React.FC<Props> = ({ nome, valor, hora, cor, imagem, tipo, 
         <TouchableOpacity style={styles.card} onPress={onPress}>
             {/* Ícone com fundo colorido */}
             <View style={[styles.iconeWrapper, { backgroundColor: cor }]}>
-                <Image source={getImagemCategoria(imagem)} style={styles.icone} resizeMode="contain" />
+                {typeof imagem === 'string' && !imagem.endsWith('.png') ? (
+                    <FontAwesome name={imagem} size={22} color="#fff" />
+                ) : (
+                    <Image source={getImagemCategoria(imagem)} style={styles.icone} resizeMode="contain" />
+                )}
             </View>
 
             {/* Texto e hora */}

@@ -181,18 +181,19 @@ const UltimosMovimentos: React.FC<Props> = ({ movimentos }) => {
                                                         <MovimentoItem
                                                             nome={
                                                                 mov.nota?.trim()
-                                                                  ? mov.nota
-                                                                  : mov.nome_movimento === 'Despesa'
-                                                                    ? 'Despesa sem nome'
-                                                                    : 'Receita sem nome'
-                                                              }
+                                                                    ? mov.nota
+                                                                    : mov.nome_movimento === 'Despesa'
+                                                                        ? 'Despesa sem nome'
+                                                                        : 'Receita sem nome'
+                                                            }
                                                             valor={mov.valor}
                                                             hora={formatarHora(mov.data_movimento)}
-                                                            cor={mov.cor_cat}
-                                                            imagem={mov.img_cat}
+                                                            cor={mov.cor_subcat || mov.cor_cat}
+                                                            imagem={mov.icone_nome || mov.img_cat}
                                                             tipo={mov.nome_movimento}
                                                             onPress={() => navigation.navigate('Fatura', { id: mov.id })}
                                                         />
+
                                                     </View>
                                                 ))}
                                             </View>

@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { ProgressBar } from 'react-native-paper';
 import MeuIconeSVG from '../../../assets/teste.svg';
+import FontAwesome from 'react-native-vector-icons/FontAwesome';
 
 import { AnimatedCircularProgress } from 'react-native-circular-progress';
 
@@ -51,11 +52,18 @@ const CardMetas: React.FC<CardMetasProps> = ({ meta }) => {
     const {
         nome_cat,
         cor_cat,
+        img_cat,
+        nome_subcat,
+        cor_subcat,
+        icone_nome,
         valor_meta,
         data_inicio,
         data_fim,
-        img_cat,
     } = meta;
+
+    const nome = nome_subcat ?? nome_cat;
+    const cor = cor_subcat ?? cor_cat;
+
 
     // console.log(`🚨 Meta: valor_atual = ${meta.valor_atual}, recebe_alerta = ${meta.recebe_alerta}`);
 
@@ -103,19 +111,35 @@ const CardMetas: React.FC<CardMetasProps> = ({ meta }) => {
                         size={60}
                         width={7}
                         fill={percentagem}
-                        tintColor={cor_cat}
+                        tintColor={cor}
                         backgroundColor="#eee"
                         rotation={0}
                         lineCap="round"
                     >
-                        {() => (
-                            <Image
-                                source={getImagemCategoria(img_cat)}
-                                style={{ width: 27, height: 27 }}
-                                resizeMode="contain"
-                            />
-                        )}
+                        {() =>
+                            nome_subcat ? (
+                                <View
+                                    style={{
+                                        backgroundColor: cor,
+                                        width: 30,
+                                        height: 30,
+                                        borderRadius: 99,
+                                        justifyContent: 'center',
+                                        alignItems: 'center',
+                                    }}
+                                >
+                                    <FontAwesome name={icone_nome} size={16} color="#fff" />
+                                </View>
+                            ) : (
+                                <Image
+                                    source={getImagemCategoria(img_cat)}
+                                    style={{ width: 27, height: 27 }}
+                                    resizeMode="contain"
+                                />
+                            )
+                        }
                     </AnimatedCircularProgress>
+
                 </View>
 
                 <View style={styles.contentRight}>
@@ -125,7 +149,7 @@ const CardMetas: React.FC<CardMetasProps> = ({ meta }) => {
                             numberOfLines={1}
                             ellipsizeMode="tail"
                         >
-                            {nome_cat}
+                            {nome}
                         </Text>
                         <Text style={styles.valores}>
                             <Text style={styles.valorUsado}>
@@ -138,7 +162,7 @@ const CardMetas: React.FC<CardMetasProps> = ({ meta }) => {
                     </View>
 
                     <View style={styles.progressContainer}>
-                        <ProgressBar progress={percentagem / 100} color={cor_cat} style={styles.progressBar} />
+                        <ProgressBar progress={percentagem / 100} color={cor} style={styles.progressBar} />
                         <Text style={styles.percentagem}>{percentagem}%</Text>
                     </View>
                 </View>

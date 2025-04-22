@@ -293,7 +293,7 @@ const ModalCategorias: React.FC<Props> = ({ visivel, aoFechar, aoSelecionarCateg
             </View>
 
 
-            <ScrollView contentContainerStyle={{ paddingVertical: 1,backgroundColor:'red' }} showsVerticalScrollIndicator={false}>
+            <ScrollView contentContainerStyle={{ paddingVertical: 1, }} showsVerticalScrollIndicator={false}>
 
               {/* Grupo DESPESAS */}
               <TouchableOpacity onPress={toggleDespesas}

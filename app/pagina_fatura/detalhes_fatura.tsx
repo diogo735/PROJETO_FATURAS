@@ -10,7 +10,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useEffect, useState } from 'react';
 import { Image } from 'react-native';
 import { consultarFatura } from '../../BASEDEDADOS/faturas';
-import { obterCategoriaPorMovimentoId } from '../../BASEDEDADOS/movimentos';
+import { obterCategoriaPorMovimentoId, obterSubCategoriaPorMovimentoId } from '../../BASEDEDADOS/movimentos';
 import CalendarioIcon from '../../assets/icons/pagina_fatura/calendario.svg';
 import DecumetnoIcon from '../../assets/icons/pagina_fatura/ndecumento.svg';
 import Nota from '../../assets/icons/pagina_fatura/nota.svg';
@@ -28,6 +28,7 @@ import * as FileSystem from 'expo-file-system';
 import { Platform } from 'react-native';
 import { PermissionsAndroid } from 'react-native';
 import RNFS from 'react-native-fs';
+import FontAwesome from 'react-native-vector-icons/FontAwesome';
 
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
@@ -106,6 +107,7 @@ const DetalhesFatura: React.FC<Props> = ({ route }) => {
     const navigation = useNavigation();
     const textoVat = fatura?.nif_emitente ? `NIF: PT${fatura.nif_emitente}` : 'NIF: ---';
     const [imagemAmpliada, setImagemAmpliada] = useState(false);
+    const [mostrarModalErro, setMostrarModalErro] = useState(false);
 
     const [mostrarModalOpcoes, setMostrarModalOpcoes] = useState(false);
     const [mostrarModalEditar, setMostrarModalEditar] = useState(false);
@@ -480,10 +482,52 @@ const DetalhesFatura: React.FC<Props> = ({ route }) => {
         setMostrarModalOpcoes(false);
     };
 
-    const guardarEdicao = async (novaDescricao: string, idFatura: number, novaCategoriaId: number) => {
-        console.log('📝 Guardando alterações:', novaDescricao, novaCategoriaId);
+    const atualizarInfoCategoriaVisual = async (movimentoId: number) => {
+        try {
+            const subcat = await obterSubCategoriaPorMovimentoId(movimentoId);
 
-        const sucesso = await atualizarMovimentoPorFatura(idFatura, novaDescricao, novaCategoriaId);
+            if (subcat) {
+                setCategoriaInfo({
+                    id: subcat.id_subcategoria,
+                    nome_categoria: subcat.nome_subcat,
+                    cor_categoria: subcat.cor_subcat,
+                    icone_categoria: subcat.icone_nome,
+                });
+                return;
+            }
+
+            const categoria = await obterCategoriaPorMovimentoId(movimentoId);
+            if (categoria) {
+                const categoriaCompleta = await buscarCategoriaPorId(categoria.id_categoria);
+                if (categoriaCompleta) {
+                    setCategoriaInfo({
+                        id: categoriaCompleta.id,
+                        nome_categoria: categoria.nome_categoria,
+                        cor_categoria: categoriaCompleta.cor_cat,
+                        icone_categoria: categoriaCompleta.img_cat,
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('❌ Erro ao obter categoria/subcategoria do movimento:', error);
+        }
+    };
+
+    const guardarEdicao = async (
+        novaDescricao: string,
+        idFatura: number,
+        idSelecionado: number,
+        ehSubcategoria: boolean
+    ) => {
+        console.log('📝 Guardando alterações:');
+        console.log('➡️ ID:', idSelecionado);
+        console.log('📌 Tipo:', ehSubcategoria ? 'Subcategoria' : 'Categoria')
+        const sucesso = await atualizarMovimentoPorFatura(
+            idFatura,
+            novaDescricao,
+            ehSubcategoria ? null : idSelecionado,
+            ehSubcategoria ? idSelecionado : null
+        );
 
         if (sucesso) {
             console.log('✅ Movimento atualizado com sucesso!');
@@ -491,21 +535,15 @@ const DetalhesFatura: React.FC<Props> = ({ route }) => {
             setFatura(novaFatura);
             setMostrarModalSucesso(true);
             try {
-                const categoria = await obterCategoriaPorMovimentoId(novaFatura.movimento_id);
-                if (categoria) {
-                    const categoriaCompleta = await buscarCategoriaPorId(categoria.id_categoria);
-                    if (categoriaCompleta) {
-                        setCategoriaInfo({
-                            id: categoriaCompleta.id,
-                            nome_categoria: categoria.nome_categoria,
-                            cor_categoria: categoriaCompleta.cor_cat,
-                            icone_categoria: categoriaCompleta.img_cat,
-                        });
-                    }
-                }
+                await atualizarInfoCategoriaVisual(novaFatura.movimento_id);
             } catch (error) {
                 console.error('❌ Erro ao atualizar categoria visual:', error);
             }
+
+        }
+        else {
+            console.warn('❌ Falha ao atualizar movimento');
+            setMostrarModalErro(true); // <- aqui mostramos o modal de erro
         }
 
         setMostrarModalEditar(false);
@@ -516,32 +554,14 @@ const DetalhesFatura: React.FC<Props> = ({ route }) => {
         async function carregarFatura() {
             const dados = await consultarFatura(id);
             setFatura(dados);
-            //console.log('🧾 Fatura carregada:', dados);
-
-            try {
-                const categoria = await obterCategoriaPorMovimentoId(dados.movimento_id);
-                //console.log('🔎 categoria por movimento:', categoria);
-
-                if (categoria) {
-                    const categoriaCompleta = await buscarCategoriaPorId(categoria.id_categoria);
-                    if (categoriaCompleta) {
-                        setCategoriaInfo({
-                            id: categoriaCompleta.id,
-                            nome_categoria: categoria.nome_categoria,
-                            cor_categoria: categoriaCompleta.cor_cat,
-                            icone_categoria: categoriaCompleta.img_cat,
-                        });
-                    }
-                };
-            } catch (error) {
-                console.error('❌ Erro ao obter categoria do movimento:', error);
-            }
-
-
+            await atualizarInfoCategoriaVisual(dados.movimento_id);
         }
 
         carregarFatura();
     }, [id]);
+
+
+
     function formatarData(data: string | undefined) {
         if (!data) return '---';
 
@@ -595,13 +615,23 @@ const DetalhesFatura: React.FC<Props> = ({ route }) => {
 
                             {categoriaInfo && (
                                 <View style={styles.etiquetaCategoria}>
-                                    <Image
-                                        source={obterImagemCategoria(categoriaInfo.icone_categoria)}
-                                        style={styles.iconeCategoria}
-                                    />
+                                    {categoriaInfo.icone_categoria.endsWith('.png') ? (
+                                        <Image
+                                            source={obterImagemCategoria(categoriaInfo.icone_categoria)}
+                                            style={styles.iconeCategoria}
+                                        />
+                                    ) : (
+                                        <FontAwesome
+                                            name={categoriaInfo.icone_categoria}
+                                            size={16}
+                                            color="#fff"
+                                            style={styles.iconeCategoria}
+                                        />
+                                    )}
                                     <Text style={styles.textoCategoria}>{categoriaInfo.nome_categoria}</Text>
                                 </View>
                             )}
+
 
 
 
@@ -815,6 +845,34 @@ const DetalhesFatura: React.FC<Props> = ({ route }) => {
 
                 </View>
             </Modal>
+            <Modal isVisible={mostrarModalErro} animationIn="zoomIn" animationOut="zoomOut" onBackdropPress={() => setMostrarModalErro(false)}>
+                <View style={{
+                    backgroundColor: 'white',
+                    padding: 25,
+                    borderRadius: 20,
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                }}>
+                    <MaterialIcons name="error-outline" size={50} color="#E63946" />
+                    <Text style={{ fontSize: 18, fontWeight: 'bold', marginTop: 15, color: '#E63946', textAlign: 'center' }}>
+                        Ocorreu um erro ao atualizar a fatura.
+                    </Text>
+                    <TouchableOpacity
+                        onPress={() => setMostrarModalErro(false)}
+                        style={{
+                            backgroundColor: '#E63946',
+                            borderRadius: 25,
+                            paddingVertical: 10,
+                            paddingHorizontal: 55,
+                            alignSelf: 'center',
+                            marginTop: 30,
+                        }}
+                    >
+                        <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>OK</Text>
+                    </TouchableOpacity>
+                </View>
+            </Modal>
+
             <Modal
                 isVisible={mostrarModalDownload}
                 animationIn="zoomIn"

@@ -9,6 +9,8 @@ import { ScrollView } from 'react-native';
 import { Animated, Easing } from 'react-native';
 import { TouchableWithoutFeedback } from 'react-native';
 import { KeyboardAvoidingView, Platform } from 'react-native';
+import FontAwesome from 'react-native-vector-icons/FontAwesome';
+import { listarSubCategorias } from '../../../BASEDEDADOS/sub_categorias';
 
 import { Keyboard } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -21,11 +23,25 @@ interface CategoriaSelecionada {
     cor_cat: string;
     img_cat: string;
 }
+interface Subcategoria {
+    id: number;
+    nome_subcat: string;
+    cor_subcat: string;
+    icone_nome: string;
+    categoria_id: number;
+}
+interface Subcategoria {
+    id: number;
+    nome_subcat: string;
+    cor_subcat: string;
+    icone_nome: string;
+    categoria_id: number;
+}
 
 interface Props {
     visivel: boolean;
     aoFechar: () => void;
-    onGuardar: (novaDescricao: string, idFatura: number, novaCategoriaId: number) => void;
+    onGuardar: (novaDescricao: string, idFatura: number, idSelecionado: number, ehSubcategoria: boolean) => void;
     idFatura: number;
     descricaoInicial?: string | null;
     categoriaInicial?: CategoriaSelecionada | null;
@@ -70,6 +86,7 @@ function getImagemCategoria(img_cat: any): ImageSourcePropType {
 
     return imagensLocais[img_cat] || imagensLocais['outros.png'];
 }
+
 const ModalEditarFatura: React.FC<Props> = ({
     visivel,
     aoFechar,
@@ -92,18 +109,25 @@ const ModalEditarFatura: React.FC<Props> = ({
     const [receitas, setReceitas] = useState<any[]>([]);
     const alturaAnimada = useState(new Animated.Value(0))[0];
     const [alturaVisivel, setAlturaVisivel] = useState(false);
-
+    const [subcategorias, setSubcategorias] = useState<any[]>([]);
 
     useEffect(() => {
         const carregar = async () => {
             const lista: { tipo_nome: string }[] = await listarCategoriasComTipo();
+            const subs = await listarSubCategorias();
             if (lista) {
                 setDespesas(lista.filter(c => c.tipo_nome === 'Despesa'));
                 setReceitas(lista.filter(c => c.tipo_nome === 'Receita'));
             }
+            if (subs) {
+                setSubcategorias(subs);
+            }
         };
         if (visivel) carregar();
     }, [visivel]);
+    function getSubcategoriasDaCategoria(categoriaId: number) {
+        return subcategorias.filter(sub => sub.categoria_id === categoriaId);
+    }
 
     useEffect(() => {
         if (visivel) {
@@ -162,11 +186,16 @@ const ModalEditarFatura: React.FC<Props> = ({
                         >
                             {categoriaSelecionada ? (
                                 <>
-                                    <Image
-                                        source={getImagemCategoria(categoriaSelecionada.img_cat)}
-                                        style={{ width: 20, height: 20 }}
-                                        resizeMode="contain"
-                                    />
+                                    {categoriaSelecionada.img_cat.endsWith('.png') ? (
+                                        <Image
+                                            source={getImagemCategoria(categoriaSelecionada.img_cat)}
+                                            style={{ width: 20, height: 20 }}
+                                            resizeMode="contain"
+                                        />
+                                    ) : (
+                                        <FontAwesome name={categoriaSelecionada.img_cat} size={16} color="#fff" />
+                                    )}
+
                                     <Text style={styles.textoCategoria}>
                                         {categoriaSelecionada.nome_cat}
                                     </Text>
@@ -203,68 +232,173 @@ const ModalEditarFatura: React.FC<Props> = ({
                             <ScrollView style={{ maxHeight: 280 }} showsVerticalScrollIndicator={false}>
                                 <Text style={[styles.grupoTitulo, { color: 'tomato' }]}>Despesas</Text>
                                 {despesas.map((cat) => (
-                                    <TouchableOpacity
-                                        key={`d-${cat.id}`}
-                                        style={styles.card}
-                                        onPress={() => {
-                                            setCategoriaSelecionada(cat);
-                                            Animated.timing(alturaAnimada, {
-                                                toValue: 0,
-                                                duration: 300,
-                                                easing: Easing.out(Easing.ease),
-                                                useNativeDriver: false,
-                                            }).start(() => {
-                                                setMostrarDropdown(false);
-                                            });
-                                        }}
-
-                                    >
-                                        <View style={[styles.iconeWrapper, { backgroundColor: cat.cor_cat }]}>
-                                            <Image source={getImagemCategoria(cat.img_cat)} style={styles.icone} resizeMode="contain" />
-                                        </View>
-                                        <Text style={styles.nomeCategoria}>{cat.nome_cat}</Text>
-                                        {categoriaSelecionada?.id === cat.id ? (
-                                            <View style={styles.radioSelecionado}>
-                                                <MaterialIcons name="check" size={15} color="#fff" />
+                                    <React.Fragment key={`d-${cat.id}`}>
+                                        {/* Categoria principal */}
+                                        <TouchableOpacity
+                                            style={styles.card}
+                                            onPress={() => {
+                                                setCategoriaSelecionada(cat);
+                                                Animated.timing(alturaAnimada, {
+                                                    toValue: 0,
+                                                    duration: 300,
+                                                    easing: Easing.out(Easing.ease),
+                                                    useNativeDriver: false,
+                                                }).start(() => {
+                                                    setMostrarDropdown(false);
+                                                });
+                                            }}
+                                        >
+                                            <View style={[styles.iconeWrapper, { backgroundColor: cat.cor_cat }]}>
+                                                <Image
+                                                    source={getImagemCategoria(cat.img_cat)}
+                                                    style={styles.icone}
+                                                    resizeMode="contain"
+                                                />
                                             </View>
-                                        ) : (
-                                            <View style={styles.radio} />
-                                        )}
-                                    </TouchableOpacity>
+                                            <Text style={styles.nomeCategoria}>{cat.nome_cat}</Text>
+                                            {categoriaSelecionada?.id === cat.id && !subcategorias.some(sub => sub.id === categoriaSelecionada?.id) ? (
+
+                                                <View style={styles.radioSelecionado}>
+                                                    <MaterialIcons name="check" size={15} color="#fff" />
+                                                </View>
+                                            ) : (
+                                                <View style={styles.radio} />
+                                            )}
+                                        </TouchableOpacity>
+
+                                        {/* Subcategorias */}
+                                        {getSubcategoriasDaCategoria(cat.id).map(function (sub: Subcategoria) {
+                                            return (
+                                                <TouchableOpacity
+                                                    key={`sub-${sub.id}`}
+                                                    style={styles.subCard}
+                                                    onPress={() => {
+                                                        setCategoriaSelecionada({
+                                                            id: sub.id,
+                                                            nome_cat: sub.nome_subcat,
+                                                            cor_cat: sub.cor_subcat,
+                                                            img_cat: sub.icone_nome,
+                                                        });
+                                                        Animated.timing(alturaAnimada, {
+                                                            toValue: 0,
+                                                            duration: 300,
+                                                            easing: Easing.out(Easing.ease),
+                                                            useNativeDriver: false,
+                                                        }).start(() => {
+                                                            setMostrarDropdown(false);
+                                                        });
+                                                    }}
+                                                >
+                                                    <View style={[styles.subIconeWrapper, { backgroundColor: sub.cor_subcat }]}>
+                                                        {sub.icone_nome?.endsWith?.('.png') ? (
+                                                            <Image
+                                                                source={getImagemCategoria(sub.icone_nome)}
+                                                                style={styles.subIcone}
+                                                                resizeMode="contain"
+                                                            />
+                                                        ) : (
+                                                            <FontAwesome name={sub.icone_nome} size={16} color="#fff" />
+                                                        )}
+                                                    </View>
+                                                    <Text style={styles.subNome}>{sub.nome_subcat}</Text>
+                                                    {categoriaSelecionada?.id === sub.id ? (
+                                                        <View style={styles.radioSelecionado}>
+                                                            <MaterialIcons name="check" size={15} color="#fff" />
+                                                        </View>
+                                                    ) : (
+                                                        <View style={styles.radio} />
+                                                    )}
+                                                </TouchableOpacity>
+                                            );
+                                        })}
+                                    </React.Fragment>
                                 ))}
+
 
                                 <Text style={[styles.grupoTitulo, { marginTop: 10, color: 'green' }]}>Receitas</Text>
                                 {receitas.map((cat) => (
-                                    <TouchableOpacity
-                                        key={`r-${cat.id}`}
-                                        style={styles.card}
-                                        onPress={() => {
-                                            setCategoriaSelecionada(cat);
-                                            Animated.timing(alturaAnimada, {
-                                                toValue: 0,
-                                                duration: 300,
-                                                easing: Easing.out(Easing.ease),
-                                                useNativeDriver: false,
-                                            }).start(() => {
-                                                setMostrarDropdown(false);
-                                            });
-                                        }}
-
-
-                                    >
-                                        <View style={[styles.iconeWrapper, { backgroundColor: cat.cor_cat }]}>
-                                            <Image source={getImagemCategoria(cat.img_cat)} style={styles.icone} resizeMode="contain" />
-                                        </View>
-                                        <Text style={styles.nomeCategoria}>{cat.nome_cat}</Text>
-                                        {categoriaSelecionada?.id === cat.id ? (
-                                            <View style={styles.radioSelecionado}>
-                                                <MaterialIcons name="check" size={15} color="#fff" />
+                                    <React.Fragment key={`r-${cat.id}`}>
+                                        {/* Categoria principal */}
+                                        <TouchableOpacity
+                                            style={styles.card}
+                                            onPress={() => {
+                                                setCategoriaSelecionada(cat);
+                                                Animated.timing(alturaAnimada, {
+                                                    toValue: 0,
+                                                    duration: 300,
+                                                    easing: Easing.out(Easing.ease),
+                                                    useNativeDriver: false,
+                                                }).start(() => {
+                                                    setMostrarDropdown(false);
+                                                });
+                                            }}
+                                        >
+                                            <View style={[styles.iconeWrapper, { backgroundColor: cat.cor_cat }]}>
+                                                <Image
+                                                    source={getImagemCategoria(cat.img_cat)}
+                                                    style={styles.icone}
+                                                    resizeMode="contain"
+                                                />
                                             </View>
-                                        ) : (
-                                            <View style={styles.radio} />
-                                        )}
-                                    </TouchableOpacity>
+                                            <Text style={styles.nomeCategoria}>{cat.nome_cat}</Text>
+                                            {categoriaSelecionada?.id === cat.id && !subcategorias.some(sub => sub.id === categoriaSelecionada?.id) ? (
+
+                                                <View style={styles.radioSelecionado}>
+                                                    <MaterialIcons name="check" size={15} color="#fff" />
+                                                </View>
+                                            ) : (
+                                                <View style={styles.radio} />
+                                            )}
+                                        </TouchableOpacity>
+
+                                        {/* Subcategorias da receita */}
+                                        {getSubcategoriasDaCategoria(cat.id).map(function (sub: Subcategoria) {
+                                            return (
+                                                <TouchableOpacity
+                                                    key={`sub-${sub.id}`}
+                                                    style={styles.subCard}
+                                                    onPress={() => {
+                                                        setCategoriaSelecionada({
+                                                            id: sub.id,
+                                                            nome_cat: sub.nome_subcat,
+                                                            cor_cat: sub.cor_subcat,
+                                                            img_cat: sub.icone_nome,
+                                                        });
+                                                        Animated.timing(alturaAnimada, {
+                                                            toValue: 0,
+                                                            duration: 300,
+                                                            easing: Easing.out(Easing.ease),
+                                                            useNativeDriver: false,
+                                                        }).start(() => {
+                                                            setMostrarDropdown(false);
+                                                        });
+                                                    }}
+                                                >
+                                                    <View style={[styles.subIconeWrapper, { backgroundColor: sub.cor_subcat }]}>
+                                                        {sub.icone_nome?.endsWith?.('.png') ? (
+                                                            <Image
+                                                                source={getImagemCategoria(sub.icone_nome)}
+                                                                style={styles.subIcone}
+                                                                resizeMode="contain"
+                                                            />
+                                                        ) : (
+                                                            <FontAwesome name={sub.icone_nome} size={16} color="#fff" />
+                                                        )}
+                                                    </View>
+                                                    <Text style={styles.subNome}>{sub.nome_subcat}</Text>
+                                                    {categoriaSelecionada?.id === sub.id ? (
+                                                        <View style={styles.radioSelecionado}>
+                                                            <MaterialIcons name="check" size={15} color="#fff" />
+                                                        </View>
+                                                    ) : (
+                                                        <View style={styles.radio} />
+                                                    )}
+                                                </TouchableOpacity>
+                                            );
+                                        })}
+                                    </React.Fragment>
                                 ))}
+
                             </ScrollView>
 
                         </Animated.View>
@@ -319,7 +453,9 @@ const ModalEditarFatura: React.FC<Props> = ({
                             }]}
                             onPress={() => {
                                 if (categoriaSelecionada) {
-                                    onGuardar(descricao, idFatura, categoriaSelecionada.id);
+                                    const ehSub = subcategorias.some(sub => sub.id === categoriaSelecionada.id);
+                                    onGuardar(descricao, idFatura, categoriaSelecionada.id, ehSub);
+
                                 }
                             }}
                             disabled={!guardarAtivo()}
@@ -493,6 +629,38 @@ const styles = StyleSheet.create({
         marginBottom: 6,
         marginTop: 4,
         paddingLeft: 4,
+    },
+    subCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#F9F9F9',
+        borderRadius: 10,
+        paddingVertical: 8,
+        paddingHorizontal: 10,
+        marginBottom: 6,
+        marginLeft: 10,
+        marginRight: 10
+    },
+
+    subIconeWrapper: {
+        width: 34,
+        height: 34,
+        borderRadius: 99,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 8,
+    },
+
+    subIcone: {
+        width: 18,
+        height: 18,
+    },
+
+    subNome: {
+        flex: 1,
+        fontSize: 14,
+        color: '#164878',
+        fontWeight: '500',
     },
 
 

@@ -6,7 +6,7 @@ import Grafico_Circular from './componentes/grafico_circular';
 import { obterTotalReceitas, obterTotalDespesas, listarMovimentosUltimos30Dias, obterSaldoMensalAtual } from '../../BASEDEDADOS/movimentos';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import UltimosMovimentos from './componentes/ultimos_moviemtos/ultimos_moviemntos';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useCallback } from 'react';
 
 import { ScrollView } from 'react-native';
@@ -15,6 +15,13 @@ const { width, height } = Dimensions.get('window');
 import { obterSomaMovimentosPorCategoriaDespesa, obterSomaMovimentosPorCategoriaReceita } from '../../BASEDEDADOS/movimentos';
 import Botoes from './componentes/botoes_despesa_receita';
 import { Dimensions } from 'react-native';
+
+
+import { StackNavigationProp } from '@react-navigation/stack';
+import { RootStackParamList } from '../../App'; 
+
+
+
 
 interface DadosGrafico {
   categoria_id: number;
@@ -29,12 +36,14 @@ const Pagina_principal: React.FC = () => {
 
   const [dadosGrafico, setDadosGrafico] = useState<DadosGrafico[]>([]);//armazena os dados do gráfico
   const [saldoMensal, setSaldoMensal] = useState(0);
-
+  
   const [totalReceitas, setTotalReceitas] = useState(0);
   const [totalDespesas, setTotalDespesas] = useState(0);
   const [carregarGrafico, setCarregarGrafico] = useState(false);
   const [movimentosRecentes, setMovimentosRecentes] = useState([]);
   const opacidadeGrafico = useSharedValue(0);
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+
 
   const estiloAnimado = useAnimatedStyle(() => {
     return {
@@ -83,9 +92,9 @@ const Pagina_principal: React.FC = () => {
 
 
 
-  const handleNotificacaoPress = () => {
-    Alert.alert('Notificações', ' notificações');
-  };
+    const handleNotificacaoPress = () => {
+      navigation.navigate('Notificacoes');
+    };
 
   return (
     <View style={styles.corpo}>
@@ -105,7 +114,7 @@ const Pagina_principal: React.FC = () => {
         {/**/}
         <Animated.View style={[styles.containerGrafico, estiloAnimado]}>
           {carregarGrafico ? (
-            <View style={{ height: width * 0.804 + 100 }} />  
+            <View style={{ height: width * 0.804 + 100 }} />
           ) : (
             <Grafico_Circular categorias={dadosGrafico} tipoSelecionado={tipoSelecionado} />
           )}
@@ -125,9 +134,11 @@ const Pagina_principal: React.FC = () => {
         />
 
         <UltimosMovimentos movimentos={movimentosRecentes} />
+
         
 
       </ScrollView>
+      
     </View>
   );
 };
@@ -142,7 +153,7 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     alignItems: 'center',
-    paddingBottom: height*0.16,
+    paddingBottom: height * 0.16,
   },
   conteudo: {
     justifyContent: 'center',
@@ -154,6 +165,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     //backgroundColor: '#ADD8E6', // Azul claro como fundo
   },
+
 });
 
 /////////////////////////////////////////////////////////////////////////////////
