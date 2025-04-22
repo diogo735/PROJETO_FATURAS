@@ -89,7 +89,8 @@ const ModalCategorias: React.FC<Props> = ({ visivel, aoFechar, aoSelecionarCateg
   const [subcategorias, setSubcategorias] = useState<SubCategoria[]>([]);
   const [subSelecionadaId, setSubSelecionadaId] = useState<number | null>(null);
   const [carregando, setCarregando] = useState(false);
-
+  const [prontoParaMostrar, setProntoParaMostrar] = useState(false);
+  const [alturaCapturada, setAlturaCapturada] = useState(false);
 
   const [mostrarDespesas, setMostrarDespesas] = useState(true);
 
@@ -161,30 +162,30 @@ const ModalCategorias: React.FC<Props> = ({ visivel, aoFechar, aoSelecionarCateg
 
 
 
-//NAO ESTA A MOSTRA NA PRIMEIRA VEZ AS DESPEAS É PRESISO CLICAR DUAS VEZES NO BOTAO
-useEffect(() => {
-  if (visivel) {
-    const ehReceita = categoriaAtual?.tipo_nome === 'Receita';
-    const ehDespesa = categoriaAtual?.tipo_nome === 'Despesa';
+  //NAO ESTA A MOSTRA NA PRIMEIRA VEZ AS DESPEAS É PRESISO CLICAR DUAS VEZES NO BOTAO
+  useEffect(() => {
+    if (visivel) {
+      const ehReceita = categoriaAtual?.tipo_nome === 'Receita';
+      const ehDespesa = categoriaAtual?.tipo_nome === 'Despesa';
 
-    const mostrarSoDespesas = !ehReceita && !ehDespesa;
+      const mostrarSoDespesas = !ehReceita && !ehDespesa;
 
-    // Animações visuais
-    despesasAnim.setValue(ehDespesa || mostrarSoDespesas ? 1 : 0);
-    receitasAnim.setValue(ehReceita ? 1 : 0);
+      // Animações visuais
+      despesasAnim.setValue(ehDespesa || mostrarSoDespesas ? 1 : 0);
+      receitasAnim.setValue(ehReceita ? 1 : 0);
 
-    // Ícones de seta
-    rotacaoDespesas.setValue(ehDespesa || mostrarSoDespesas ? 1 : 0);
-    rotacaoReceitas.setValue(ehReceita ? 1 : 0);
+      // Ícones de seta
+      rotacaoDespesas.setValue(ehDespesa || mostrarSoDespesas ? 1 : 0);
+      rotacaoReceitas.setValue(ehReceita ? 1 : 0);
 
-    // Estados de controle (abertura)
-    setMostrarDespesas(ehDespesa || mostrarSoDespesas);
-    setMostrarReceitas(ehReceita);
+      // Estados de controle (abertura)
+      setMostrarDespesas(ehDespesa || mostrarSoDespesas);
+      setMostrarReceitas(ehReceita);
 
-    setCategoriaSelecionadaId(categoriaAtual?.id ?? null);
-    setSubSelecionadaId(subcategoriaAtual ?? null);
-  }
-}, [visivel]);
+      setCategoriaSelecionadaId(categoriaAtual?.id ?? null);
+      setSubSelecionadaId(subcategoriaAtual ?? null);
+    }
+  }, [visivel]);
 
 
 
@@ -206,14 +207,21 @@ useEffect(() => {
 
   useEffect(() => {
     const carregarCategorias = async () => {
+      setCarregando(true);
       const lista = await listarCategoriasComTipo();
       const subs = await listarSubCategorias();
       if (lista) setCategorias(lista);
       if (subs) setSubcategorias(subs);
+      setCarregando(false);
+      setProntoParaMostrar(true); // ✅ agora está pronto
     };
 
-    carregarCategorias();
-  }, []);
+    if (visivel) {
+      setProntoParaMostrar(false); // reset
+      carregarCategorias();
+    }
+  }, [visivel]);
+
 
 
 
@@ -224,6 +232,7 @@ useEffect(() => {
   const [modalCriarVisivel, setModalCriarVisivel] = useState(false);
 
   const rotateValue = useRef(new Animated.Value(0)).current;
+
   useEffect(() => {
     let isMounted = true;
 
@@ -257,9 +266,10 @@ useEffect(() => {
   });
   const alturaModal = height * 0.7;
 
+  if (!visivel || !prontoParaMostrar) return null;
   return (
     <Modal
-      isVisible={visivel}
+      isVisible={visivel && prontoParaMostrar}
       animationIn="slideInUp"
       animationOut="slideOutDown"
       animationInTiming={300}
@@ -273,24 +283,7 @@ useEffect(() => {
     >
       <View style={[styles.container, carregando && { minHeight: alturaModal }]}>
         <View style={styles.handle} />
-        {carregando ? (
-          <View style={[styles.loadingContainer, { minHeight: alturaModal }]}>
-            <Animated.View style={{
-              justifyContent: 'center',
-              alignItems: 'center',
-              transform: [{ rotate: rotateInterpolation }]
-            }}>
-              <Iconratio
-                width={55}
-                height={55}
-                fill="#2565A3"
-              />
-            </Animated.View>
-
-            <Text style={{ marginTop: 15, color: '#2565A3', fontWeight: 'bold' }}>A carregar categorias...</Text>
-          </View>
-        ) : (
-          <>
+        
             <View style={styles.tituloLinha}>
               <Text style={styles.titulo}>Selecionar Categoria</Text>
 
@@ -300,7 +293,7 @@ useEffect(() => {
             </View>
 
 
-            <ScrollView contentContainerStyle={{ paddingVertical: 1 }} showsVerticalScrollIndicator={false}>
+            <ScrollView contentContainerStyle={{ paddingVertical: 1,backgroundColor:'red' }} showsVerticalScrollIndicator={false}>
 
               {/* Grupo DESPESAS */}
               <TouchableOpacity onPress={toggleDespesas}
@@ -320,7 +313,9 @@ useEffect(() => {
                 style={{ position: 'absolute', opacity: 0, zIndex: -1, left: 0, right: 0 }}
                 onLayout={(e) => {
                   alturaRealDespesas.current = e.nativeEvent.layout.height;
+                  setAlturaCapturada(true);
                 }}
+                
               >
                 {despesas.map((cat) => (
                   <React.Fragment key={cat.id}>
@@ -345,12 +340,13 @@ useEffect(() => {
               <Animated.View
                 style={{
                   overflow: 'hidden',
-                  height: despesasAnim.interpolate({
+                  height: alturaCapturada ? despesasAnim.interpolate({
                     inputRange: [0, 1],
                     outputRange: [0, alturaRealDespesas.current],
-                  }),
+                  }) : 0,
                 }}
               >
+                
                 {despesas.map((cat) => (
                   <React.Fragment key={cat.id}>
                     <TouchableOpacity
@@ -416,6 +412,7 @@ useEffect(() => {
                 style={{ position: 'absolute', opacity: 0, zIndex: -1, left: 0, right: 0 }}
                 onLayout={(e) => {
                   alturaRealReceitas.current = e.nativeEvent.layout.height;
+                  setAlturaCapturada(true);
                 }}
               >
                 {receitas.map((cat) => (
@@ -440,10 +437,10 @@ useEffect(() => {
               <Animated.View
                 style={{
                   overflow: 'hidden',
-                  height: receitasAnim.interpolate({
+                  height:  alturaCapturada ? receitasAnim.interpolate({
                     inputRange: [0, 1],
                     outputRange: [0, alturaRealReceitas.current],
-                  }),
+                  }) : 0,
                 }}
               >
                 {receitas.map((cat) => (
@@ -494,8 +491,7 @@ useEffect(() => {
 
 
             </ScrollView>
-          </>
-        )}
+        
         <Modal isVisible={modalCriarVisivel} onBackdropPress={() => setModalCriarVisivel(false)}>
           <View style={styles.modalCriarCategoria}>
             <Text style={styles.modalTitulo}>Tipo de Categoria</Text>

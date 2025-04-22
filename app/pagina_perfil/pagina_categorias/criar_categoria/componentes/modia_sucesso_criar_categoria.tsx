@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Animated, Dimensions, TouchableOpacity } from '
 import IconeRotativo from '../../../../../assets/imagens/wallpaper.svg';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import { useNavigation } from '@react-navigation/native';
-import { inserirSubCategoria } from '../../../../../BASEDEDADOS/sub_categorias'; 
+import { inserirSubCategoria } from '../../../../../BASEDEDADOS/sub_categorias';
 
 const { height } = Dimensions.get('window');
 
@@ -18,7 +18,7 @@ interface Props {
 
 }
 
-const ModalAguardeCirarCategoria: React.FC<Props> = ({ visivel, cor, icone, categoriaId, nomeCategoria, setVisivel,onCategoriaCriada}) => {
+const ModalAguardeCirarCategoria: React.FC<Props> = ({ visivel, cor, icone, categoriaId, nomeCategoria, setVisivel, onCategoriaCriada }) => {
     const navigation = useNavigation();
 
     const rotateAnim = useRef(new Animated.Value(0)).current;
@@ -30,39 +30,39 @@ const ModalAguardeCirarCategoria: React.FC<Props> = ({ visivel, cor, icone, cate
 
     const processarCriacao = async () => {
         setEtapa('carregando');
-      
+
         // Garante pelo menos 1 segundo de carregamento
         const delay = new Promise(resolve => setTimeout(resolve, 1000));
-      
+
         const resultado = await Promise.all([
             inserirSubCategoria(nomeCategoria, icone, cor, categoriaId),
             delay,
-          ]).then(([res]) => res);
-          
-          
-          
-      
+        ]).then(([res]) => res);
+
+
+
+
         if (resultado === 'sucesso') {
-          setEtapa('sucesso');
+            setEtapa('sucesso');
         } else {
-          setMensagemErro(
-            resultado === 'duplicada_subcategoria'
-              ? 'Já criaste uma subcategoria com este nome!'
-              : resultado === 'duplicada_categoria'
-                ? 'Já existe uma categoria com este nome!'
-                : 'Ocorreu um erro ao criar a subcategoria.'
-          );
-          setEtapa('erro');
+            setMensagemErro(
+                resultado === 'duplicada_subcategoria'
+                    ? 'Já criaste uma subcategoria com este nome!'
+                    : resultado === 'duplicada_categoria'
+                        ? 'Já existe uma categoria com este nome!'
+                        : 'Ocorreu um erro ao criar a subcategoria.'
+            );
+            setEtapa('erro');
         }
-      };
-      
+    };
 
 
-      useEffect(() => {
+
+    useEffect(() => {
         if (visivel) {
             animOpacity.setValue(0);
             setMostrarAnimado(true);
-    
+
             requestAnimationFrame(() => {
                 Animated.timing(animOpacity, {
                     toValue: 1,
@@ -70,7 +70,7 @@ const ModalAguardeCirarCategoria: React.FC<Props> = ({ visivel, cor, icone, cate
                     useNativeDriver: true,
                 }).start();
             });
-    
+
             setEtapa('carregando');
             processarCriacao(); // <- Aqui
         } else if (mostrarAnimado) {
@@ -81,7 +81,7 @@ const ModalAguardeCirarCategoria: React.FC<Props> = ({ visivel, cor, icone, cate
             }).start(() => setMostrarAnimado(false));
         }
     }, [visivel]);
-    
+
 
 
 
@@ -143,17 +143,20 @@ const ModalAguardeCirarCategoria: React.FC<Props> = ({ visivel, cor, icone, cate
                         <TouchableOpacity
                             style={styles.botaoOk}
                             onPress={() => {
-                                setVisivel(false);
-                                if (onCategoriaCriada) {
-                                  onCategoriaCriada(); 
-                                }
-                                navigation.goBack();
-                              }}
-                              
-
+                                Animated.timing(animOpacity, {
+                                    toValue: 0,
+                                    duration: 200,
+                                    useNativeDriver: true,
+                                }).start(() => {
+                                    setVisivel(false);
+                                    onCategoriaCriada?.();
+                                    navigation.goBack();
+                                });
+                            }}
                         >
                             <Text style={styles.textoBotao}>OK</Text>
                         </TouchableOpacity>
+
                     </>
                 )}
 

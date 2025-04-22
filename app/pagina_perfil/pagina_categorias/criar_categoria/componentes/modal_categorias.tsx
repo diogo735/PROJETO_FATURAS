@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions, ScrollView, ImageSourcePropType } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, ScrollView, ImageSourcePropType, Pressable } from 'react-native';
 import Modal from 'react-native-modal';
 import { listarCategoriasDespesa, listarCategoriasReceita } from '../../../../../BASEDEDADOS/categorias';
 import { Categoria } from '../../../../../BASEDEDADOS/tipos_tabelas';
@@ -98,46 +98,50 @@ const ModalCategorias: React.FC<Props> = ({ visivel, aoFechar, aoSelecionarCateg
         <View style={styles.handle} />
         <Text style={styles.titulo}>Selecionar Categoria</Text>
 
-        <ScrollView contentContainerStyle={{ paddingVertical: 1 , gap:15}} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled"
+        <ScrollView contentContainerStyle={{ paddingVertical: 1, gap: 0 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled"
         >
           {categorias.map((cat) => (
-            <TouchableOpacity
-              key={cat.id}
-              style={styles.card}
-              onPress={() => {
-                const novaSelecao = categoriaSelecionadaId === cat.id ? null : cat.id;
-                aoSelecionarCategoria(novaSelecao);
-                setCategoriaSelecionadaId(novaSelecao);
-                setTimeout(() => {
-                  aoFechar();
-                }, 200);
-              }}
-
-
-            >
-
-              <View style={[styles.iconeWrapper, { backgroundColor: cat.cor_cat }]}>
-                <Image
-                  source={getImagemCategoria(cat.img_cat)}
-                  style={styles.icone}
-                  resizeMode="contain"
-                />
-              </View>
-
-
-              <Text style={styles.nomeCategoria}>{cat.nome_cat}</Text>
-
-
-              {categoriaSelecionadaId === cat.id ? (
-                <View style={styles.radioSelecionado}>
-                  <Ionicons name="checkmark" size={15} color="#fff" />
+            <React.Fragment key={cat.id}>
+              <TouchableOpacity
+                style={styles.card}
+                onPress={() => {
+                  const novaSelecao = categoriaSelecionadaId === cat.id ? null : cat.id;
+                  aoSelecionarCategoria(novaSelecao);
+                  setCategoriaSelecionadaId(novaSelecao);
+                  setTimeout(() => {
+                    aoFechar();
+                  }, 200);
+                }}
+              >
+                <View style={[styles.iconeWrapper, { backgroundColor: cat.cor_cat }]}>
+                  <Image
+                    source={getImagemCategoria(cat.img_cat)}
+                    style={styles.icone}
+                    resizeMode="contain"
+                  />
                 </View>
-              ) : (
-                <View style={styles.radio} />
-              )}
 
-            </TouchableOpacity>
+                <Text style={styles.nomeCategoria}>{cat.nome_cat}</Text>
+
+                {categoriaSelecionadaId === cat.id ? (
+                  <View style={styles.radioSelecionado}>
+                    <Ionicons name="checkmark" size={15} color="#fff" />
+                  </View>
+                ) : (
+                  <View style={styles.radio} />
+                )}
+              </TouchableOpacity>
+
+              {/* Espaçamento entre categorias (vermelho visível) */}
+              <Pressable
+                style={{ height: 15, }}
+                android_disableSound
+              />
+
+
+            </React.Fragment>
           ))}
+
 
 
         </ScrollView>
@@ -189,7 +193,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 10,
     paddingHorizontal: 10,
-   // marginBottom: 15,
+    // marginBottom: 15,
   },
   iconeWrapper: {
     width: 50,

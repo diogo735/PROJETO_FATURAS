@@ -145,10 +145,15 @@ const CriarCategoria: React.FC = () => {
 
     const [iconeSelecionado, setIconeSelecionado] = useState<string | null>(null);
 
-    
-    
 
-    const podeCriar = nomeCategoria.trim().length > 0 && corSelecionada !== '#D9D9D9' && iconeSelecionado !== null;
+
+
+    const podeCriar =
+        nomeCategoria.trim().length > 0 &&
+        corSelecionada !== '#D9D9D9' &&
+        iconeSelecionado !== null &&
+        categoriaInfo !== null;
+
     const [modalSairVisivel, setModalSairVisivel] = useState(false);
 
     const temAlteracoes = useCallback(() => {
@@ -207,7 +212,7 @@ const CriarCategoria: React.FC = () => {
                 ]).start();
             });
         } else if (mostrarModalAnimado) {
-            // 👉 Animação de saída + desmontar após finalizar
+          
             Animated.parallel([
                 Animated.timing(animOpacity, {
                     toValue: 0,
@@ -462,9 +467,26 @@ const CriarCategoria: React.FC = () => {
                                 <TouchableOpacity onPress={() => setModalSairVisivel(false)} style={styles.botaoCancelar}>
                                     <Text style={styles.txtCancelar}>Cancelar</Text>
                                 </TouchableOpacity>
-                                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.botaoConfirmar}>
+                                <TouchableOpacity onPress={() => {
+                                    Animated.parallel([
+                                        Animated.timing(animOpacity, {
+                                            toValue: 0,
+                                            duration: 200,
+                                            useNativeDriver: true,
+                                        }),
+                                        Animated.timing(animTranslateY, {
+                                            toValue: 30,
+                                            duration: 200,
+                                            useNativeDriver: true,
+                                        })
+                                    ]).start(() => {
+                                        setMostrarModalAnimado(false);
+                                        navigation.goBack(); 
+                                    });
+                                }} style={styles.botaoConfirmar}>
                                     <Text style={styles.txtConfirmar}>Sim</Text>
                                 </TouchableOpacity>
+
                             </View>
                         </Animated.View>
                     </View>
@@ -477,7 +499,7 @@ const CriarCategoria: React.FC = () => {
                     categoriaId={categoriaSelecionada}
                     nomeCategoria={nomeCategoria}
                     setVisivel={setModalCriarVisivel}
-                    onCategoriaCriada={onCategoriaCriada} 
+                    onCategoriaCriada={onCategoriaCriada}
                 />
 
             </View>
