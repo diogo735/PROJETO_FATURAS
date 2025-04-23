@@ -26,6 +26,12 @@ import { Animated } from 'react-native';
 
 import { Keyboard, TouchableWithoutFeedback } from 'react-native';
 import { buscarMetaPorId_pagina_editar } from '../../BASEDEDADOS/metas';
+import { buscarSubCategoriaPorId } from '../../BASEDEDADOS/sub_categorias';
+import { SubCategoria } from '../../BASEDEDADOS/tipos_tabelas';
+import FontAwesome from 'react-native-vector-icons/FontAwesome';
+import { BackHandler } from 'react-native';
+import ModalAguardeEditarMeta from './componestes_metas/modal_sucesso_editar_meta';
+
 
 type ParamList = {
     EditarMeta: { id_meta: number };
@@ -95,9 +101,74 @@ const EditarMeta: React.FC = () => {
     const fadeAnim = useRef(new Animated.Value(0)).current;
 
     const rotateAnim = useRef(new Animated.Value(0)).current;
-    const [modalSucessoVisible, setModalSucessoVisible] = useState(false);
-    const [modalErroVisible, setModalErroVisible] = useState(false);
+    const [subcategoriaSelecionada, setSubcategoriaSelecionada] = useState<number | null>(null);
+    const [subcategoriaInfo, setSubcategoriaInfo] = useState<SubCategoria | null>(null);
+    const [modalSairVisivel, setModalSairVisivel] = useState(false);
+    const animOpacity = useRef(new Animated.Value(0)).current;
+    const animTranslateY = useRef(new Animated.Value(30)).current;
+    const [mostrarModalAnimado, setMostrarModalAnimado] = useState(false);
+    const [modalEditarMetaVisivel, setModalEditarMetaVisivel] = useState(false);
 
+    useEffect(() => {
+        if (modalSairVisivel) {
+            animOpacity.setValue(0);
+            animTranslateY.setValue(30);
+            setMostrarModalAnimado(true);
+
+            requestAnimationFrame(() => {
+                Animated.parallel([
+                    Animated.timing(animOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
+                    Animated.timing(animTranslateY, { toValue: 0, duration: 200, useNativeDriver: true })
+                ]).start();
+            });
+        } else if (mostrarModalAnimado) {
+            Animated.parallel([
+                Animated.timing(animOpacity, { toValue: 0, duration: 200, useNativeDriver: true }),
+                Animated.timing(animTranslateY, { toValue: 30, duration: 200, useNativeDriver: true })
+            ]).start(() => {
+                setMostrarModalAnimado(false);
+            });
+        }
+    }, [modalSairVisivel]);
+
+    const isMetaAlterada = () => {
+        if (!dadosOriginais) return false;
+
+        const dataInicioStr = dataInicio?.toISOString().split('T')[0];
+        const dataFimStr = dataFim?.toISOString().split('T')[0];
+
+        const alertaValorAtual = alertaAtivo ? valorCalculadoAlerta : null;
+        const alertaValorOriginal = dadosOriginais.alerta_ativo ? dadosOriginais.recebe_alerta : null;
+
+
+        return (
+            categoriaSelecionada !== dadosOriginais.categoria_id ||
+            valor !== dadosOriginais.valor_meta ||
+            dataInicioStr !== dadosOriginais.data_inicio ||
+            dataFimStr !== dadosOriginais.data_fim ||
+            repetir !== dadosOriginais.repetir_meta ||
+            alertaValorAtual !== alertaValorOriginal ||
+            subcategoriaSelecionada !== dadosOriginais.subcategoria_id
+
+        );
+    };
+
+
+    const houveAlteracao = isMetaAlterada();
+    useFocusEffect(
+        useCallback(() => {
+            const onBackPress = () => {
+                if (houveAlteracao) {
+                    setModalSairVisivel(true);
+                    return true;
+                }
+                return false;
+            };
+
+            BackHandler.addEventListener('hardwareBackPress', onBackPress);
+            return () => BackHandler.removeEventListener('hardwareBackPress', onBackPress);
+        }, [houveAlteracao])
+    );
 
     const rotateInterpolation = rotateAnim.interpolate({
         inputRange: [0, 1],
@@ -121,6 +192,11 @@ const EditarMeta: React.FC = () => {
 
             if (meta) {
                 setCategoriaSelecionada(meta.categoria_id);
+                setSubcategoriaSelecionada(meta.sub_categoria_id);
+                if (meta.sub_categoria_id) {
+                    const sub = await buscarSubCategoriaPorId(meta.sub_categoria_id);
+                    setSubcategoriaInfo(sub);
+                }
                 setValor(meta.valor_meta);
                 setDataInicio(new Date(meta.data_inicio));
                 setDataFim(new Date(meta.data_fim));
@@ -139,6 +215,7 @@ const EditarMeta: React.FC = () => {
             }
             setDadosOriginais({
                 categoria_id: meta.categoria_id,
+                subcategoria_id: meta.sub_categoria_id,
                 valor_meta: meta.valor_meta,
                 data_inicio: meta.data_inicio,
                 data_fim: meta.data_fim,
@@ -161,28 +238,21 @@ const EditarMeta: React.FC = () => {
         carregarMeta();
     }, [id_meta]);
 
-    const isMetaAlterada = () => {
-        if (!dadosOriginais) return false;
+    useEffect(() => {
+        const carregarSub = async () => {
+            if (subcategoriaSelecionada !== null) {
+                const sub = await buscarSubCategoriaPorId(subcategoriaSelecionada);
+                setSubcategoriaInfo(sub);
+            } else {
+                setSubcategoriaInfo(null);
+            }
+        };
 
-        const dataInicioStr = dataInicio?.toISOString().split('T')[0];
-        const dataFimStr = dataFim?.toISOString().split('T')[0];
-
-        const alertaValorAtual = alertaAtivo ? valorCalculadoAlerta : null;
-        const alertaValorOriginal = dadosOriginais.alerta_ativo ? dadosOriginais.recebe_alerta : null;
-
-
-        return (
-            categoriaSelecionada !== dadosOriginais.categoria_id ||
-            valor !== dadosOriginais.valor_meta ||
-            dataInicioStr !== dadosOriginais.data_inicio ||
-            dataFimStr !== dadosOriginais.data_fim ||
-            repetir !== dadosOriginais.repetir_meta ||
-            alertaValorAtual !== alertaValorOriginal
-        );
-    };
+        carregarSub();
+    }, [subcategoriaSelecionada]);
 
 
-    const houveAlteracao = isMetaAlterada();
+
     const alertaInvalido = alertaAtivo && valorCalculadoAlerta === 0;
 
 
@@ -216,8 +286,12 @@ const EditarMeta: React.FC = () => {
     }, [valor]);
 
 
-
-    const podeCriarMeta = categoriaSelecionada !== null && valor !== null && valor > 0 && dataInicio !== null && dataFim !== null;
+    const podeCriarMeta =
+        (categoriaSelecionada !== null || subcategoriaSelecionada !== null) &&
+        valor !== null &&
+        valor > 0 &&
+        dataInicio !== null &&
+        dataFim !== null;
 
     const navigation = useNavigation();
 
@@ -226,24 +300,12 @@ const EditarMeta: React.FC = () => {
         if (!podeCriarMeta) return;
 
         const valorFinal = alertaAtivo ? (valorCalculadoAlerta ?? 0) : null;
-
-        try {
-            await atualizarMeta(
-                id_meta,
-                categoriaSelecionada,
-                valor,
-                dataInicio.toISOString().split('T')[0],
-                dataFim.toISOString().split('T')[0],
-                repetir,
-                valorFinal
-            );
-          
-            setModalSucessoVisible(true);
-        } catch (error) {
-            console.error('❌ Erro ao atualizar meta:', error);
-            
-            setModalErroVisible(true);
+        if ((categoriaSelecionada !== null && subcategoriaSelecionada !== null) ||
+            (categoriaSelecionada === null && subcategoriaSelecionada === null)) {
+            alert("Por favor selecione apenas uma categoria ou subcategoria.");
+            return;
         }
+        setModalEditarMetaVisivel(true);
     };
 
 
@@ -272,7 +334,14 @@ const EditarMeta: React.FC = () => {
         <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
 
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()}>
+                <TouchableOpacity onPress={() => {
+                    if (houveAlteracao) {
+                        setModalSairVisivel(true);
+                    } else {
+                        navigation.goBack();
+                    }
+                }}
+                >
                     <Ionicons name="close" size={26} color="#164878" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Editar Meta</Text>
@@ -291,41 +360,37 @@ const EditarMeta: React.FC = () => {
                                 <TouchableOpacity
                                     style={[
                                         styles.pickerButton,
-                                        { backgroundColor: categoriaInfo?.cor_cat || '#5DADE2' }
+                                        { backgroundColor: subcategoriaInfo?.cor_subcat || categoriaInfo?.cor_cat || '#5DADE2' }
                                     ]}
                                     onPress={() => {
                                         setModalCategoriaVisivel(true);
                                     }}
                                 >
-                                    {categoriaInfo ? (
+                                    {subcategoriaInfo ? (
                                         <>
-                                            <Image
-                                                source={getImagemCategoria(categoriaInfo.img_cat)}
-                                                style={{ width: 22, height: 22 }}
-                                                resizeMode="contain"
-                                            />
-                                            <Text
-                                                style={styles.pickerText}
-                                                numberOfLines={1}
-                                                ellipsizeMode="tail"
-                                            >
-                                                {categoriaInfo.nome_cat}
-                                            </Text>
+                                            <View style={{
+                                                width: 22, height: 22, borderRadius: 99,
+                                                backgroundColor: subcategoriaInfo.cor_subcat,
+                                                justifyContent: 'center', alignItems: 'center'
+                                            }}>
+                                                <FontAwesome name={subcategoriaInfo.icone_nome} size={20} color="#fff" />
+                                            </View>
+                                            <Text style={styles.pickerText}>{subcategoriaInfo.nome_subcat}</Text>
+                                        </>
+                                    ) : categoriaInfo ? (
+                                        <>
+                                            <Image source={getImagemCategoria(categoriaInfo.img_cat)} style={{ width: 22, height: 22 }} />
+                                            <Text style={styles.pickerText}>{categoriaInfo.nome_cat}</Text>
                                         </>
                                     ) : (
                                         <>
-                                            <Text
-                                                style={styles.pickerText}
-                                                numberOfLines={1}
-                                                ellipsizeMode="tail"
-                                            >
-                                                Selecionar
-                                            </Text>
+                                            <Text style={styles.pickerText}>Selecionar</Text>
                                         </>
                                     )}
 
                                     <Ionicons name="chevron-down" size={18} color="#fff" />
                                 </TouchableOpacity>
+
 
 
                             </View>
@@ -423,10 +488,20 @@ const EditarMeta: React.FC = () => {
                 aoFechar={() => setModalCategoriaVisivel(false)}
                 aoSelecionarCategoria={(cat) => {
                     setCategoriaSelecionada(cat);
+                    setSubcategoriaSelecionada(null);
+                }}
+                aoSelecionarSubcategoria={(sub) => {
+                    if (sub !== null) {
+                        setCategoriaSelecionada(null);
+                        setSubcategoriaSelecionada(sub);
+                    }
                 }}
                 categoriaSelecionada={categoriaSelecionada}
-
+                subcategoriaSelecionada={subcategoriaSelecionada}
             />
+
+
+
             <ModalData
                 visivel={modalDataVisivel}
                 opcaoSelecionada={opcaoDuracao}
@@ -443,42 +518,71 @@ const EditarMeta: React.FC = () => {
                     setModalDataVisivel(false);
                 }}
             />
-            <Modal transparent visible={modalSucessoVisible} animationType="fade">
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalBox}>
-                        <Ionicons name="checkmark-circle" size={48} color="#4CAF50" />
-                        <Text style={styles.modalTitulo}>Meta Atualizada!</Text>
-                        <Pressable
-                            style={[styles.modalBotao]}
-                            onPress={() => {
-                                setModalSucessoVisible(false);
-                                navigation.goBack();
-                            }}
-                        >
-                            <Text style={styles.modalBotaoTexto}>OK</Text>
-                        </Pressable>
-                    </View>
-                </View>
-            </Modal>
 
-            <Modal transparent visible={modalErroVisible} animationType="fade">
+            {mostrarModalAnimado && (
                 <View style={styles.modalOverlay}>
-                    <View style={styles.modalBox}>
-                        <Ionicons name="close-circle" size={48} color="#E53935" />
-                        <Text style={styles.modalTitulo}>Erro ao Atualizar</Text>
-                        <Pressable
-                            style={[styles.modalBotao]}
-                            onPress={() => {
-                                setModalErroVisible(false);
-                                navigation.goBack();
-                            }}
-                        >
-                            <Text style={styles.modalBotaoTexto}>OK</Text>
-                        </Pressable>
-                    </View>
+                    <Animated.View
+                        style={[styles.modalBox, {
+                            opacity: animOpacity,
+                            transform: [{ translateY: animTranslateY }]
+                        }]}
+                    >
+                        <Ionicons name="alert-circle" size={50} color="#D8000C" style={styles.modalIconAlerta} />
+                        <Text style={styles.modalTitulo}>Quer descartar as alterações?</Text>
+                        <View style={styles.modalBotoes}>
+                            <TouchableOpacity onPress={() => setModalSairVisivel(false)} style={styles.botaoCancelar}>
+                                <Text style={styles.txtCancelar}>Cancelar</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                onPress={() => {
+                                    Animated.parallel([
+                                        Animated.timing(animOpacity, { toValue: 0, duration: 200, useNativeDriver: true }),
+                                        Animated.timing(animTranslateY, { toValue: 30, duration: 200, useNativeDriver: true })
+                                    ]).start(() => {
+                                        setMostrarModalAnimado(false);
+                                        navigation.goBack();
+                                    });
+                                }}
+                                style={styles.botaoConfirmar}
+                            >
+                                <Text style={styles.txtConfirmar}>Sim</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </Animated.View>
                 </View>
-            </Modal>
+            )}
 
+
+            <ModalAguardeEditarMeta
+                visivel={modalEditarMetaVisivel}
+                setVisivel={setModalEditarMetaVisivel}
+                nomeMeta={subcategoriaInfo?.nome_subcat || categoriaInfo?.nome_cat || 'Meta'}
+                cor={subcategoriaInfo?.cor_subcat || categoriaInfo?.cor_cat || '#2565A3'}
+                nome_subcat={subcategoriaInfo?.nome_subcat}
+                icone_nome={subcategoriaInfo?.icone_nome}
+                img_cat={categoriaInfo?.img_cat}
+                iniciarProcesso={async () => {
+                    const valorFinal = alertaAtivo ? (valorCalculadoAlerta ?? 0) : null;
+
+                    if ((categoriaSelecionada !== null && subcategoriaSelecionada !== null) ||
+                        (categoriaSelecionada === null && subcategoriaSelecionada === null)) {
+                        return { sucesso: false, mensagem: 'Por favor selecione apenas uma categoria ou subcategoria.' };
+                    }
+
+                    const resultado = await atualizarMeta(
+                        id_meta,
+                        categoriaSelecionada,
+                        subcategoriaSelecionada,
+                        valor,
+                        dataInicio!.toISOString().split('T')[0],
+                        dataFim!.toISOString().split('T')[0],
+                        repetir,
+                        valorFinal
+                    );
+
+                    return resultado;
+                }}
+            />
 
 
 
@@ -664,39 +768,73 @@ const styles = StyleSheet.create({
         paddingBottom: 0, // limite inferior
         backgroundColor: 'transparent',
     },
-
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    modalBox: {
-        backgroundColor: '#fff',
-        padding: 25,
-        borderRadius: 20,
-        width: '80%',
-        alignItems: 'center',
-    },
-    modalTitulo: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        marginVertical: 15,
-        color:"#2565A3",
-        textAlign: 'center',
-    },
     modalBotao: {
         marginTop: 10,
         paddingVertical: 10,
         paddingHorizontal: 60,
         borderRadius: 99,
-        backgroundColor:'#164878'
+        backgroundColor: '#164878'
 
     },
     modalBotaoTexto: {
         color: '#fff',
         fontWeight: 'bold',
         fontSize: 16,
+    },
+    modalOverlay: {
+        position: 'absolute',
+        top: 0, left: 0, right: 0, bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.4)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 999,
+    },
+    modalBox: {
+        backgroundColor: '#fff',
+        paddingHorizontal: 24,
+        paddingVertical: 20,
+        borderRadius: 12,
+        width: '80%',
+        alignItems: 'center',
+    },
+    modalTitulo: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#333',
+        marginBottom: 20,
+        textAlign: 'center',
+    },
+    modalBotoes: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        gap: 12,
+    },
+    botaoCancelar: {
+        flex: 1,
+        backgroundColor: '#ccc',
+        paddingVertical: 12,
+        borderRadius: 999,
+        alignItems: 'center',
+    },
+    botaoConfirmar: {
+        flex: 1,
+        backgroundColor: '#FF3B30',
+        paddingVertical: 12,
+        borderRadius: 999,
+        alignItems: 'center',
+    },
+    txtCancelar: {
+        color: '#fff',
+        fontWeight: 'bold',
+        fontSize: 15,
+    },
+    txtConfirmar: {
+        color: '#fff',
+        fontWeight: 'bold',
+        fontSize: 15,
+    },
+    modalIconAlerta: {
+        marginBottom: 12,
     }
 
 

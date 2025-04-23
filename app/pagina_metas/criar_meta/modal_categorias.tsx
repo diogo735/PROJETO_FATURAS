@@ -17,6 +17,7 @@ interface Props {
   aoSelecionarCategoria: (categoriaId: number | null) => void;
   categoriaSelecionada?: number | null;
   aoSelecionarSubcategoria?: (subCategoriaId: number | null) => void;
+  subcategoriaSelecionada: number | null;
 }
 function getImagemCategoria(img_cat: any): ImageSourcePropType {
   // Se já for um objeto (tipo require), retorna diretamente
@@ -58,7 +59,7 @@ function getImagemCategoria(img_cat: any): ImageSourcePropType {
   return imagensLocais[img_cat] || imagensLocais['outros.png'];
 }
 
-const ModalCategorias: React.FC<Props> = ({ visivel, aoFechar, aoSelecionarCategoria, categoriaSelecionada, aoSelecionarSubcategoria }) => {
+const ModalCategorias: React.FC<Props> = ({ visivel, aoFechar, aoSelecionarCategoria, categoriaSelecionada, aoSelecionarSubcategoria,subcategoriaSelecionada }) => {
   const [categoriaSelecionadaId, setCategoriaSelecionadaId] = useState<number | null>(null);
   const [subcategorias, setSubcategorias] = useState<SubCategoria[]>([]);
   const [subSelecionadaId, setSubSelecionadaId] = useState<number | null>(null);
@@ -69,7 +70,12 @@ const ModalCategorias: React.FC<Props> = ({ visivel, aoFechar, aoSelecionarCateg
       setCategoriaSelecionadaId(categoriaSelecionada);
     }
   }, [visivel, categoriaSelecionada]);
-
+  useEffect(() => {
+    if (visivel && typeof subcategoriaSelecionada === 'number') {
+      setSubSelecionadaId(subcategoriaSelecionada);
+    }
+  }, [visivel, subcategoriaSelecionada]);
+  
 
   useEffect(() => {
     const carregarCategorias = async () => {

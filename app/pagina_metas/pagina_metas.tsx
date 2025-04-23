@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Image } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Image, Animated } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Dimensions } from 'react-native';
 const { height, width } = Dimensions.get('window');
@@ -15,7 +15,8 @@ import { useCallback } from 'react';
 import ModalOpcoesMeta from './componestes_metas/modal_opcoes_meta';
 import ModalConfirmarApagar from './componestes_metas/modal_apagar_meta';
 import { apagarMeta } from '../../BASEDEDADOS/metas';
-
+import { ScrollView } from 'react-native';
+import IconRotativo from '../../assets/imagens/wallpaper.svg';
 
 type Meta = {
   id_meta: number;
@@ -50,19 +51,66 @@ const Pagina_metas: React.FC = () => {
   const [modalVisivel, setModalVisivel] = useState(false);
   const [metaSelecionada, setMetaSelecionada] = useState<Meta | null>(null);
   const [modalConfirmacaoVisible, setModalConfirmacaoVisible] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const rotateAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const translateYAnim = useRef(new Animated.Value(30)).current;
+
+
 
   useFocusEffect(
     useCallback(() => {
-      const carregar = async () => {
-        const dados = await listarMetas();
-        setMetas(dados);
+      rotateAnim.setValue(0);
+      const loop = Animated.loop(
+        Animated.timing(rotateAnim, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        })
+      );
+      loop.start();
+      return () => {
+        loop.stop();
       };
-      carregar();
     }, [])
   );
 
 
+
   const navigation = useNavigation<NavigationProp>();
+
+  useFocusEffect(
+    useCallback(() => {
+      const carregar = async () => {
+
+        setLoading(true);
+
+        fadeAnim.setValue(0);
+        translateYAnim.setValue(30);
+        const delay = new Promise(resolve => setTimeout(resolve, 500));
+        const dadosPromise = listarMetas();
+
+        const [dados] = await Promise.all([dadosPromise, delay]);
+        setMetas(dados);
+        setLoading(false);
+
+        Animated.parallel([
+          Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 400,
+            useNativeDriver: true,
+          }),
+          Animated.timing(translateYAnim, {
+            toValue: 0,
+            duration: 400,
+            useNativeDriver: true,
+          })
+        ]).start();
+      };
+
+      carregar();
+    }, [])
+  );
 
   return (
     <View style={styles.container}>
@@ -73,31 +121,63 @@ const Pagina_metas: React.FC = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Conteúdo da Página */}
-      {metas.length === 0 ? (
-        <View style={styles.content}>
-          <Image source={require('../../assets/imagens/sem_metas.png')} style={styles.image} />
-          <Text style={styles.title}>Sem Metas</Text>
-          <Text style={styles.subtitle}>
-            Sem metas definidas para este mês.{"\n"}Crie uma para controlar as suas despesas!
+      {loading ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <Animated.View
+            style={{
+              transform: [{
+                rotate: rotateAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: ['0deg', '360deg'],
+                }),
+              }],
+              marginBottom: 20,
+            }}
+          >
+            <IconRotativo width={50} height={50} fill="#2565A3" />
+          </Animated.View>
+          <Text style={{ color: '#2565A3', fontWeight: 'bold' }}>
+            A carregar metas...
           </Text>
         </View>
+      ) : metas.length === 0 ? (
+        <Animated.View style={{
+          flex: 1,
+          opacity: fadeAnim,
+          transform: [{ translateY: translateYAnim }]
+        }}>
+          <View style={styles.content}>
+            <Image source={require('../../assets/imagens/sem_metas.png')} style={styles.image} />
+            <Text style={styles.title}>Sem Metas</Text>
+            <Text style={styles.subtitle}>
+              Sem metas definidas para este mês.{"\n"}Crie uma para controlar as suas despesas!
+            </Text>
+          </View></Animated.View>
       ) : (
-        <View style={{ flex: 1, paddingHorizontal: 10 }}>
-          {metas.map((meta) => (
-            <TouchableOpacity
-              key={meta.id_meta}
-              onPress={() => {
-                setMetaSelecionada(meta);
-                setModalVisivel(true);
-              }}
-              activeOpacity={0.8}
-            >
-              <CardMetas meta={meta} />
-            </TouchableOpacity>
-          ))}
-
-        </View>
+        <Animated.View style={{
+          flex: 1,
+          opacity: fadeAnim,
+          transform: [{ translateY: translateYAnim }]
+        }}>
+          <ScrollView
+            style={{ flex: 1, paddingHorizontal: 10 }}
+            contentContainerStyle={{ paddingBottom: height * 0.17 }}
+            showsVerticalScrollIndicator={false}
+          >
+            {metas.map((meta) => (
+              <TouchableOpacity
+                key={meta.id_meta}
+                onPress={() => {
+                  setMetaSelecionada(meta);
+                  setModalVisivel(true);
+                }}
+                activeOpacity={0.8}
+              >
+                <CardMetas meta={meta} />
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </Animated.View>
       )}
 
       {metas.length === 0 && (

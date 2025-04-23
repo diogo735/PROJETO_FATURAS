@@ -7,24 +7,25 @@ import GraficoMeta from './garfico_das_metas';
 const { height } = Dimensions.get('window');
 import { useEffect, useState } from 'react';
 import { RouteProp, useRoute } from '@react-navigation/native';
-import { listarMovimentosPorMeta } from '../../../BASEDEDADOS/movimentos';
+import { listarMovimentosPorMeta } from '../../../BASEDEDADOS/metas';
 import ListaMovimentosAgrupada from '../../pagina_moviementos/componentes/lista_moviementos/lsita_movimentos';
 import { useSharedValue, useAnimatedStyle, withRepeat, withTiming } from 'react-native-reanimated';
 import { Easing } from 'react-native';
 import IconeRotativo from '../../../assets/imagens/wallpaper.svg';
 import { Animated, } from 'react-native';
 import { Image } from 'react-native';
+import { buscarCorDaMeta } from '../../../BASEDEDADOS/metas';
 
+import { Movimento } from '../../../BASEDEDADOS/tipos_tabelas';
 
-  import { Movimento } from '../../../BASEDEDADOS/tipos_tabelas';
-
-  type MovimentoComDetalhes = Movimento & {
+type MovimentoComDetalhes = Movimento & {
     nome_movimento: string;
     img_cat: string;
     cor_cat: string;
     nota: string;
-  };
-  
+    cor_subcat?: string;
+};
+
 type ParamList = {
     MovimentosDaMeta: { id_meta: number };
 };
@@ -33,7 +34,7 @@ type ParamList = {
 
 const MovimentosDaMeta: React.FC = () => {
     const navigation = useNavigation();
-    
+
     const route = useRoute<RouteProp<ParamList, 'MovimentosDaMeta'>>();
     const { id_meta } = route.params;
     const [loading, setLoading] = useState(true);
@@ -48,11 +49,12 @@ const MovimentosDaMeta: React.FC = () => {
     const [diasGrafico, setDiasGrafico] = useState<string[]>([]);
     const [dadosGrafico, setDadosGrafico] = useState<number[]>([]);
     const [valorMeta, setValorMeta] = useState<number>(0);
-    
-      
+
+    const [corMeta, setCorMeta] = useState<string>('#2565A3');
+
     const [movimentos, setMovimentos] = useState<MovimentoComDetalhes[]>([]);
 
-      
+
     useEffect(() => {
         Animated.loop(
             Animated.timing(rotateAnim, {
@@ -68,22 +70,27 @@ const MovimentosDaMeta: React.FC = () => {
         async function carregar() {
             setLoading(true);
             const lista = await listarMovimentosPorMeta(id_meta) as MovimentoComDetalhes[];
+            const cor = await buscarCorDaMeta(id_meta);
 
-          
+            if (cor) {
+                setCorMeta(cor);
+            }
+
+
             const ordenados = lista.sort((a: Movimento, b: Movimento) => {
                 return new Date(a.data_movimento).getTime() - new Date(b.data_movimento).getTime();
-              });
-              
-              const formatador = new Intl.DateTimeFormat('pt-PT', {
+            });
+
+            const formatador = new Intl.DateTimeFormat('pt-PT', {
                 day: 'numeric',
                 month: 'short',
-              });
-              
-              const dias = ordenados.map((mov: Movimento) => formatador.format(new Date(mov.data_movimento)));
-              const dados = ordenados.map((mov: Movimento) => Number(mov.valor));
-              
+            });
+
+            const dias = ordenados.map((mov: Movimento) => formatador.format(new Date(mov.data_movimento)));
+            const dados = ordenados.map((mov: Movimento) => Number(mov.valor));
+
             const valorMeta = 7;
-          
+
             setMovimentos(ordenados);
             setFluxoTotal(ordenados.reduce((acc: number, mov: Movimento) => acc + Number(mov.valor), 0));
             setNumMovimentos(ordenados.length);
@@ -91,14 +98,14 @@ const MovimentosDaMeta: React.FC = () => {
             setDadosGrafico(dados);
             setValorMeta(valorMeta);
             setLoading(false);
-          
+
             Animated.timing(fadeAnim, {
-              toValue: 1,
-              duration: 800,
-              useNativeDriver: true,
+                toValue: 1,
+                duration: 800,
+                useNativeDriver: true,
             }).start();
-          }
-          
+        }
+
 
         fadeAnim.setValue(0);
         carregar();
@@ -142,7 +149,10 @@ const MovimentosDaMeta: React.FC = () => {
                             dias={diasGrafico}
                             dados={dadosGrafico}
                             valorMeta={valorMeta}
+                            cor={corMeta}
                         />
+
+
 
 
 

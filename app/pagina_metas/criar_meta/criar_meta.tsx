@@ -1,5 +1,5 @@
 import { useNavigation } from '@react-navigation/native';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Dimensions, TouchableOpacity, TextInput, Switch, ImageSourcePropType } from 'react-native';
 import { scale } from 'react-native-size-matters';
 const { height, width } = Dimensions.get('window');
@@ -24,7 +24,9 @@ import { SubCategoria } from '../../../BASEDEDADOS/tipos_tabelas';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 
 import { Keyboard, TouchableWithoutFeedback } from 'react-native';
-
+import ModalAguardeCirarMeta from './componentes/modal_sucesso_criar_meta';
+import { BackHandler } from 'react-native';
+import { Animated } from 'react-native';
 
 function getImagemCategoria(img_cat: any): ImageSourcePropType {
     // Se já for um objeto (tipo require), retorna diretamente
@@ -89,7 +91,12 @@ const CriarMeta: React.FC = () => {
     const [ultimaOpcaoConfirmada, setUltimaOpcaoConfirmada] = useState<'' | 'semana' | 'mes' | 'semestre' | 'personalizado'>('');
     const [subcategoriaSelecionada, setSubcategoriaSelecionada] = useState<number | null>(null);
     const [subcategoriaInfo, setSubcategoriaInfo] = useState<SubCategoria | null>(null);
+    const [modalCriarMetaVisivel, setModalCriarMetaVisivel] = useState(false);
+    const [modalSairVisivel, setModalSairVisivel] = useState(false);
 
+    const animOpacity = useRef(new Animated.Value(0)).current;
+    const animTranslateY = useRef(new Animated.Value(30)).current;
+    const [mostrarModalAnimado, setMostrarModalAnimado] = useState(false);
 
 
     useEffect(() => {
@@ -105,7 +112,55 @@ const CriarMeta: React.FC = () => {
     }, [categoriaSelecionada]);
 
 
-
+    const temAlteracoes = useCallback(() => {
+        return (
+            categoriaSelecionada !== null ||
+            subcategoriaSelecionada !== null ||
+            valor !== null ||
+            dataInicio !== null ||
+            dataFim !== null ||
+            repetir !== false ||
+            alertaAtivo !== false
+        );
+    }, [categoriaSelecionada, subcategoriaSelecionada, valor, dataInicio, dataFim, repetir, alertaAtivo]);
+    useEffect(() => {
+        if (modalSairVisivel) {
+          animOpacity.setValue(0);
+          animTranslateY.setValue(30);
+          setMostrarModalAnimado(true);
+      
+          requestAnimationFrame(() => {
+            Animated.parallel([
+              Animated.timing(animOpacity, {
+                toValue: 1,
+                duration: 200,
+                useNativeDriver: true,
+              }),
+              Animated.timing(animTranslateY, {
+                toValue: 0,
+                duration: 200,
+                useNativeDriver: true,
+              })
+            ]).start();
+          });
+        } else if (mostrarModalAnimado) {
+          Animated.parallel([
+            Animated.timing(animOpacity, {
+              toValue: 0,
+              duration: 200,
+              useNativeDriver: true,
+            }),
+            Animated.timing(animTranslateY, {
+              toValue: 30,
+              duration: 200,
+              useNativeDriver: true,
+            })
+          ]).start(() => {
+            setMostrarModalAnimado(false);
+          });
+        }
+      }, [modalSairVisivel]);
+      
     useEffect(() => {
         if (!modalCategoriaVisivel && categoriaSelecionada !== null) {
             buscarCategoriaPorId(categoriaSelecionada).then(setCategoriaInfo);
@@ -149,6 +204,20 @@ const CriarMeta: React.FC = () => {
             setAlertaAtivo(false);
         }, [])
     );
+    useFocusEffect(
+        useCallback(() => {
+            const onBackPress = () => {
+                if (temAlteracoes()) {
+                    setModalSairVisivel(true);
+                    return true;
+                }
+                return false;
+            };
+
+            BackHandler.addEventListener('hardwareBackPress', onBackPress);
+            return () => BackHandler.removeEventListener('hardwareBackPress', onBackPress);
+        }, [temAlteracoes])
+    );
 
     const podeCriarMeta = (categoriaSelecionada !== null || subcategoriaSelecionada !== null)
         && valor !== null && valor > 0
@@ -164,7 +233,7 @@ const CriarMeta: React.FC = () => {
         if ((categoriaSelecionada && subcategoriaSelecionada) || (!categoriaSelecionada && !subcategoriaSelecionada)) {
             alert("Por favor selecione apenas uma categoria ou subcategoria.");
             return;
-          }
+        }
         await inserirMeta(
             categoriaSelecionada,
             subcategoriaSelecionada,
@@ -174,7 +243,7 @@ const CriarMeta: React.FC = () => {
             repetir,
             valorFinal as any
         );
-        
+
 
         navigation.goBack();
     };
@@ -184,7 +253,14 @@ const CriarMeta: React.FC = () => {
 
         <View style={styles.container}>
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()}>
+                <TouchableOpacity onPress={() => {
+                    if (temAlteracoes()) {
+                        setModalSairVisivel(true);
+                    } else {
+                        navigation.goBack();
+                    }
+                }}
+                >
                     <Ionicons name="close" size={26} color="#164878" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Nova Meta Mensal</Text>
@@ -315,10 +391,10 @@ const CriarMeta: React.FC = () => {
                         ]}
                             onPress={() => {
                                 if (podeCriarMeta) {
-                                    handleCriarMeta();
-                                    console.log('Criar Meta');
+                                    setModalCriarMetaVisivel(true);
                                 }
                             }}
+
                             disabled={!podeCriarMeta}
                         >
                             <Ionicons name="checkmark" size={22} color="#fff" />
@@ -361,6 +437,74 @@ const CriarMeta: React.FC = () => {
                     setModalDataVisivel(false);
                 }}
             />
+
+            <ModalAguardeCirarMeta
+                visivel={modalCriarMetaVisivel}
+                setVisivel={setModalCriarMetaVisivel}
+                nomeMeta={subcategoriaInfo?.nome_subcat || categoriaInfo?.nome_cat || 'Meta'}
+                cor={subcategoriaInfo?.cor_subcat || categoriaInfo?.cor_cat || '#2565A3'}
+                icone_nome={subcategoriaInfo?.icone_nome}
+                nome_subcat={subcategoriaInfo?.nome_subcat}
+                img_cat={categoriaInfo?.img_cat}
+                iniciarProcesso={async () => {
+                    const valorFinal = alertaAtivo ? (valorCalculadoAlerta ?? 0) : null;
+                    const resultado = await inserirMeta(
+                        categoriaSelecionada,
+                        subcategoriaSelecionada,
+                        valor,
+                        dataInicio!.toISOString().split('T')[0],
+                        dataFim!.toISOString().split('T')[0],
+                        repetir,
+                        valorFinal as any
+                    );
+                    return resultado;
+                }}
+            />
+           {mostrarModalAnimado && (
+  <View style={styles.modalOverlay}>
+    <Animated.View
+      style={[
+        styles.modalBox,
+        {
+          opacity: animOpacity,
+          transform: [{ translateY: animTranslateY }]
+        }
+      ]}
+    >
+      <Ionicons name="alert-circle" size={50} color="#D8000C" style={styles.modalIconAlerta} />
+      <Text style={styles.modalTitulo}>Quer descartar as alterações?</Text>
+
+      <View style={styles.modalBotoes}>
+        <TouchableOpacity onPress={() => setModalSairVisivel(false)} style={styles.botaoCancelar}>
+          <Text style={styles.txtCancelar}>Cancelar</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => {
+            Animated.parallel([
+              Animated.timing(animOpacity, {
+                toValue: 0,
+                duration: 200,
+                useNativeDriver: true,
+              }),
+              Animated.timing(animTranslateY, {
+                toValue: 30,
+                duration: 200,
+                useNativeDriver: true,
+              })
+            ]).start(() => {
+              setMostrarModalAnimado(false);
+              navigation.goBack();
+            });
+          }}
+          style={styles.botaoConfirmar}
+        >
+          <Text style={styles.txtConfirmar}>Sim</Text>
+        </TouchableOpacity>
+      </View>
+    </Animated.View>
+  </View>
+)}
+
 
 
 
@@ -435,12 +579,12 @@ const styles = StyleSheet.create({
 
     valorContainer: {
         flexDirection: 'row',
-        alignItems: 'flex-end', // melhor para alinhas texto com símbolos
+        alignItems: 'flex-end', 
         borderBottomWidth: 1,
         borderBottomColor: '#4574A1',
-        paddingBottom: 0, // reduz ainda mais a distância da linha
+        paddingBottom: 0, 
         marginTop: -5,
-        marginBottom: 10 // opcional para subir tudo um pouco
+        marginBottom: 10 
 
     },
 
@@ -452,7 +596,7 @@ const styles = StyleSheet.create({
         textAlign: 'right',
         padding: 0,
         marginBottom: -2,
-        lineHeight: 24, // controla o espaçamento vertical
+        lineHeight: 24,
     },
 
     euro: {
@@ -460,7 +604,7 @@ const styles = StyleSheet.create({
         color: '#164878',
         marginLeft: 4,
         marginBottom: -2,
-        paddingBottom: 2, // ajuda na linha do baseline
+        paddingBottom: 2, 
     },
 
     duracaoButton: {
@@ -547,7 +691,62 @@ const styles = StyleSheet.create({
         paddingBottom: 0, // limite inferior
         backgroundColor: 'transparent',
     },
-
+    modalOverlay: {
+        position: 'absolute',
+        top: 0, left: 0, right: 0, bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.4)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 999,
+      },
+      modalBox: {
+        backgroundColor: '#fff',
+        paddingHorizontal: 24,
+        paddingVertical: 20,
+        borderRadius: 12,
+        width: '80%',
+        alignItems: 'center',
+      },
+      modalTitulo: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#333',
+        marginBottom: 20,
+        textAlign: 'center',
+      },
+      modalBotoes: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        gap: 12,
+      },
+      botaoCancelar: {
+        flex: 1,
+        backgroundColor: '#ccc',
+        paddingVertical: 12,
+        borderRadius: 999,
+        alignItems: 'center',
+      },
+      botaoConfirmar: {
+        flex: 1,
+        backgroundColor: '#FF3B30',
+        paddingVertical: 12,
+        borderRadius: 999,
+        alignItems: 'center',
+      },
+      txtCancelar: {
+        color: '#fff',
+        fontWeight: 'bold',
+        fontSize: 15,
+      },
+      txtConfirmar: {
+        color: '#fff',
+        fontWeight: 'bold',
+        fontSize: 15,
+      },
+      modalIconAlerta: {
+        marginBottom: 12,
+      }
+      
 
 
 });

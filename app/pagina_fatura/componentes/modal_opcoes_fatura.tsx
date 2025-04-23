@@ -17,12 +17,17 @@ interface Props {
 const ModalOpcoesFatura: React.FC<Props> = ({ visivel, aoFechar, onEditar, onDownloadPDF, onPartilhar }) => {
   return (
     <Modal
-      isVisible={visivel}
-      onBackdropPress={aoFechar}
-      onBackButtonPress={aoFechar}
-      backdropOpacity={0.4}
-      useNativeDriver
-    >
+    isVisible={visivel}
+    onBackdropPress={aoFechar}
+    onBackButtonPress={aoFechar}
+    backdropOpacity={0.4}
+    useNativeDriver
+    animationIn="fadeInUp"
+    animationOut="fadeOutDown"
+    animationInTiming={250}
+    animationOutTiming={200}
+    hideModalContentWhileAnimating={true}
+  >
       <View style={styles.modalBox}>
         <Text style={styles.titulo}>Opções</Text>
         <View style={styles.linhaSeparadora} />

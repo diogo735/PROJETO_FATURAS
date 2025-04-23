@@ -118,18 +118,7 @@ const CardMetas: React.FC<CardMetasProps> = ({ meta }) => {
                     >
                         {() =>
                             nome_subcat ? (
-                                <View
-                                    style={{
-                                        backgroundColor: cor,
-                                        width: 30,
-                                        height: 30,
-                                        borderRadius: 99,
-                                        justifyContent: 'center',
-                                        alignItems: 'center',
-                                    }}
-                                >
-                                    <FontAwesome name={icone_nome} size={16} color="#fff" />
-                                </View>
+                                <FontAwesome name={icone_nome} size={27} color={cor} />
                             ) : (
                                 <Image
                                     source={getImagemCategoria(img_cat)}
@@ -276,7 +265,7 @@ const styles = StyleSheet.create({
     },
     limiteAtingido: {
         color: '#F49A4A',
-        fontWeight: '500',
+        fontWeight: '600',
         fontSize: 13,
         textAlign: 'center',
         position: 'absolute',
@@ -285,7 +274,7 @@ const styles = StyleSheet.create({
     },
     ultrapassou: {
         color: 'tomato',
-        fontWeight: '500',
+        fontWeight: '800',
         fontSize: 13,
 
     }

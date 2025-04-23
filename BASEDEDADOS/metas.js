@@ -31,17 +31,21 @@ async function inserirMeta(categoria_id, sub_categoria_id, valor_meta, data_inic
   try {
     const db = await CRIARBD();
 
-    console.log("📥 Dados que serão inseridos:", {
-      categoria_id,
-      sub_categoria_id,
-      valor_meta,
-      data_inicio,
-      data_fim,
-      repetir_meta,
-      recebe_alerta
-    });
+    const metaExistente = await db.getFirstAsync(
+      `SELECT * FROM metas 
+       WHERE meta_ativa = 1
+         AND (categoria_id = ? OR sub_categoria_id = ?)`,
+      [categoria_id, sub_categoria_id]
+    );
+    
 
-    // 1. Inserir a meta com categoria e/ou subcategoria
+    if (metaExistente) {
+      console.warn("⚠️ Já existe uma meta ativa para esta categoria ou subcategoria.");
+      return { sucesso: false, mensagem: 'Já existe uma meta ativa para essa categoria ou subcategoria.' };
+    }
+    
+
+    // Inserir a meta
     const result = await db.runAsync(
       `INSERT INTO metas (
         categoria_id, sub_categoria_id, valor_meta, valor_atual, data_inicio, data_fim, repetir_meta, recebe_alerta, notificado_limite_user, notificado_valor_meta, meta_ativa
@@ -50,7 +54,7 @@ async function inserirMeta(categoria_id, sub_categoria_id, valor_meta, data_inic
         categoria_id,
         sub_categoria_id,
         valor_meta,
-        0, // valor_atual inicial
+        0,
         data_inicio,
         data_fim,
         repetir_meta ? 1 : 0,
@@ -59,11 +63,10 @@ async function inserirMeta(categoria_id, sub_categoria_id, valor_meta, data_inic
       ]
     );
 
-    console.log(`✅ Meta inserida! ID: ${result.lastInsertRowId}`);
+    const id_meta = result.lastInsertRowId;
 
-    // 2. Buscar movimentos (da categoria OU subcategoria)
+    // Buscar e somar movimentos
     let movimentos = [];
-
     if (categoria_id !== null) {
       movimentos = await db.getAllAsync(
         `SELECT valor, data_movimento FROM movimentos WHERE categoria_id = ?`,
@@ -76,7 +79,6 @@ async function inserirMeta(categoria_id, sub_categoria_id, valor_meta, data_inic
       );
     }
 
-    // 3. Somar apenas os valores dentro do intervalo de datas
     const total = movimentos
       .filter(m => {
         const data = new Date(m.data_movimento);
@@ -84,13 +86,12 @@ async function inserirMeta(categoria_id, sub_categoria_id, valor_meta, data_inic
       })
       .reduce((soma, mov) => soma + mov.valor, 0);
 
-    // 4. Atualizar o campo valor_atual da meta
     await db.runAsync(
       `UPDATE metas SET valor_atual = ? WHERE id_meta = ?`,
-      [total, result.lastInsertRowId]
+      [total, id_meta]
     );
 
-    // 5. Buscar nome da categoria para notificação
+    // Buscar nome
     let nome_cat = 'Meta';
     if (categoria_id !== null) {
       const cat = await db.getFirstAsync(
@@ -106,9 +107,9 @@ async function inserirMeta(categoria_id, sub_categoria_id, valor_meta, data_inic
       nome_cat = sub?.nome_subcat ?? 'Subcategoria';
     }
 
-    // 6. Enviar notificação
+    // Notificação
     await verificar_se_envia_notificacao({
-      id_meta: result.lastInsertRowId,
+      id_meta,
       categoria_id,
       sub_categoria_id,
       valor_meta,
@@ -123,9 +124,10 @@ async function inserirMeta(categoria_id, sub_categoria_id, valor_meta, data_inic
       nome_cat
     });
 
-    console.log(`🔄 Meta atualizada com valor atual: ${total}`);
+    return { sucesso: true, mensagem: 'Meta criada com sucesso!', id_meta };
   } catch (error) {
     console.error('❌ Erro ao inserir/atualizar meta:', error);
+    return { sucesso: false, mensagem: 'Erro ao criar a meta.' };
   }
 }
 
@@ -216,9 +218,9 @@ async function verificar_se_envia_notificacao(meta) {
     const hoje = new Date();
 
     // ✅ Verifica se a meta está ativa e dentro da validade
-    if (meta.meta_ativa !== 1 ) {
+    if (meta.meta_ativa !== 1) {
       console.log('🧪 Objeto meta recebido:', meta);
-      console.log('Valor da variável:',meta.meta_ativa);
+      console.log('Valor da variável:', meta.meta_ativa);
       console.log(`⏳ Meta ${meta.id_meta} não está ativa ou fora do intervalo de datas.`);
       return;
     }
@@ -284,7 +286,7 @@ async function verificarNotificacoesDeTodasMetas() {
     `);
 
     for (const meta of metas) {
-      await verificar_se_envia_notificacao(meta); 
+      await verificar_se_envia_notificacao(meta);
     }
 
     console.log('🔁 Verificação de notificações de metas concluída!');
@@ -301,6 +303,7 @@ async function buscarMetaPorId_pagina_editar(id_meta) {
       SELECT 
         id_meta,
         categoria_id,
+        sub_categoria_id,
         valor_meta,
         data_inicio,
         data_fim,
@@ -316,61 +319,202 @@ async function buscarMetaPorId_pagina_editar(id_meta) {
     return null;
   }
 }
-async function atualizarMeta(id_meta, categoria_id, valor_meta, data_inicio, data_fim, repetir_meta, recebe_alerta) {
-  const db = await CRIARBD();
+async function atualizarMeta(id_meta, categoria_id, sub_categoria_id, valor_meta, data_inicio, data_fim, repetir_meta, recebe_alerta) {
+  try {
+    const db = await CRIARBD();
 
-  // 1. Atualiza os campos principais da meta
-  await db.runAsync(
-    `UPDATE metas
-     SET categoria_id = ?, valor_meta = ?, data_inicio = ?, data_fim = ?, repetir_meta = ?, recebe_alerta = ?
-     WHERE id_meta = ?`,
-    [categoria_id, valor_meta, data_inicio, data_fim, repetir_meta ? 1 : 0, recebe_alerta, id_meta]
-  );
+    if (categoria_id === null && sub_categoria_id === null) {
+      console.warn("⚠️ Nenhuma categoria ou subcategoria definida na atualização da meta.");
+      return { sucesso: false, mensagem: 'Nenhuma categoria ou subcategoria selecionada.' };
+    }
 
-  // 2. Recalcula o valor_atual da meta com base nos movimentos
-  const movimentos = await db.getAllAsync(
-    `SELECT valor, data_movimento FROM movimentos WHERE categoria_id = ?`,
-    [categoria_id]
-  );
+    const metaExistente = await db.getFirstAsync(
+      `SELECT id_meta FROM metas
+   WHERE id_meta != ?
+     AND meta_ativa = 1
+     AND (categoria_id = ? OR sub_categoria_id = ?)`,
+      [id_meta, categoria_id, sub_categoria_id]
+    );
 
-  const total = movimentos
-    .filter(m => {
-      const data = new Date(m.data_movimento);
-      return data >= new Date(data_inicio) && data <= new Date(data_fim);
-    })
-    .reduce((soma, mov) => soma + mov.valor, 0);
+    if (metaExistente) {
+      return {
+        sucesso: false,
+        mensagem: 'Já existe uma meta ativa para essa categoria ou subcategoria.'
+      };
+    }
 
-  await db.runAsync(
-    `UPDATE metas SET valor_atual = ? WHERE id_meta = ?`,
-    [total, id_meta]
-  );
 
-  // 3. Buscar nome da categoria para notificação
-  const categoria = await db.getFirstAsync(
-    `SELECT nome_cat FROM categorias WHERE id = ?`,
-    [categoria_id]
-  );
+    // 1. Atualiza os campos principais da meta
+    await db.runAsync(
+      `UPDATE metas
+       SET categoria_id = ?, sub_categoria_id = ?, valor_meta = ?, data_inicio = ?, data_fim = ?, repetir_meta = ?, recebe_alerta = ?
+       WHERE id_meta = ?`,
+      [
+        categoria_id,
+        sub_categoria_id,
+        valor_meta,
+        data_inicio,
+        data_fim,
+        repetir_meta ? 1 : 0,
+        recebe_alerta,
+        id_meta
+      ]
+    );
 
-  // 4. Verificar se deve enviar notificação
-  await verificar_se_envia_notificacao({
-    id_meta,
-    categoria_id,
-    valor_meta,
-    valor_atual: total,
-    data_inicio,
-    data_fim,
-    repetir_meta,
-    recebe_alerta,
-    notificado_limite_user: 0,
-    notificado_valor_meta: 0,
-    meta_ativa: 1,
-    nome_cat: categoria?.nome_cat ?? 'Categoria',
-  });
+    // 2. Recalcula o valor_atual
+    let movimentos = [];
 
-  console.log(`✅ Meta atualizada com recalculo. valor_atual = ${total}`);
+    if (categoria_id !== null) {
+      movimentos = await db.getAllAsync(
+        `SELECT valor, data_movimento FROM movimentos WHERE categoria_id = ?`,
+        [categoria_id]
+      );
+    } else if (sub_categoria_id !== null) {
+      movimentos = await db.getAllAsync(
+        `SELECT valor, data_movimento FROM movimentos WHERE sub_categoria_id = ?`,
+        [sub_categoria_id]
+      );
+    }
+
+    const total = movimentos
+      .filter(m => {
+        const data = new Date(m.data_movimento);
+        return data >= new Date(data_inicio) && data <= new Date(data_fim);
+      })
+      .reduce((soma, mov) => soma + mov.valor, 0);
+
+    await db.runAsync(
+      `UPDATE metas SET valor_atual = ? WHERE id_meta = ?`,
+      [total, id_meta]
+    );
+
+    // 3. Buscar nome para notificação
+    let nome_cat = 'Meta';
+    if (categoria_id !== null) {
+      const cat = await db.getFirstAsync(`SELECT nome_cat FROM categorias WHERE id = ?`, [categoria_id]);
+      nome_cat = cat?.nome_cat ?? 'Categoria';
+    } else if (sub_categoria_id !== null) {
+      const sub = await db.getFirstAsync(`SELECT nome_subcat FROM sub_categorias WHERE id = ?`, [sub_categoria_id]);
+      nome_cat = sub?.nome_subcat ?? 'Subcategoria';
+    }
+
+    // 4. Notificação
+    await verificar_se_envia_notificacao({
+      id_meta,
+      categoria_id,
+      sub_categoria_id,
+      valor_meta,
+      valor_atual: total,
+      data_inicio,
+      data_fim,
+      repetir_meta,
+      recebe_alerta,
+      notificado_limite_user: 0,
+      notificado_valor_meta: 0,
+      meta_ativa: 1,
+      nome_cat,
+    });
+
+    console.log(`✅ Meta atualizada com recalculo. valor_atual = ${total}`);
+    return { sucesso: true, mensagem: 'Meta atualizada com sucesso.' };
+
+  } catch (error) {
+    console.error('❌ Erro ao atualizar meta:', error);
+    return { sucesso: false, mensagem: 'Erro ao atualizar a meta.' };
+  }
 }
 
 
+async function listarMovimentosPorMeta(id_meta) {
+  try {
+    const db = await CRIARBD();
+
+    // 1. Buscar a meta correspondente
+    const meta = await db.getFirstAsync(`SELECT * FROM metas WHERE id_meta = ?`, [id_meta]);
+
+    if (!meta) {
+      console.warn('⚠️ Meta não encontrada');
+      return [];
+    }
+
+    const { categoria_id, sub_categoria_id, data_inicio, data_fim } = meta;
+
+    // 2. Verificar se a meta é por categoria ou subcategoria
+    let query = '';
+    let params = [];
+
+    if (categoria_id !== null) {
+      query = `
+        SELECT m.*, 
+               c.nome_cat AS nome_movimento, 
+               c.img_cat, 
+               c.cor_cat,
+               m.nota
+        FROM movimentos m
+        LEFT JOIN categorias c ON m.categoria_id = c.id
+        WHERE m.categoria_id = ? 
+          AND m.data_movimento BETWEEN ? AND ?
+        ORDER BY m.data_movimento ASC
+      `;
+      params = [categoria_id, data_inicio, data_fim];
+
+    } else if (sub_categoria_id !== null) {
+      query = `
+        SELECT m.*, 
+               s.nome_subcat AS nome_movimento, 
+               s.icone_nome AS img_cat, 
+               s.cor_subcat AS cor_cat,
+               m.nota
+        FROM movimentos m
+        LEFT JOIN sub_categorias s ON m.sub_categoria_id = s.id
+        WHERE m.sub_categoria_id = ? 
+          AND m.data_movimento BETWEEN ? AND ?
+        ORDER BY m.data_movimento ASC
+      `;
+      params = [sub_categoria_id, data_inicio, data_fim];
+
+    } else {
+      console.warn('❌ Meta sem categoria ou subcategoria.');
+      return [];
+    }
+
+    const resultados = await db.getAllAsync(query, params);
+    return resultados;
+
+  } catch (error) {
+    console.error('❌ Erro ao listar movimentos por meta:', error);
+    return [];
+  }
+}
+
+async function buscarCorDaMeta(id_meta) {
+  try {
+    const db = await CRIARBD();
+
+    const meta = await db.getFirstAsync(`SELECT categoria_id, sub_categoria_id FROM metas WHERE id_meta = ?`, [id_meta]);
+
+    if (!meta) {
+      console.warn('⚠️ Meta não encontrada:', id_meta);
+      return null;
+    }
+
+    if (meta.categoria_id !== null) {
+      const categoria = await db.getFirstAsync(`SELECT cor_cat FROM categorias WHERE id = ?`, [meta.categoria_id]);
+      return categoria?.cor_cat ?? null;
+    }
+
+    if (meta.sub_categoria_id !== null) {
+      const subcat = await db.getFirstAsync(`SELECT cor_subcat FROM sub_categorias WHERE id = ?`, [meta.sub_categoria_id]);
+      return subcat?.cor_subcat ?? null;
+    }
+
+    return null;
+
+  } catch (error) {
+    console.error('❌ Erro ao buscar cor da meta:', error);
+    return null;
+  }
+}
 
 export {
   criarTabelaMetas,
@@ -383,5 +527,7 @@ export {
   verificar_se_envia_notificacao,
   verificarNotificacoesDeTodasMetas,
   buscarMetaPorId_pagina_editar,
-  atualizarMeta
+  atualizarMeta,
+  listarMovimentosPorMeta,
+  buscarCorDaMeta
 };

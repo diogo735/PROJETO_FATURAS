@@ -110,21 +110,29 @@ const ModalEditarFatura: React.FC<Props> = ({
     const alturaAnimada = useState(new Animated.Value(0))[0];
     const [alturaVisivel, setAlturaVisivel] = useState(false);
     const [subcategorias, setSubcategorias] = useState<any[]>([]);
+    const [loadingModal, setLoadingModal] = useState(true);
 
     useEffect(() => {
         const carregar = async () => {
-            const lista: { tipo_nome: string }[] = await listarCategoriasComTipo();
-            const subs = await listarSubCategorias();
-            if (lista) {
-                setDespesas(lista.filter(c => c.tipo_nome === 'Despesa'));
-                setReceitas(lista.filter(c => c.tipo_nome === 'Receita'));
-            }
-            if (subs) {
-                setSubcategorias(subs);
-            }
+          setLoadingModal(true); // começa carregamento
+      
+          const lista: { tipo_nome: string }[] = await listarCategoriasComTipo();
+          const subs = await listarSubCategorias();
+          
+          if (lista) {
+            setDespesas(lista.filter(c => c.tipo_nome === 'Despesa'));
+            setReceitas(lista.filter(c => c.tipo_nome === 'Receita'));
+          }
+          if (subs) {
+            setSubcategorias(subs);
+          }
+      
+          setLoadingModal(false); // fim do carregamento
         };
+      
         if (visivel) carregar();
-    }, [visivel]);
+      }, [visivel]);
+      
     function getSubcategoriasDaCategoria(categoriaId: number) {
         return subcategorias.filter(sub => sub.categoria_id === categoriaId);
     }
@@ -152,7 +160,19 @@ const ModalEditarFatura: React.FC<Props> = ({
 
     return (
 
-        <Modal isVisible={visivel} backdropOpacity={0.4} useNativeDriver>
+        <Modal
+            isVisible={visivel && !loadingModal}
+            onBackdropPress={aoFechar}
+            onBackButtonPress={aoFechar}
+            backdropOpacity={0.4}
+            useNativeDriver
+            animationIn="fadeInUp"
+            animationOut="fadeOutDown"
+            animationInTiming={250}
+            animationOutTiming={200}
+            hideModalContentWhileAnimating={true}
+        >
+
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
                 <View style={styles.container}>
                     {/* Header */}

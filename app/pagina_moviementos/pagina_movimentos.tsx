@@ -265,11 +265,36 @@ const Pagina_movimentos: React.FC = () => {
   }, [mesSelecionado, meses]);
 
   useFocusEffect(
-    React.useCallback(() => {
-      //console.log("🔁 Resetando filtros ao focar na tela");
+    useCallback(() => {
+      // Resetar filtros
       setFiltrosAplicados(null);
-    }, [])
+  
+      // Recarregar dados com mês atual (usando o estado mesSelecionado)
+      if (mesSelecionado) {
+        const mes = mesSelecionado.mesIndex + 1;
+        const ano = mesSelecionado.ano;
+  
+        setCarregando(true);
+        fadeAnim.setValue(0);
+  
+        const carregamentoCompleto = Promise.all([
+          carregarMovimentos(mes, ano),
+          carregarBalanco(mes, ano),
+          new Promise(resolve => setTimeout(resolve, 10)),
+        ]);
+  
+        carregamentoCompleto.finally(() => {
+          setCarregando(false);
+          Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 500,
+            useNativeDriver: true,
+          }).start();
+        });
+      }
+    }, [mesSelecionado])
   );
+  
 
   useEffect(() => {
     let animation: Animated.CompositeAnimation;

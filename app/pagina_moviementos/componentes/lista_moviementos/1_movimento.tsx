@@ -58,12 +58,12 @@ const MovimentoCard: React.FC<Props> = ({ nome, valor, hora, cor, imagem, tipo, 
         <TouchableOpacity style={styles.card} onPress={onPress}>
             {/* Ícone com fundo colorido */}
             <View style={[styles.iconeWrapper, { backgroundColor: cor }]}>
-  {typeof imagem === 'string' && !imagem.endsWith('.png') && !imagem.startsWith('http') && !imagem.startsWith('file') ? (
-    <FontAwesome name={imagem} size={20} color="#fff" />
-  ) : (
-    <Image source={getImagemCategoria(imagem)} style={styles.icone} resizeMode="contain" />
-  )}
-</View>
+                {typeof imagem === 'string' && !imagem.endsWith('.png') && !imagem.startsWith('http') && !imagem.startsWith('file') ? (
+                    <FontAwesome name={imagem} size={20} color="#fff" />
+                ) : (
+                    <Image source={getImagemCategoria(imagem)} style={styles.icone} resizeMode="contain" />
+                )}
+            </View>
 
 
             {/* Texto e hora */}
@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10,
         marginVertical: 0,
         width: '100%',
-        marginBottom:8
+        marginBottom: 8
     },
     iconeWrapper: {
         width: 40,

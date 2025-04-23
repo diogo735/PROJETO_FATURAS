@@ -1,5 +1,5 @@
 // detalhes_fatura.tsx
-import React from 'react';
+import React, { useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ImageSourcePropType } from 'react-native';
 import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../../App';
@@ -29,6 +29,8 @@ import { Platform } from 'react-native';
 import { PermissionsAndroid } from 'react-native';
 import RNFS from 'react-native-fs';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
+import { Animated, Easing } from 'react-native';
+import IconRotativo from '../../assets/imagens/wallpaper.svg'; // ou o caminho certo do seu SVG
 
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
@@ -113,6 +115,9 @@ const DetalhesFatura: React.FC<Props> = ({ route }) => {
     const [mostrarModalEditar, setMostrarModalEditar] = useState(false);
     const [mostrarModalSucesso, setMostrarModalSucesso] = useState(false);
     const [mostrarModalDownload, setMostrarModalDownload] = useState(false);
+    const [loadingFatura, setLoadingFatura] = useState(true);
+    const rotateAnim = useRef(new Animated.Value(0)).current;
+    const fadeAnim = useRef(new Animated.Value(0)).current;
 
     const editarFatura = () => {
         if (!categoriaInfo) {
@@ -552,13 +557,35 @@ const DetalhesFatura: React.FC<Props> = ({ route }) => {
 
     useEffect(() => {
         async function carregarFatura() {
-            const dados = await consultarFatura(id);
-            setFatura(dados);
-            await atualizarInfoCategoriaVisual(dados.movimento_id);
+          setLoadingFatura(true);
+          fadeAnim.setValue(0);
+          const dados = await consultarFatura(id);
+          setFatura(dados);
+          await atualizarInfoCategoriaVisual(dados.movimento_id);
+          setLoadingFatura(false);
+      
+          // Inicia a animação de fade
+          Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 500,
+            useNativeDriver: true,
+          }).start();
         }
-
+      
         carregarFatura();
-    }, [id]);
+      }, [id]);
+      
+
+    useEffect(() => {
+        Animated.loop(
+            Animated.timing(rotateAnim, {
+                toValue: 1,
+                duration: 1000,
+                easing: Easing.linear,
+                useNativeDriver: true,
+            })
+        ).start();
+    }, []);
 
 
 
@@ -577,6 +604,8 @@ const DetalhesFatura: React.FC<Props> = ({ route }) => {
         }
         return `NIF: ${nif}`;
     }
+
+
 
     return (
 
@@ -607,142 +636,160 @@ const DetalhesFatura: React.FC<Props> = ({ route }) => {
 
 
                     {/* Conteúdo por cima do fundo */}
-                    <View style={styles.conteudo}>
-                        <View style={styles.topoLinha}>
-                            {fatura && (
-                                <Text style={styles.textoTipoDoc}>{fatura.tipo_documento}</Text>
-                            )}
+                    {loadingFatura ? (
+                        <View style={[styles.conteudo, { justifyContent: 'center', alignItems: 'center' }]}>
+                            <Animated.View
+                                style={{
+                                    transform: [{
+                                        rotate: rotateAnim.interpolate({
+                                            inputRange: [0, 1],
+                                            outputRange: ['0deg', '360deg'],
+                                        }),
+                                    }],
+                                    marginBottom: 20,
+                                }}
+                            >
+                                <IconRotativo width={50} height={50} fill="#2565A3" />
+                            </Animated.View>
+                            <Text style={{ color: '#2565A3', fontWeight: 'bold' }}>A carregar fatura...</Text>
+                        </View>
+                    ) : (
+                        <Animated.View style={[styles.conteudo, { opacity: fadeAnim }]}>
+                            <View style={styles.topoLinha}>
+                                {fatura && (
+                                    <Text style={styles.textoTipoDoc}>{fatura.tipo_documento}</Text>
+                                )}
 
-                            {categoriaInfo && (
-                                <View style={styles.etiquetaCategoria}>
-                                    {categoriaInfo.icone_categoria.endsWith('.png') ? (
-                                        <Image
-                                            source={obterImagemCategoria(categoriaInfo.icone_categoria)}
-                                            style={styles.iconeCategoria}
-                                        />
-                                    ) : (
-                                        <FontAwesome
-                                            name={categoriaInfo.icone_categoria}
-                                            size={16}
-                                            color="#fff"
-                                            style={styles.iconeCategoria}
-                                        />
-                                    )}
-                                    <Text style={styles.textoCategoria}>{categoriaInfo.nome_categoria}</Text>
+                                {categoriaInfo && (
+                                    <View style={styles.etiquetaCategoria}>
+                                        {categoriaInfo.icone_categoria.endsWith('.png') ? (
+                                            <Image
+                                                source={obterImagemCategoria(categoriaInfo.icone_categoria)}
+                                                style={styles.iconeCategoria}
+                                            />
+                                        ) : (
+                                            <FontAwesome
+                                                name={categoriaInfo.icone_categoria}
+                                                size={16}
+                                                color="#fff"
+                                                style={styles.iconeCategoria}
+                                            />
+                                        )}
+                                        <Text style={styles.textoCategoria}>{categoriaInfo.nome_categoria}</Text>
+                                    </View>
+                                )}
+
+
+
+
+                            </View>
+                            {/* DATAAAA */}
+                            <View style={styles.bloco}>
+                                <View style={styles.linhaTitulo}>
+                                    <CalendarioIcon width={18} height={18} style={styles.icone} />
+
+                                    <Text style={styles.titulo}>Data</Text>
                                 </View>
-                            )}
-
-
-
-
-                        </View>
-                        {/* DATAAAA */}
-                        <View style={styles.bloco}>
-                            <View style={styles.linhaTitulo}>
-                                <CalendarioIcon width={18} height={18} style={styles.icone} />
-
-                                <Text style={styles.titulo}>Data</Text>
+                                <Text style={styles.valor}>{formatarData(fatura?.data_fatura)}</Text>
                             </View>
-                            <Text style={styles.valor}>{formatarData(fatura?.data_fatura)}</Text>
-                        </View>
 
-                        <View style={styles.linhaSeparadora} />
+                            <View style={styles.linhaSeparadora} />
 
-                        {/* NUMER DE DECUMENTO */}
-                        <View style={styles.bloco}>
+                            {/* NUMER DE DECUMENTO */}
+                            <View style={styles.bloco}>
 
-                            <View style={styles.linhaTitulo}>
-                                <DecumetnoIcon width={18} height={18} style={styles.icone} />
+                                <View style={styles.linhaTitulo}>
+                                    <DecumetnoIcon width={18} height={18} style={styles.icone} />
 
-                                <Text style={styles.titulo}>Nº Decumento</Text>
+                                    <Text style={styles.titulo}>Nº Decumento</Text>
+                                </View>
+                                <Text style={styles.valor}>{fatura?.numero_fatura}</Text>
                             </View>
-                            <Text style={styles.valor}>{fatura?.numero_fatura}</Text>
-                        </View>
 
-                        <View style={styles.linhaSeparadora} />
+                            <View style={styles.linhaSeparadora} />
 
-                        {/* DESCRIÇÃO */}
-                        <View style={styles.bloco}>
+                            {/* DESCRIÇÃO */}
+                            <View style={styles.bloco}>
 
-                            <View style={styles.linhaTitulo}>
-                                <Nota width={18} height={18} style={styles.icone} />
+                                <View style={styles.linhaTitulo}>
+                                    <Nota width={18} height={18} style={styles.icone} />
 
-                                <Text style={styles.titulo}>Descrição</Text>
+                                    <Text style={styles.titulo}>Descrição</Text>
+                                </View>
+                                <Text style={styles.valor}>{fatura?.descricao || 'Sem descrição'}</Text>
                             </View>
-                            <Text style={styles.valor}>{fatura?.descricao || 'Sem descrição'}</Text>
-                        </View>
 
-                        <View style={styles.linhaSeparadora} />
+                            <View style={styles.linhaSeparadora} />
 
-                        {/* empresa */}
-                        <View style={styles.empresaContainer}>
+                            {/* empresa */}
+                            <View style={styles.empresaContainer}>
 
-                            <Empresa width={50} height={50} />
+                                <Empresa width={50} height={50} />
 
 
-                            <View>
-                                <Text
-                                    style={styles.nomeEmpresa}
-                                    numberOfLines={2}
-                                    ellipsizeMode="tail"
-                                >
-                                    {(fatura?.nome_empresa && fatura?.nome_empresa !== fatura?.nif_emitente)
-                                        ? fatura.nome_empresa
-                                        : 'Empresa Privada'}
+                                <View>
+                                    <Text
+                                        style={styles.nomeEmpresa}
+                                        numberOfLines={2}
+                                        ellipsizeMode="tail"
+                                    >
+                                        {(fatura?.nome_empresa && fatura?.nome_empresa !== fatura?.nif_emitente)
+                                            ? fatura.nome_empresa
+                                            : 'Empresa Privada'}
+                                    </Text>
+
+
+                                    <Text style={styles.vat}>{textoVat}</Text>
+
+                                </View>
+                            </View>
+
+
+                            <View style={styles.linhaSeparadora} />
+
+                            {/* CLIENTE*/}
+                            <View style={styles.bloco}>
+
+                                <View style={styles.linhaTitulo}>
+                                    <Dados width={18} height={18} style={styles.icone} />
+
+                                    <Text style={styles.titulo}>Dados</Text>
+                                </View>
+                                <Text style={styles.valor}>
+                                    {formatarContribuinte(fatura?.nif_cliente)}
                                 </Text>
 
 
-                                <Text style={styles.vat}>{textoVat}</Text>
-
                             </View>
-                        </View>
+                            <View style={styles.linhaSeparadora} />
 
+                            {/*VALOR */}
+                            <View style={styles.bloco}>
+                                <View style={styles.linhaTitulo}>
+                                    <Pagamento width={18} height={18} style={styles.icone} />
+                                    <Text style={styles.titulo}>Pagamento</Text>
+                                </View>
 
-                        <View style={styles.linhaSeparadora} />
+                                <View style={styles.pagamentoLinha}>
+                                    <Text style={styles.labelPagamento}>Subtotal</Text>
+                                    <Text style={styles.valorPagamento}>{(fatura?.total_final! - fatura?.total_iva!).toFixed(2)}€</Text>
+                                </View>
 
-                        {/* CLIENTE*/}
-                        <View style={styles.bloco}>
+                                <View style={styles.pagamentoLinha}>
+                                    <Text style={styles.labelPagamento}>IVA (23%)</Text>
+                                    <Text style={styles.valorPagamento}>{fatura?.total_iva.toFixed(2)}€</Text>
+                                </View>
 
-                            <View style={styles.linhaTitulo}>
-                                <Dados width={18} height={18} style={styles.icone} />
-
-                                <Text style={styles.titulo}>Dados</Text>
-                            </View>
-                            <Text style={styles.valor}>
-                                {formatarContribuinte(fatura?.nif_cliente)}
-                            </Text>
-
-
-                        </View>
-                        <View style={styles.linhaSeparadora} />
-
-                        {/*VALOR */}
-                        <View style={styles.bloco}>
-                            <View style={styles.linhaTitulo}>
-                                <Pagamento width={18} height={18} style={styles.icone} />
-                                <Text style={styles.titulo}>Pagamento</Text>
+                                <View style={styles.pagamentoLinha}>
+                                    <Text style={styles.labelTotal}>Total</Text>
+                                    <Text style={styles.valorTotal}>{fatura?.total_final.toFixed(2)}€</Text>
+                                </View>
                             </View>
 
-                            <View style={styles.pagamentoLinha}>
-                                <Text style={styles.labelPagamento}>Subtotal</Text>
-                                <Text style={styles.valorPagamento}>{(fatura?.total_final! - fatura?.total_iva!).toFixed(2)}€</Text>
-                            </View>
-
-                            <View style={styles.pagamentoLinha}>
-                                <Text style={styles.labelPagamento}>IVA (23%)</Text>
-                                <Text style={styles.valorPagamento}>{fatura?.total_iva.toFixed(2)}€</Text>
-                            </View>
-
-                            <View style={styles.pagamentoLinha}>
-                                <Text style={styles.labelTotal}>Total</Text>
-                                <Text style={styles.valorTotal}>{fatura?.total_final.toFixed(2)}€</Text>
-                            </View>
-                        </View>
 
 
-
-                    </View>
-
+                        </Animated.View>
+                    )}
 
                 </View>
             </View>
