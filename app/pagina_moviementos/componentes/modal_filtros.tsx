@@ -10,6 +10,7 @@ import IconTodas from '../../../assets/icons/todas_categorias.svg';
 import { Keyboard, TouchableWithoutFeedback } from 'react-native';
 import { Animated, Easing } from 'react-native';
 import { useRef } from 'react';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const faixas = ['Até 50€', '50€–100€', 'Mais de 100€'];
 
@@ -91,6 +92,7 @@ const ModalFiltros: React.FC<Props> = ({ visivel, aoFechar, filtrosSalvos, setFi
     const [focoFinal, setFocoFinal] = useState(false);
     const [tipoSelecionado, setTipoSelecionado] = useState<'Receita' | 'Despesa' | null>(null);
     const [ordenacaoSelecionada, setOrdenacaoSelecionada] = useState<'data' | 'maior' | 'menor' | null>(null);
+    const [pronto, setPronto] = useState(false);
 
 
     const alternarCategoria = (id: number) => {
@@ -121,6 +123,7 @@ const ModalFiltros: React.FC<Props> = ({ visivel, aoFechar, filtrosSalvos, setFi
 
     useEffect(() => {
         if (visivel) {
+            setPronto(false);
             if (filtrosSalvos) {
                 setCategoriasSelecionadas(filtrosSalvos.categoriasSelecionadas);
                 setSelecionado(filtrosSalvos.faixaSelecionada);
@@ -168,7 +171,12 @@ const ModalFiltros: React.FC<Props> = ({ visivel, aoFechar, filtrosSalvos, setFi
                     ...comImagem,
                 ]);
 
+
+                setPronto(true);
+
             });
+        } else {
+            setPronto(false);
         }
     }, [visivel]);
 
@@ -226,7 +234,7 @@ const ModalFiltros: React.FC<Props> = ({ visivel, aoFechar, filtrosSalvos, setFi
 
     return (
         <Modal
-            isVisible={visivel}
+            isVisible={visivel && pronto}
             onBackdropPress={aoFechar}
             style={styles.modal}
             swipeDirection="down"
@@ -248,64 +256,81 @@ const ModalFiltros: React.FC<Props> = ({ visivel, aoFechar, filtrosSalvos, setFi
                     {/* CATEGORIAAS*/}
                     <Text style={styles.opcao}>Categoria</Text>
 
-                    <ScrollView
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        contentContainerStyle={{
-                            paddingLeft: 15,
-                            paddingRight: 15,
-                            marginTop: 10,
-                            marginBottom: 5,
-                            alignItems: 'flex-start', // centraliza verticalmente
-                            //backgroundColor: 'red', // para debug
-                        }}
-                    >
-                        {categorias.map((cat) => (
-                            <View key={cat.id} style={{ alignItems: 'center', marginRight: 12 }}>
-                                <TouchableOpacity
-                                    style={[
-                                        styles.categoriaItem,
-                                        { backgroundColor: cat.cor_cat },
-                                        categoriasSelecionadas.includes(cat.id)
-                                        && {
-                                            backgroundColor: cat.cor_cat,
-                                            borderWidth: 5,
-                                            padding: 8,
-                                            borderColor: '#2565A3',
-                                            shadowColor: cat.cor_cat,
-                                            shadowOpacity: 0.3,
-                                            shadowOffset: { width: 0, height: 2 },
-                                            shadowRadius: 4,
-                                            elevation: 5,
-                                        }
-                                    ]}
-                                    onPress={() => alternarCategoria(cat.id)}
-                                >
-                                    {cat.id === 0 ? (
-                                        <IconTodas width={40} height={40} />
-                                    ) : (
-                                        <Image
-                                            source={cat.imagem}
-                                            style={{ width: 40, height: 40 }}
-                                            resizeMode="contain"
-                                        />
-                                    )}
-                                </TouchableOpacity>
+                    <View style={{ position: 'relative' }}>
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={{
+                                paddingLeft: 15,
+                                paddingRight: 15,
+                                marginTop: 10,
+                                marginBottom: 5,
+                                alignItems: 'flex-start', // centraliza verticalmente
+                                //backgroundColor: 'red', // para debug
+                            }}
+                        >
+                            {categorias.map((cat) => (
+                                <View key={cat.id} style={{ alignItems: 'center', marginRight: 12 }}>
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.categoriaItem,
+                                            { backgroundColor: cat.cor_cat },
+                                            categoriasSelecionadas.includes(cat.id)
+                                            && {
+                                                backgroundColor: cat.cor_cat,
+                                                borderWidth: 5,
+                                                padding: 8,
+                                                borderColor: '#2565A3',
+                                                shadowColor: cat.cor_cat,
+                                                shadowOpacity: 0.3,
+                                                shadowOffset: { width: 0, height: 2 },
+                                                shadowRadius: 4,
+                                                elevation: 5,
+                                            }
+                                        ]}
+                                        onPress={() => alternarCategoria(cat.id)}
+                                    >
+                                        {cat.id === 0 ? (
+                                            <IconTodas width={40} height={40} />
+                                        ) : (
+                                            <Image
+                                                source={cat.imagem}
+                                                style={{ width: 40, height: 40 }}
+                                                resizeMode="contain"
+                                            />
+                                        )}
+                                    </TouchableOpacity>
 
-                                <Text
-                                    style={[
-                                        styles.categoriaTexto,
-                                        !categoriasSelecionadas.includes(cat.id) && { fontWeight: '500' } // regular
-                                    ]}
-                                >
-                                    {cat.nome_cat}
-                                </Text>
+                                    <Text
+                                        style={[
+                                            styles.categoriaTexto,
+                                            !categoriasSelecionadas.includes(cat.id) && { fontWeight: '500' } // regular
+                                        ]}
+                                    >
+                                        {cat.nome_cat}
+                                    </Text>
 
-                            </View>
+                                </View>
 
-                        ))}
-                    </ScrollView>
-
+                            ))}
+                        </ScrollView>
+                        <View
+                            pointerEvents="none"
+                            style={{
+                                position: 'absolute',
+                                top: -10,
+                                right: 0,
+                                width: 30,
+                                height: '100%',
+                                backgroundColor: 'rgba(255,255,255,0)', 
+                                zIndex: 1,
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                            }}
+                        >
+                            <MaterialCommunityIcons name="chevron-right" size={30} color="#2565A3" />
+                        </View>
+                    </View>
                     {/* VALOR*/}
                     <Text style={styles.opcao}>Valor</Text>
                     <View style={styles.containerbotoeesvalor}>
@@ -546,7 +571,7 @@ const ModalFiltros: React.FC<Props> = ({ visivel, aoFechar, filtrosSalvos, setFi
                         <TouchableOpacity
                             style={styles.botaoLimpar}
                             onPress={() => {
-                                
+
                                 setFiltrosSalvos(null);
                                 aoFechar();
 

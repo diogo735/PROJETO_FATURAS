@@ -17,7 +17,13 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Animated } from 'react-native';
 import IconRotativo from '../../assets/imagens/wallpaper.svg';
 import { useCallback } from 'react';
+import { PanResponder, GestureResponderEvent, PanResponderGestureState } from 'react-native';
 
+import {
+  GestureDetector,
+  Gesture,
+} from 'react-native-gesture-handler';
+import { runOnJS } from 'react-native-reanimated';
 
 interface MovimentoComCategoria {
   id: number;
@@ -97,26 +103,26 @@ const Pagina_movimentos: React.FC = () => {
         setMesSelecionado(mesDefault);
         setPrimeiroFoco(false);
       }
-  
+
       setFiltrosAplicados(null);
     }, [])
   );
-  
+
   useEffect(() => {
     if (!mesSelecionado) return;
-  
+
     const mes = mesSelecionado.mesIndex + 1;
     const ano = mesSelecionado.ano;
-  
+
     setCarregando(true);
     fadeAnim.setValue(0);
-  
+
     const carregamentoCompleto = Promise.all([
       carregarMovimentos(mes, ano),
       carregarBalanco(mes, ano),
       new Promise(resolve => setTimeout(resolve, 1000))
     ]);
-  
+
     carregamentoCompleto.finally(() => {
       setCarregando(false);
       Animated.timing(fadeAnim, {
@@ -126,11 +132,11 @@ const Pagina_movimentos: React.FC = () => {
       }).start();
     });
   }, [mesSelecionado, filtrosAplicados]);
-  
-  
-  
-  
-  
+
+
+
+
+
 
 
 
@@ -151,7 +157,7 @@ const Pagina_movimentos: React.FC = () => {
 
       let filtrados = [...todosMovimentos];
 
-     // console.log("📦 Todos os movimentos carregados:", todosMovimentos.length);
+      // console.log("📦 Todos os movimentos carregados:", todosMovimentos.length);
       //console.log("📋 Filtros aplicados:", filtrosAplicados);
 
       if (filtrosAplicados) {
@@ -244,6 +250,7 @@ const Pagina_movimentos: React.FC = () => {
 
 
   useLayoutEffect(() => {
+    [primeiroFoco]
     const centralizarMesAtual = () => {
 
       const index = meses.findIndex(m => m.nome === mesSelecionado.nome && m.ano === mesSelecionado.ano);
@@ -262,27 +269,27 @@ const Pagina_movimentos: React.FC = () => {
     };
 
     centralizarMesAtual();
-  }, [mesSelecionado, meses]);
+  }, [primeiroFoco]);
 
   useFocusEffect(
     useCallback(() => {
       // Resetar filtros
       setFiltrosAplicados(null);
-  
+
       // Recarregar dados com mês atual (usando o estado mesSelecionado)
       if (mesSelecionado) {
         const mes = mesSelecionado.mesIndex + 1;
         const ano = mesSelecionado.ano;
-  
+
         setCarregando(true);
         fadeAnim.setValue(0);
-  
+
         const carregamentoCompleto = Promise.all([
           carregarMovimentos(mes, ano),
           carregarBalanco(mes, ano),
           new Promise(resolve => setTimeout(resolve, 10)),
         ]);
-  
+
         carregamentoCompleto.finally(() => {
           setCarregando(false);
           Animated.timing(fadeAnim, {
@@ -294,7 +301,7 @@ const Pagina_movimentos: React.FC = () => {
       }
     }, [mesSelecionado])
   );
-  
+
 
   useEffect(() => {
     let animation: Animated.CompositeAnimation;
@@ -318,7 +325,66 @@ const Pagina_movimentos: React.FC = () => {
     };
   }, [carregando]);
 
+  const irParaMesAnterior = () => {
+    const indexAtual = meses.findIndex(
+      (m) => m.nome === mesSelecionado.nome && m.ano === mesSelecionado.ano
+    );
+    if (indexAtual > 0) {
+      const mesAnterior = meses[indexAtual - 1];
+      setMesSelecionado(mesAnterior);
 
+      let offsetX = (ITEM_LARGURA * (indexAtual - 1)) - (width / 2) + (ITEM_LARGURA / 2) + 10;
+      offsetX = Math.max(offsetX, 0);
+      const maxX = ITEM_LARGURA * meses.length - width;
+      offsetX = Math.min(offsetX, maxX);
+
+      if (scrollRef.current) {
+        scrollRef.current.scrollTo({ x: offsetX, y: 0, animated: true });
+      }
+    }
+  };
+
+  const irParaProximoMes = () => {
+    const indexAtual = meses.findIndex(
+      (m) => m.nome === mesSelecionado.nome && m.ano === mesSelecionado.ano
+    );
+    if (indexAtual < meses.length - 1) {
+      const proximoMes = meses[indexAtual + 1];
+
+      const mesSelecionavel =
+        proximoMes.ano < hoje.getFullYear() ||
+        (proximoMes.ano === hoje.getFullYear() && proximoMes.mesIndex <= hoje.getMonth());
+
+      
+
+      setMesSelecionado(proximoMes);
+
+      let offsetX = (ITEM_LARGURA * (indexAtual + 1)) - (width / 2) + (ITEM_LARGURA / 2) + 10;
+      offsetX = Math.max(offsetX, 0);
+      const maxX = ITEM_LARGURA * meses.length - width;
+      offsetX = Math.min(offsetX, maxX);
+
+      if (scrollRef.current) {
+        scrollRef.current.scrollTo({ x: offsetX, y: 0, animated: true });
+      }
+    }
+  };
+
+  const swipeGesture = Gesture.Pan()
+    .onEnd((event) => {
+      if (Math.abs(event.translationX) > 50) {
+        if (event.translationX > 0) {
+          runOnJS(irParaMesAnterior)();
+        } else {
+          runOnJS(irParaProximoMes)();
+        }
+      }
+    });
+
+
+    const isMesFuturo =
+    mesSelecionado.ano > hoje.getFullYear() ||
+    (mesSelecionado.ano === hoje.getFullYear() && mesSelecionado.mesIndex > hoje.getMonth());
 
 
   return (
@@ -343,7 +409,7 @@ const Pagina_movimentos: React.FC = () => {
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{
-            paddingHorizontal: 10, // Adiciona padding à esquerda e à direita
+            paddingHorizontal: 10,
             alignItems: 'center'
           }}
         >
@@ -353,12 +419,7 @@ const Pagina_movimentos: React.FC = () => {
               <TouchableOpacity
                 key={index}
                 style={styles.mesItem}
-                onPress={() => {
-                  const mesSelecionavel =
-                    mes.ano < hoje.getFullYear() ||
-                    (mes.ano === hoje.getFullYear() && mes.mesIndex <= hoje.getMonth());
-
-                  if (!mesSelecionavel) return; // impede seleção de mês futuro
+                onPress={() => { 
 
                   setMesSelecionado(mes);
 
@@ -400,56 +461,65 @@ const Pagina_movimentos: React.FC = () => {
       </View>
 
       {/* nclua aqui o conteúdo da lista */}
-      <View style={styles.corpoLista}>
+      <GestureDetector gesture={swipeGesture}>
+        <Animated.View style={styles.corpoLista}>
 
 
-        {carregando ? (
-          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-            <Animated.View
-              style={{
-                transform: [{
-                  rotate: rotateAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: ['0deg', '360deg'],
-                  }),
-                }],
-                marginBottom: 20,
-              }}
-            >
-              <IconRotativo width={50} height={50} fill="#2565A3" />
-            </Animated.View>
-            <Text style={{ color: '#2565A3', fontWeight: 'bold' }}>A carregar movimentos...</Text>
-          </View>
-        ) : (
-          <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
-            <ScrollView contentContainerStyle={{ paddingBottom: 110 }} showsVerticalScrollIndicator={false}>
-              {movimentos.length === 0 ? (
-                <View style={styles.semMovimentosContainer}>
-                  <Image
-                    source={require('../../assets/imagens/sem_movimentos.png')}
-                    style={styles.imagemSemMovimento}
-                    resizeMode="contain"
-                  />
-                  <Text style={styles.textoSemMovimento}>
-                    Nenhum movimento para {mesSelecionado?.nome}
-                  </Text>
-                </View>
-              ) : (
-                <>
-                  <BalancoGeral resumo={balancoGeral} expandidoInicial={!temFiltrosAtivos()} />
-                  <ListaMovimentosAgrupada movimentos={movimentos} />
-                </>
-              )}
-            </ScrollView></Animated.View>
-        )}
-        <ModalFiltros
-          visivel={filtrosVisiveis}
-          aoFechar={() => setFiltrosVisiveis(false)}
-          filtrosSalvos={filtrosAplicados}
-          setFiltrosSalvos={setFiltrosAplicados}
-        />
 
-      </View>
+          {carregando ? (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+              <Animated.View
+                style={{
+                  transform: [{
+                    rotate: rotateAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: ['0deg', '360deg'],
+                    }),
+                  }],
+                  marginBottom: 20,
+                }}
+              >
+                <IconRotativo width={50} height={50} fill="#2565A3" />
+              </Animated.View>
+              <Text style={{ color: '#2565A3', fontWeight: 'bold' }}>A carregar movimentos...</Text>
+            </View>
+          ) : (
+            <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
+              <ScrollView contentContainerStyle={{ paddingBottom: 110 }} showsVerticalScrollIndicator={false}>
+                {movimentos.length === 0 ? (
+                  <View style={styles.semMovimentosContainer}>
+                    <Image
+                      source={
+                        isMesFuturo
+                          ? require('../../assets/icons/pagina_movimentos/futuro.png') 
+                          : require('../../assets/imagens/sem_movimentos.png')
+                      }
+                      style={styles.imagemSemMovimento}
+                      resizeMode="contain"
+                    />
+                    <Text style={styles.textoSemMovimento}>
+                      {isMesFuturo
+                        ? 'O futuro das despesas ainda está\n guardado a sete chaves!'
+                        : `Nenhum movimento para ${mesSelecionado?.nome}`}
+                    </Text>
+                  </View>
+                ) : (
+                  <>
+                    <BalancoGeral resumo={balancoGeral} expandidoInicial={!temFiltrosAtivos()} />
+                    <ListaMovimentosAgrupada movimentos={movimentos} />
+                  </>
+                )}
+              </ScrollView></Animated.View>
+          )}
+          <ModalFiltros
+            visivel={filtrosVisiveis}
+            aoFechar={() => setFiltrosVisiveis(false)}
+            filtrosSalvos={filtrosAplicados}
+            setFiltrosSalvos={setFiltrosAplicados}
+          />
+        </Animated.View>
+      </GestureDetector>
+
     </View>
   );
 };

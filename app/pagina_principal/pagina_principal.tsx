@@ -44,7 +44,9 @@ const Pagina_principal: React.FC = () => {
   const opacidadeGrafico = useSharedValue(0);
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 
-
+  const hoje = new Date();
+  const nomeMes = hoje.toLocaleString('pt-PT', { month: 'long' }).replace(/^\w/, c => c.toUpperCase());
+  
   const estiloAnimado = useAnimatedStyle(() => {
     return {
       opacity: withTiming(opacidadeGrafico.value, { duration: 200 }),
@@ -109,7 +111,8 @@ const Pagina_principal: React.FC = () => {
         contentContainerStyle={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
       >
-        <SaldoWidget saldoTotal={saldoMensal} />
+        <SaldoWidget saldoTotal={saldoMensal} mesAtual={nomeMes} />
+
 
         {/**/}
         <Animated.View style={[styles.containerGrafico, estiloAnimado]}>

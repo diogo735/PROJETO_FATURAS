@@ -4,31 +4,36 @@ import { LinearGradient } from 'expo-linear-gradient';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { scale } from 'react-native-size-matters';
 
-const SaldoWidget = ({ saldoTotal }: { saldoTotal: number }) => {
+const SaldoWidget = ({ saldoTotal, mesAtual }: { saldoTotal: number; mesAtual: string }) => {
+
   const [mostrarSaldo, setMostrarSaldo] = useState(true);
 
   return (
     <LinearGradient
-      colors={['#164878', '#1F67AB', '#2985DE']} // Gradiente azul correto
-      locations={[0, 0.44, 1]} // Parâmetros do gradiente
+      colors={['#164878', '#1F67AB', '#2985DE']}
+      locations={[0, 0.44, 1]}
       start={{ x: 0.5, y: 0 }}
       end={{ x: 0.5, y: 1 }}
-      style={styles.container} // Aplica o borderRadius corretamente
+      style={styles.container}
     >
-      {/* Linha do título */}
-      <Text style={styles.label}>Saldo total</Text>
 
-      {/* Linha do saldo + ícone */}
+      <View style={styles.topRow}>
+        <Text style={styles.label}>Saldo total</Text>
+        <Text style={styles.mes}>{mesAtual}</Text>
+      </View>
+
+
+
       <View style={styles.saldoRow}>
-      <Text style={styles.saldo}>{mostrarSaldo ? `${saldoTotal.toFixed(2)} €` : '- - -'}</Text>
+        <Text style={styles.saldo}>{mostrarSaldo ? `${saldoTotal.toFixed(2)} €` : '- - -'}</Text>
 
 
-        {/* Botão do olho ao lado do saldo */}
+
         <TouchableOpacity onPress={() => setMostrarSaldo(!mostrarSaldo)}>
-          <MaterialIcons 
-            name={mostrarSaldo ? 'visibility' : 'visibility-off'} 
-            size={scale(24)} 
-            color="white" 
+          <MaterialIcons
+            name={mostrarSaldo ? 'visibility' : 'visibility-off'}
+            size={scale(24)}
+            color="white"
           />
         </TouchableOpacity>
       </View>
@@ -52,16 +57,28 @@ const styles = StyleSheet.create({
     marginBottom: scale(5),
   },
   saldoRow: {
-    flexDirection: 'row', // Mantém saldo e ícone na mesma linha
-    justifyContent: 'space-between', // Mantém espaço entre os elementos
-    alignItems: 'center', // Alinha verticalmente
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
   },
   saldo: {
     color: 'white',
     fontSize: scale(32),
     fontWeight: 'bold',
   },
- 
+  topRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  
+  mes: {
+    color: 'white',
+    fontSize: scale(18),
+    fontWeight: '800',
+  },
+  
+
 });
 
 export default SaldoWidget;
