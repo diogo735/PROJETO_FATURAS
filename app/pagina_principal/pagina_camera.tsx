@@ -8,7 +8,8 @@ import * as NavigationBar from 'expo-navigation-bar';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Modal from 'react-native-modal';
 import * as ImageManipulator from 'expo-image-manipulator';
-
+import ModalOpcoesCamera from './modal_opcoes_camera';
+import Modal_Info_Fatura_Preencher from './camara_componentes/modal_info_preencher_fatura';
 import { Image } from 'react-native';
 import { Dimensions } from 'react-native';
 
@@ -18,7 +19,7 @@ const screenRatio = height / width;
 import { CameraView, useCameraPermissions, CameraType } from 'expo-camera';
 import FaturaVerde from '../../assets/icons/pagina_camera/detetou_fatura.svg';
 import FaturaLaranja from '../../assets/icons/pagina_camera/nao_detetou_fatura.svg';
-import IconEditar from '../../assets/icons/pagina_camera/galeria.svg';
+import IconEditar from '../../assets/icons/pagina_camera/escrever.svg';
 import FlshIcon from '../../assets/icons/pagina_camera/flash.svg';
 import Flashoff from '../../assets/icons/pagina_camera/flash-off.svg';
 import Modal_Info_Fatura from './camara_componentes/modal_info_fatura';
@@ -40,6 +41,9 @@ export default function PaginaCamera() {
   const [bloquearLeitura, setBloquearLeitura] = useState(false);
   const [mostrarPermissaoOverlay, setMostrarPermissaoOverlay] = useState(false);
   const [cameraPronta, setCameraPronta] = useState(false);
+  const [mostrarOpcoesCamera, setMostrarOpcoesCamera] = useState(false);
+  const [mostrarModalPreencher, setMostrarModalPreencher] = useState(false);
+  const [cameraAtiva, setCameraAtiva] = useState(true);
 
 
 
@@ -133,6 +137,9 @@ export default function PaginaCamera() {
     }
   }, [permission, mostrarPermissaoOverlay]);
 
+  const pausarCamera = () => {
+    setCameraAtiva(false);
+  };
 
 
   const decode = async () => {
@@ -156,125 +163,132 @@ export default function PaginaCamera() {
         const qrResults = await BarCodeScanner.scanFromURLAsync(imageUri);
         setFotoCapturada(imageUri);
 
-      // ✅ Se encontrou QR code, envia o conteúdo
-      if (qrResults.length > 0) {
-        setConteudoQr(qrResults[0].data);
-      } else {
-        setConteudoQr(null); // Para forçar o modal a mostrar que não encontrou
-      }
+        // ✅ Se encontrou QR code, envia o conteúdo
+        if (qrResults.length > 0) {
+          setConteudoQr(qrResults[0].data);
+        } else {
+          setConteudoQr(null); // Para forçar o modal a mostrar que não encontrou
+        }
 
-      // ✅ Abre o modal
-      setMostrarFotoModal(true);
-    } else {
-      console.log('Seleção cancelada.');
+        // ✅ Abre o modal
+        setMostrarFotoModal(true);
+      } else {
+        console.log('Seleção cancelada.');
+      }
+    } catch (error) {
+      console.error('Erro ao ler QR code:', error);
+      Alert.alert('Erro', 'Ocorreu um erro ao tentar ler o QR code.');
     }
-  } catch (error) {
-    console.error('Erro ao ler QR code:', error);
-    Alert.alert('Erro', 'Ocorreu um erro ao tentar ler o QR code.');
-  }
-};
+  };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'right', 'left']}>
       <View style={styles.container}>
-        <CameraView
-          ref={cameraRef}
-          style={[styles.camera]}
-          mode="picture"
-          facing={facing}
-          barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-          onBarcodeScanned={handleQrDetectado}
-          enableTorch={flashLigado}
-          onCameraReady={() => setCameraPronta(true)}
-        >
-
-          <View style={styles.overlayWrapper} pointerEvents="none">
-            {qrDetectado ? (
-              <FaturaVerde width="100%" height="100%" />
-            ) : (
-              <FaturaLaranja width="100%" height="100%" />
-            )}
-          </View>
-
-
-          {mostrarPermissaoOverlay && (
-            <View style={styles.overlayMensagem}>
-              <Image
-                source={require('../../assets/icons/pagina_camera/sempermissao.png')}
-                style={styles.permissaoImagem}
-                resizeMode="contain"
-              />
-              <Text style={styles.permissaoTexto}>Permissão da câmara negada</Text>
-              <TouchableOpacity
-                style={styles.permissaoBotao}
-                onPress={() => {
-                  if (permission?.canAskAgain) {
-                    requestPermission();
-                  } else {
-                    Alert.alert(
-                      'Permissão bloqueada!',
-                      'Ative manualmente a câmara nas definições do seu dispositivo.',
-                      [
-                        { text: 'Abrir definições', onPress: () => Linking.openSettings() },
-                        { text: 'Cancelar', style: 'cancel' },
-                      ]
-                    );
-                  }
-                }}
-              >
-                <Text style={styles.permissaoBotaoTexto}>Permitir acesso</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          <TouchableOpacity
-            style={styles.closeButton}
-            onPress={() => navigation.goBack()}
+      {cameraAtiva && (
+          <CameraView
+            ref={cameraRef}
+            style={[styles.camera]}
+            mode="picture"
+            facing={facing}
+            barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+            onBarcodeScanned={handleQrDetectado}
+            enableTorch={flashLigado}
+            onCameraReady={() => setCameraPronta(true)}
+          
           >
-            <Ionicons name="close" size={28} color="white" />
-          </TouchableOpacity>
 
-          <View style={styles.centralizeBox}>
-            {qrDetectado ? (
-              <Text style={[styles.centralizeText, { color: '#4AAF53' }]}>
-                Fatura Detetada !
-              </Text>
-            ) : (
-              <Text style={styles.centralizeText}>
-                Centralize a sua fatura até ficar <Text style={{ color: '#4AAF53', fontWeight: 'bold' }}>Verde</Text>
-              </Text>
-            )}
-          </View>
-
-
-          <View style={styles.bottomControls}>
-
-            <TouchableOpacity style={styles.sideButton} onPress={decode} disabled={mostrarPermissaoOverlay}>
-              <IconEditar width={25} height={25} />
-            </TouchableOpacity>
-
-
-
-            <TouchableOpacity style={styles.captureOuter} onPress={tirarFoto} disabled={mostrarPermissaoOverlay}>
-              <View style={styles.captureInner} />
-            </TouchableOpacity>
-
-
-
-            <TouchableOpacity onPress={() => setFlashLigado(!flashLigado)} style={styles.sideButton} disabled={mostrarPermissaoOverlay}>
-              {flashLigado ? (
-                <Flashoff width={26} height={26} />
+            <View style={styles.overlayWrapper} pointerEvents="none">
+              {qrDetectado ? (
+                <FaturaVerde width="100%" height="100%" />
               ) : (
-                <FlshIcon width={26} height={26} />
+                <FaturaLaranja width="100%" height="100%" />
               )}
+            </View>
+
+
+            {mostrarPermissaoOverlay && (
+              <View style={styles.overlayMensagem}>
+                <Image
+                  source={require('../../assets/icons/pagina_camera/sempermissao.png')}
+                  style={styles.permissaoImagem}
+                  resizeMode="contain"
+                />
+                <Text style={styles.permissaoTexto}>Permissão da câmara negada</Text>
+                <TouchableOpacity
+                  style={styles.permissaoBotao}
+                  onPress={() => {
+                    if (permission?.canAskAgain) {
+                      requestPermission();
+                    } else {
+                      Alert.alert(
+                        'Permissão bloqueada!',
+                        'Ative manualmente a câmara nas definições do seu dispositivo.',
+                        [
+                          { text: 'Abrir definições', onPress: () => Linking.openSettings() },
+                          { text: 'Cancelar', style: 'cancel' },
+                        ]
+                      );
+                    }
+                  }}
+                >
+                  <Text style={styles.permissaoBotaoTexto}>Permitir acesso</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => navigation.goBack()}
+            >
+              <Ionicons name="close" size={28} color="white" />
             </TouchableOpacity>
 
+            <View style={styles.centralizeBox}>
+              {qrDetectado ? (
+                <Text style={[styles.centralizeText, { color: '#4AAF53' }]}>
+                  Fatura Detetada !
+                </Text>
+              ) : (
+                <Text style={styles.centralizeText}>
+                  Centralize a sua fatura até ficar <Text style={{ color: '#4AAF53', fontWeight: 'bold' }}>Verde</Text>
+                </Text>
+              )}
+            </View>
 
 
-          </View>
+            <View style={styles.bottomControls}>
 
-        </CameraView>
+              <TouchableOpacity
+                style={styles.sideButton}
+                onPress={() => setMostrarOpcoesCamera(true)}
+                disabled={mostrarPermissaoOverlay}
+              >
+                <IconEditar width={25} height={25} />
+              </TouchableOpacity>
 
+
+
+
+              <TouchableOpacity style={styles.captureOuter} onPress={tirarFoto} disabled={mostrarPermissaoOverlay}>
+                <View style={styles.captureInner} />
+              </TouchableOpacity>
+
+
+
+              <TouchableOpacity onPress={() => setFlashLigado(!flashLigado)} style={styles.sideButton} disabled={mostrarPermissaoOverlay}>
+                {flashLigado ? (
+                  <Flashoff width={26} height={26} />
+                ) : (
+                  <FlshIcon width={26} height={26} />
+                )}
+              </TouchableOpacity>
+
+
+
+            </View>
+
+          </CameraView>
+       )}
 
 
         <Modal_Info_Fatura
@@ -292,6 +306,37 @@ export default function PaginaCamera() {
             setFlashLigado(false);
           }}
         />
+
+        <ModalOpcoesCamera
+          visivel={mostrarOpcoesCamera}
+          aoFechar={() => setMostrarOpcoesCamera(false)}
+          onAbrirGaleria={() => {
+            setMostrarOpcoesCamera(false);
+            decode(); // abre a galeria
+          }}
+          onInserirManual={() => {
+            setMostrarOpcoesCamera(false);
+            setCameraAtiva(false); // 👈 Desativa a câmara
+            setMostrarModalPreencher(true);
+          }}
+
+        />
+        <Modal_Info_Fatura_Preencher
+          visivel={mostrarModalPreencher}
+          aoFechar={() => {
+            setMostrarModalPreencher(false);
+            setCameraAtiva(true); // reativa a câmara quando fecha
+          }}
+          aoEliminar={() => {
+            setMostrarModalPreencher(false);
+            setFotoCapturada(null);
+            setCameraAtiva(true); // também reativa no eliminar
+          }}
+          onAbrirCameraManual={() => setCameraAtiva(false)}
+          uri={null}
+        />
+
+
 
 
 

@@ -33,7 +33,7 @@ async function inicializarBaseDeDados() {
     
     //faturas
     await criarTabelaFaturas();
-    //await apagarTabelaFaturas();
+   // await apagarTabelaFaturas();
   
     //metas
     await criarTabelaMetas(); //await limparMetas();

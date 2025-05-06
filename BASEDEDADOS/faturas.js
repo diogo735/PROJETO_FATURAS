@@ -15,6 +15,7 @@ async function criarTabelaFaturas() {
         numero_fatura TEXT NOT NULL,
         data_fatura TEXT NOT NULL,
         nif_emitente TEXT NOT NULL,
+        codigo_ATCUD TEXT NOT NULL,
         nome_empresa TEXT NULL,
         nif_cliente TEXT,
         descricao TEXT,
@@ -53,6 +54,7 @@ async function inserirFatura({
   movimentoId,
   tipoDocumento,
   numeroFatura,
+  codigoATCUD,
   dataFatura,
   nifEmitente,
   nomeEmpresa,
@@ -70,14 +72,16 @@ async function inserirFatura({
 
     const result = await db.runAsync(
       `INSERT INTO faturas (
-          movimento_id, tipo_documento, numero_fatura, data_fatura,
-          nif_emitente, nome_empresa, nif_cliente, descricao,
-          total_iva, total_final, imagem_fatura
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    movimento_id, tipo_documento, numero_fatura, codigo_ATCUD, data_fatura,
+    nif_emitente, nome_empresa, nif_cliente, descricao,
+    total_iva, total_final, imagem_fatura
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+`,
       [
         movimentoId,
         tipoDocumento,
         numeroFatura,
+        codigoATCUD,
         dataFatura,
         nifEmitente,
         nomeEmpresa,
@@ -106,6 +110,7 @@ async function registarFatura_BDLOCAL({
   nota,
   tipoDocumento,
   numeroFatura,
+  codigoATCUD,
   dataFatura,
   nifEmitente,
   nomeEmpresa,
@@ -144,7 +149,7 @@ async function registarFatura_BDLOCAL({
       subCategoriaIdFinal,
       nota
     );
-    
+
 
     if (!movimentoId) {
       console.warn('⚠️ Movimento não foi criado. Cancelando registro de fatura.');
@@ -156,6 +161,7 @@ async function registarFatura_BDLOCAL({
       movimentoId,
       tipoDocumento,
       numeroFatura,
+      codigoATCUD,
       dataFatura,
       nifEmitente,
       nomeEmpresa,

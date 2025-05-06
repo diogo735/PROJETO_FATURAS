@@ -24,6 +24,7 @@ import CriarCategoria from './app/pagina_perfil/pagina_categorias/criar_categori
 import EditarSubCategoria
  from './app/pagina_perfil/pagina_categorias/editar_categoria/editar_categoria';
 import PaginaNotificacoes from './app/pagina_principal/pagina_notificacoes/pagina_notificacoes';
+import PaginaSucessoManual from './app/pagina_principal/pagina_sucesso_manual_fatura';
 
 const { height, width } = Dimensions.get('window');
 import 'react-native-gesture-handler';
@@ -63,6 +64,21 @@ export type RootStackParamList = {
   CriarCategoria: { tipo: 'Despesas' | 'Receitas'; onCategoriaCriada?: () => void };
   EditarSubcategoria: { id_subcategoria: number };
   Notificacoes: undefined;
+  PaginaSucessoManual: {
+    categoriaId: number | null;
+    subcategoriaId: number | null;
+    nota: string | null;
+    nomeEmpresa: string | null;
+    numeroFatura: string;
+    codigoATCUD: string;
+    nifEmitente: string;
+    dataFatura: string;
+    totalIva: string;
+    nifCliente: string | null,
+    valorTotal: string;
+    imagemUri: string | null;
+};
+
 
 
 };
@@ -182,6 +198,12 @@ const NotificacoesScreen = (props: any) => (
     <PaginaNotificacoes {...props} />
   </View>
 );
+const PaginaSucessoManualScreen = (props: any) => (
+  <View style={styles.defaultContainer}>
+    <StatusBar translucent backgroundColor="transparent" style="dark" />
+    <PaginaSucessoManual {...props} />
+  </View>
+);
 
 
 const App: React.FC = () => {
@@ -209,6 +231,9 @@ const App: React.FC = () => {
 
         <Stack.Screen name="CriarMeta" component={CriarMetaScreen} />
         <Stack.Screen name="PaginaSucesso" component={PaginaSucessoScreen} />
+        <Stack.Screen name="PaginaSucessoManual" component={PaginaSucessoManualScreen} />
+
+
         <Stack.Screen
           name="MovimentosDaMeta"
           component={MovimentosMetaScreen}
