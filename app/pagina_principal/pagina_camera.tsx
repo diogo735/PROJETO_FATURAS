@@ -27,7 +27,7 @@ import * as RNImagePicker from 'expo-image-picker';
 import { BarCodeScanner } from 'expo-barcode-scanner';
 export default function PaginaCamera() {
   const [facing, setFacing] = useState<CameraType>('back');
-  const [permission, requestPermission] = useCameraPermissions();
+  
   const navigation = useNavigation();
   const [qrDetectado, setQrDetectado] = useState(false);
   const qrTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -39,7 +39,12 @@ export default function PaginaCamera() {
   const [fotoCapturada, setFotoCapturada] = useState<string | null>(null);
   const [mostrarFotoModal, setMostrarFotoModal] = useState(false);
   const [bloquearLeitura, setBloquearLeitura] = useState(false);
-  const [mostrarPermissaoOverlay, setMostrarPermissaoOverlay] = useState(false);
+  
+  const [permission, requestPermission] = useCameraPermissions();
+  const [mostrarPermissaoOverlay, setMostrarPermissaoOverlay] = useState(!permission?.granted);
+
+
+
   const [cameraPronta, setCameraPronta] = useState(false);
   const [mostrarOpcoesCamera, setMostrarOpcoesCamera] = useState(false);
   const [mostrarModalPreencher, setMostrarModalPreencher] = useState(false);
@@ -111,13 +116,20 @@ export default function PaginaCamera() {
     }
   };
 
-  useEffect(() => {
-    if (permission?.granted) {
-      setMostrarPermissaoOverlay(false);
-    } else {
-      setMostrarPermissaoOverlay(true);
-    }
-  }, [permission]);
+ useEffect(() => {
+  if (permission == null) {
+    return;
+  }
+
+  if (permission.granted) {
+    setMostrarPermissaoOverlay(false);
+  } else if (permission.canAskAgain) {
+    setMostrarPermissaoOverlay(true);
+  } else {
+    setMostrarPermissaoOverlay(true);
+  }
+}, [permission]);
+
 
 
   useEffect(() => {
@@ -132,7 +144,6 @@ export default function PaginaCamera() {
 
   useEffect(() => {
     if (permission?.granted && mostrarPermissaoOverlay) {
-      console.log('✅ Câmara ativa – ocultando overlay de permissão');
       setMostrarPermissaoOverlay(false);
     }
   }, [permission, mostrarPermissaoOverlay]);
@@ -206,7 +217,7 @@ export default function PaginaCamera() {
             </View>
 
 
-            {mostrarPermissaoOverlay && (
+            {permission && !permission.granted &&(
               <View style={styles.overlayMensagem}>
                 <Image
                   source={require('../../assets/icons/pagina_camera/sempermissao.png')}

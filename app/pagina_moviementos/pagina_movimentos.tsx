@@ -371,20 +371,26 @@ const Pagina_movimentos: React.FC = () => {
   };
 
   const swipeGesture = Gesture.Pan()
-    .onEnd((event) => {
-      if (Math.abs(event.translationX) > 50) {
-        if (event.translationX > 0) {
-          runOnJS(irParaMesAnterior)();
-        } else {
-          runOnJS(irParaProximoMes)();
-        }
+  .activeOffsetX([-10, 10]) // precisa mover mais de 10px na horizontal
+  .failOffsetY([-10, 10])   // se mover mais de 10px no Y, falha
+  .onEnd((event) => {
+    if (Math.abs(event.translationX) > 50) {
+      if (event.translationX > 0) {
+        runOnJS(irParaMesAnterior)();
+      } else {
+        runOnJS(irParaProximoMes)();
       }
-    });
+    }
+  });
+
+
+
 
 
     const isMesFuturo =
     mesSelecionado.ano > hoje.getFullYear() ||
     (mesSelecionado.ano === hoje.getFullYear() && mesSelecionado.mesIndex > hoje.getMonth());
+    const scrollVerticalRef = useRef(null);
 
 
   return (
@@ -485,7 +491,7 @@ const Pagina_movimentos: React.FC = () => {
             </View>
           ) : (
             <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
-              <ScrollView contentContainerStyle={{ paddingBottom: 110 }} showsVerticalScrollIndicator={false}>
+              <ScrollView ref={scrollVerticalRef} contentContainerStyle={{ paddingBottom: 110 }} showsVerticalScrollIndicator={false}>
                 {movimentos.length === 0 ? (
                   <View style={styles.semMovimentosContainer}>
                     <Image

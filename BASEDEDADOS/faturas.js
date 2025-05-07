@@ -182,6 +182,26 @@ async function registarFatura_BDLOCAL({
     console.error('❌ Erro ao registrar fatura:', error);
   }
 }
+async function verificarFaturaPorATCUD(codigoATCUD) {
+  try {
+    const db = await CRIARBD();
+    const fatura = await db.getFirstAsync(
+      `SELECT * FROM faturas WHERE codigo_ATCUD = ?`,
+      [codigoATCUD]
+    );
+
+    if (!fatura) {
+      console.log(`✅ Nenhuma fatura encontrada com ATCUD: ${codigoATCUD}`);
+      return null;
+    }
+
+    console.log(`⚠️ Fatura já registrada com ATCUD: ${codigoATCUD}`);
+    return fatura;
+  } catch (error) {
+    console.error('❌ Erro ao verificar fatura por ATCUD:', error);
+    return null;
+  }
+}
 
 
 async function consultarFatura(movimentoId) {
@@ -296,6 +316,8 @@ export {
   apagarTabelaFaturas,
   registarFatura_BDLOCAL,
   consultarFatura,
-  atualizarMovimentoPorFatura
+  atualizarMovimentoPorFatura,
+  verificarFaturaPorATCUD,
+
 
 };

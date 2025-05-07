@@ -139,21 +139,32 @@ const Modal_Info_Fatura: React.FC<Props> = ({ visivel, uri, aoFechar, aoEliminar
 
 
     function formatarData(dataStr: string): string {
-        if (!dataStr || dataStr.length !== 8) return '---';
-
-        const ano = dataStr.slice(0, 4);
-        const mes = dataStr.slice(4, 6);
-        const dia = dataStr.slice(6, 8);
-
-        return `${dia}/${mes}/${ano}`;
+        if (!dataStr) return '---';
+    
+        // Se vier no formato YYYYMMDD
+        if (dataStr.length === 8) {
+            const ano = dataStr.slice(0, 4);
+            const mes = dataStr.slice(4, 6);
+            const dia = dataStr.slice(6, 8);
+            return `${dia}/${mes}/${ano}`;
+        }
+    
+        // Se vier no formato YYYY-MM-DD
+        if (dataStr.length === 10 && dataStr.includes('-')) {
+            const [ano, mes, dia] = dataStr.split('-');
+            return `${dia}/${mes}/${ano}`;
+        }
+    
+        return '---'; 
     }
+    
 
     async function interpretarQr(qr: string) {
         const dados = Object.fromEntries(qr.split('*').map(parte => {
             const [chave, valor] = parte.split(':');
             return [chave, valor];
         }));
-        //console.log('🧾 QR bruto:', qr);
+        console.log('🧾 QR bruto:', qr);
 
         const nomeEmpresaInfo = await obterInfoEmpresaPorNif(dados.A);
 
@@ -170,7 +181,7 @@ const Modal_Info_Fatura: React.FC<Props> = ({ visivel, uri, aoFechar, aoEliminar
             certificado: dados.R,
         };
 
-       // console.log('📦 Dados interpretados do QR:', resultado);
+       //console.log('📦 Dados interpretados do QR:', resultado);
 
         return resultado;
     }
@@ -184,7 +195,7 @@ const Modal_Info_Fatura: React.FC<Props> = ({ visivel, uri, aoFechar, aoEliminar
             setSubcategoriaSelecionadaId(null);
             setDadosInterpretados(null);
             setQrInvalido(false);
-            setEmissorEditado(null);
+           // setEmissorEditado(null);
 
         }
     }, [visivel]);
@@ -582,6 +593,7 @@ const Modal_Info_Fatura: React.FC<Props> = ({ visivel, uri, aoFechar, aoEliminar
                                                     nota: nota || null,
                                                     nomeEmpresa: dadosInterpretados?.emissor ?? null,
                                                     imagemUri: uri ?? null,
+                                                    codigoAtcud: dadosInterpretados?.atcud ?? null, 
                                                 });
 
                                             }, 300);

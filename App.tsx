@@ -57,6 +57,7 @@ export type RootStackParamList = {
     nota: string | null;
     nomeEmpresa: string | null;
     imagemUri: string | null;
+    codigoAtcud: string | null;
   };
   MovimentosDaMeta: { id_meta: number };
   EditarMeta: { id_meta: number };

@@ -2,6 +2,8 @@ import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useNavigation, CommonActions, useRoute } from '@react-navigation/native';
 import CheckIcone from '../../assets/icons/pagina_camera/sucesso.svg';
+import ErroIcon from '../../assets/icons/pagina_camera/erro_guardar.svg';
+import FaturaRepetida from '../../assets/icons/pagina_camera/fatura_repetida.svg';
 import Guardaricon from '../../assets/icons/pagina_camera/guardando.svg';
 import * as NavigationBar from 'expo-navigation-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -17,6 +19,7 @@ import { Animated, Easing } from 'react-native';
 import { useRef } from 'react'; // já deve ter
 import IconeRotativo from '../../assets/imagens/wallpaper.svg';
 import * as FileSystem from 'expo-file-system';
+import { verificarFaturaPorATCUD } from '../../BASEDEDADOS/faturas';
 
 type PaginaSucessoRouteProp = RouteProp<RootStackParamList, 'PaginaSucesso'>;
 
@@ -49,6 +52,7 @@ async function salvarImagemPermanentemente(uri: string): Promise<string | null> 
 export default function PaginaSucesso() {
   const [carregando, setCarregando] = useState(true);
   const [faturaId, setFaturaId] = useState<number | null>(null);
+  const [estado, setEstado] = useState<'sucesso' | 'erro' | 'faturaRepetida'>('sucesso');
 
   const animSucesso = useRef(new Animated.Value(0)).current;
   const animBotao = useRef(new Animated.Value(0)).current;
@@ -56,7 +60,7 @@ export default function PaginaSucesso() {
 
 
   const route = useRoute<PaginaSucessoRouteProp>();
-  const { conteudoQr, categoriaId, subcategoriaId, nota, nomeEmpresa, imagemUri } = route.params;
+  const { conteudoQr, categoriaId, subcategoriaId, nota, nomeEmpresa, imagemUri, codigoAtcud } = route.params;
 
   const dadosFatura = interpretarQrConteudo(conteudoQr ?? '');
 
@@ -95,6 +99,7 @@ export default function PaginaSucesso() {
     }, [])
   );
 
+
   function obterDataHoraAtual() {
     const agora = new Date();
     const ano = agora.getFullYear();
@@ -110,6 +115,16 @@ export default function PaginaSucesso() {
   useEffect(() => {
     const registrar = async () => {
       setCarregando(true);
+
+      const faturaExistente = await verificarFaturaPorATCUD(codigoAtcud ?? dadosFatura.atcud);
+      if (faturaExistente) {
+        setEstado('faturaRepetida');
+        Animated.timing(animSucesso, { toValue: 1, duration: 500, useNativeDriver: true }).start();
+        Animated.timing(animBotao, { toValue: 1, duration: 500, useNativeDriver: true }).start();
+        setCarregando(false);
+        return;
+      }
+
       let imagemSalva = null;
       if (imagemUri) {
         imagemSalva = await salvarImagemPermanentemente(imagemUri);
@@ -122,6 +137,7 @@ export default function PaginaSucesso() {
         nota,
         tipoDocumento: dadosFatura.tipoDocumento,
         numeroFatura: dadosFatura.numeroDocumento,
+        codigoATCUD: codigoAtcud ?? dadosFatura.atcud,
         dataFatura: `${dadosFatura.data.split('/').reverse().join('-')}`,
         nifEmitente: dadosFatura.nifEmpresa,
         nomeEmpresa,
@@ -135,8 +151,15 @@ export default function PaginaSucesso() {
 
       const faturaIdCriada = await registarFatura_BDLOCAL(dadosParaSalvar);
 
+      if (!faturaIdCriada) {
+        setEstado('erro');
+        Animated.timing(animSucesso, { toValue: 1, duration: 500, useNativeDriver: true }).start();
+        Animated.timing(animBotao, { toValue: 1, duration: 500, useNativeDriver: true }).start();
+        setCarregando(false);
+        return;
+      }
       setFaturaId(faturaIdCriada);
-
+      setEstado('sucesso');
 
       Animated.timing(animSucesso, {
         toValue: 1,
@@ -180,10 +203,24 @@ export default function PaginaSucesso() {
         return [chave, valor];
       })
     );
+    console.log('🔍 Dados lidos do QR:', dados);
 
     function formatarData(dataStr?: string): string {
-      if (!dataStr || dataStr.length !== 8) return '---';
-      return `${dataStr.slice(6, 8)}/${dataStr.slice(4, 6)}/${dataStr.slice(0, 4)}`;
+      if (!dataStr) return '---';
+
+      if (dataStr.length === 8) { // Exemplo: 20240507
+        const ano = dataStr.slice(0, 4);
+        const mes = dataStr.slice(4, 6);
+        const dia = dataStr.slice(6, 8);
+        return `${dia}/${mes}/${ano}`;
+      }
+
+      if (dataStr.length === 10 && dataStr.includes('-')) { 
+        const [ano, mes, dia] = dataStr.split('-');
+        return `${dia}/${mes}/${ano}`;
+      }
+
+      return dataStr;
     }
 
     return {
@@ -229,9 +266,9 @@ export default function PaginaSucesso() {
             <IconeRotativo width={50} height={50} fill="#2565A3" />
           </Animated.View>
         </>
-      ) : (
+      ) : estado === 'sucesso' ? (
         <>
-          {/* ✅ Animação do conteúdo central */}
+
           <Animated.View
             style={[
               styles.content,
@@ -249,13 +286,11 @@ export default function PaginaSucesso() {
             ]}
           >
             <CheckIcone width={140} height={140} />
-            <Text style={styles.texto}>
-              Fatura guardada com{'\n'}
-              <Text style={styles.texto}>SUCESSO!</Text>
-            </Text>
+            <Text style={styles.texto}>Fatura guardada com {'\n'}<Text style={{ fontWeight: 'bold' }}>SUCESSO!</Text></Text>
+
           </Animated.View>
 
-          {/* ✅ Botão no rodapé, com animação separada */}
+
           <Animated.View
             style={[
               styles.footer,
@@ -274,6 +309,102 @@ export default function PaginaSucesso() {
           >
             <TouchableOpacity style={styles.botao} onPress={voltarParaMainApp}>
               <Text style={styles.botaoTexto}>Entendi</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        </>
+      ) : estado === 'faturaRepetida' ? (
+        <>
+
+          <Animated.View
+            style={[
+              styles.content,
+              {
+                opacity: animSucesso,
+                transform: [
+                  {
+                    scale: animSucesso.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.8, 1],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
+            <FaturaRepetida width={140} height={140} />
+            <Text style={styles.texto}>
+              Fatura não inserida pois já {'\n'}
+              <Text style={styles.texto}>se encontra registada!</Text>
+            </Text>
+          </Animated.View>
+
+
+          <Animated.View
+            style={[
+              styles.footer,
+              {
+                opacity: animBotao,
+                transform: [
+                  {
+                    translateY: animBotao.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [50, 0],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
+            <TouchableOpacity style={styles.botao} onPress={voltarParaMainApp}>
+              <Text style={styles.botaoTexto}>Voltar</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        </>
+      ) : (
+        <>
+
+          <Animated.View
+            style={[
+              styles.content,
+              {
+                opacity: animSucesso,
+                transform: [
+                  {
+                    scale: animSucesso.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.8, 1],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
+            <ErroIcon width={140} height={140} />
+            <Text style={styles.texto}>
+              Erro ao inserir fatura !
+
+            </Text>
+          </Animated.View>
+
+
+          <Animated.View
+            style={[
+              styles.footer,
+              {
+                opacity: animBotao,
+                transform: [
+                  {
+                    translateY: animBotao.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [50, 0],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
+            <TouchableOpacity style={styles.botao} onPress={voltarParaMainApp}>
+              <Text style={styles.botaoTexto}>Tentar Novamente</Text>
             </TouchableOpacity>
           </Animated.View>
         </>
