@@ -22,9 +22,10 @@ import EditarMeta from './app/pagina_metas/pagina_editar_meta';
 import PaginaCategorias from './app/pagina_perfil/pagina_categorias/pagina_categorias';
 import CriarCategoria from './app/pagina_perfil/pagina_categorias/criar_categoria/criar_categoria';
 import EditarSubCategoria
- from './app/pagina_perfil/pagina_categorias/editar_categoria/editar_categoria';
+  from './app/pagina_perfil/pagina_categorias/editar_categoria/editar_categoria';
 import PaginaNotificacoes from './app/pagina_principal/pagina_notificacoes/pagina_notificacoes';
 import PaginaSucessoManual from './app/pagina_principal/pagina_sucesso_manual_fatura';
+import DetalhesCategoria from './app/pagina_principal/componentes/detalhes_categoria/pagina_detalhes_categoria';
 
 const { height, width } = Dimensions.get('window');
 import 'react-native-gesture-handler';
@@ -78,7 +79,8 @@ export type RootStackParamList = {
     nifCliente: string | null,
     valorTotal: string;
     imagemUri: string | null;
-};
+  };
+  DetalhesCategoria: { categoriaId: number; nomeCategoria: string };
 
 
 
@@ -205,6 +207,11 @@ const PaginaSucessoManualScreen = (props: any) => (
     <PaginaSucessoManual {...props} />
   </View>
 );
+const DetalhesCategoriaScreen = (props: any) => (
+  <View style={styles.defaultContainer}>
+    <DetalhesCategoria {...props} />
+  </View>
+);
 
 
 const App: React.FC = () => {
@@ -291,6 +298,17 @@ const App: React.FC = () => {
           }}
         />
         <Stack.Screen name="Notificacoes" component={NotificacoesScreen} />
+        <Stack.Screen
+          name="DetalhesCategoria"
+          component={DetalhesCategoriaScreen}
+          options={{
+            animation: 'fade',
+            transitionSpec: {
+              open: { animation: 'timing', config: { duration: 350 } },
+              close: { animation: 'timing', config: { duration: 250 } },
+            },
+          }}
+        />
 
 
 

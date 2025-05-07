@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, StyleSheet, Image, ImageSourcePropType } from 'react-native';
+import { View, StyleSheet, Image, ImageSourcePropType, Pressable } from 'react-native';
 import Svg, { Circle, Line, G, } from 'react-native-svg';
 import { Dimensions } from 'react-native';
 import { red } from 'react-native-reanimated/lib/typescript/Colors';
@@ -11,7 +11,11 @@ const { height } = Dimensions.get('window');
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, useAnimatedProps, interpolate, useDerivedValue } from 'react-native-reanimated';
 import { Easing } from 'react-native-reanimated';
 import { Text } from "react-native";
-// 📌 Definição da interface baseada na tabela `movimentos`
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { RootStackParamList } from '../../../App'; // ajuste o caminho
+type NavigationProp = StackNavigationProp<RootStackParamList>;
+
 interface DadosGrafico {
   categoria_id: number;
   nome_cat: string;
@@ -71,6 +75,7 @@ const Grafico_Circular: React.FC<GraficoCircularProps> = ({ categorias, tipoSele
   const strokeWidth = width * 0.077;
   const size = (radius + strokeWidth + outerCircleRadius + 50) * 2;
   const circumference = 2 * Math.PI * radius;
+  const navigation = useNavigation<NavigationProp>();
 
 
   if (!categorias.length) {
@@ -149,6 +154,7 @@ const Grafico_Circular: React.FC<GraficoCircularProps> = ({ categorias, tipoSele
   }, []);
 
 
+  const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 
   return (
@@ -235,7 +241,13 @@ const Grafico_Circular: React.FC<GraficoCircularProps> = ({ categorias, tipoSele
                   animatedProps={animatedLineProps}
                 />
 
-                <Animated.View style={animatedContainerStyle}>
+<AnimatedPressable style={animatedContainerStyle} onPress={() => {
+  console.log('Bolinha clicada!', categoria.categoria_id);
+  navigation.getParent()?.navigate('DetalhesCategoria', {
+    categoriaId: categoria.categoria_id,
+    nomeCategoria: categoria.nome_cat,
+  });
+}}>
                   {categoria.img_cat && (
                     <Image
                       source={getImagemCategoria(categoria.img_cat)}
@@ -261,7 +273,7 @@ const Grafico_Circular: React.FC<GraficoCircularProps> = ({ categorias, tipoSele
                     {`${parseInt(categoria.total_valor.toString(), 10)}€`}
                   </Text>
 
-                </Animated.View>
+                  </AnimatedPressable>
 
               </React.Fragment>
             );

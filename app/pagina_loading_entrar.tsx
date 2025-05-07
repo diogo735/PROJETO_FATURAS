@@ -26,7 +26,7 @@ const PagLoadingEntrar = () => {
        
         await inicializarBaseDeDados();
         await verificarNotificacoesDeTodasMetas();
-        await new Promise(resolve => setTimeout(resolve, 5000));
+        await new Promise(resolve => setTimeout(resolve, 1000));
       await SplashScreen.hideAsync();
         setTimeout(() => {
           navigation.reset({
