@@ -144,7 +144,7 @@ const Grafico_Circular: React.FC<GraficoCircularProps> = ({ categorias, tipoSele
     valorFinal: cat.valorCalculado * fatorAjuste
   }));
   let acumulado = 0;
-
+let acumulado2 = 0;
 
   const animatedProgress = useSharedValue(0);
 
@@ -157,22 +157,39 @@ const Grafico_Circular: React.FC<GraficoCircularProps> = ({ categorias, tipoSele
   const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 
+  const bolinhasData = valoresAjustados.map((categoria) => {
+    const segmento = categoria.valorFinal;
+    const offset = -acumulado;
+    const espacoEntreSegmentos = strokeWidth * 1.15;
+    const centroSegmento = (acumulado + (segmento - espacoEntreSegmentos) / 2) / circumference * 2 * Math.PI - Math.PI / 2;
+    const ajusteLinha = strokeWidth * 0.5;
+    acumulado += segmento;
+
+    const centroSegmentoSeguro = isNaN(centroSegmento) ? -Math.PI / 2 : centroSegmento;
+
+    const animatedAngle = useDerivedValue(() => {
+      return interpolate(animatedProgress.value, [0, 1], [-Math.PI / 2, centroSegmentoSeguro]);
+    }, [animatedProgress]);
+
+    return { categoria, animatedAngle, offset, segmento };
+  });
+
   return (
 
     <View style={[styles.container]}>
 
-      <Svg width={size} height={size}>
+      <Svg width={size} height={size} >
         <G originX={size / 2} originY={size / 2}>
           {valoresAjustados.map((categoria, index) => {
             const segmento = categoria.valorFinal;
-            const offset = -acumulado;
+            const offset = -acumulado2;
             const espacoEntreSegmentos = strokeWidth * 1.15;
             // Encontrar o centro do segmento
-            const centroSegmento = (acumulado + (segmento - espacoEntreSegmentos) / 2) / circumference * 2 * Math.PI - Math.PI / 2;
+            const centroSegmento = (acumulado2 + (segmento - espacoEntreSegmentos) / 2) / circumference * 2 * Math.PI - Math.PI / 2;
 
             const ajusteLinha = strokeWidth * 0.5;
 
-            acumulado += segmento;
+            acumulado2 += segmento;
 
             const animatedProps = useAnimatedProps(() => ({
               strokeDasharray: `${Math.max(0, segmento - espacoEntreSegmentos) * animatedProgress.value} ${circumference}`,
@@ -198,21 +215,7 @@ const Grafico_Circular: React.FC<GraficoCircularProps> = ({ categorias, tipoSele
               };
             });
 
-            const animatedContainerStyle = useAnimatedStyle(() => {
-              return {
-                position: "absolute",
-                width: width * 0.166, // Tamanho da bolinha
-                height: width * 0.166,
-                backgroundColor: categoria.cor_cat || "#000",
-                borderRadius: (width * 0.166) / 2,
-                justifyContent: "center",
-                alignItems: "center",
-                transform: [
-                  { translateX: (size / 2 + (radius + strokeWidth + 30) * Math.cos(animatedAngle.value)) - (width * 0.166) / 2 },
-                  { translateY: (size / 2 + (radius + strokeWidth + 30) * Math.sin(animatedAngle.value)) - (width * 0.166) / 2 },
-                ],
-              };
-            });
+           
 
             return (
               <React.Fragment key={`segmento-${categoria.categoria_id}`}>
@@ -241,39 +244,7 @@ const Grafico_Circular: React.FC<GraficoCircularProps> = ({ categorias, tipoSele
                   animatedProps={animatedLineProps}
                 />
 
-<AnimatedPressable style={animatedContainerStyle} onPress={() => {
-  console.log('Bolinha clicada!', categoria.categoria_id);
-  navigation.getParent()?.navigate('DetalhesCategoria', {
-    categoriaId: categoria.categoria_id,
-    nomeCategoria: categoria.nome_cat,
-  });
-}}>
-                  {categoria.img_cat && (
-                    <Image
-                      source={getImagemCategoria(categoria.img_cat)}
-                      style={{
-                        width: width * 0.08,
-                        height: width * 0.08,
-                        marginBottom: width * 0.04,
-                        resizeMode: "contain",
-                      }}
-                    />
-                  )}
-                  <Text
-                    style={{
-                      fontSize: width * 0.035,
-                      color: "white",
-                      fontWeight: "bold",
-                      position: "absolute",
-                      top: width * 0.10,
-                      textAlign: "center",
-                      width: "100%",
-                    }}
-                  >
-                    {`${parseInt(categoria.total_valor.toString(), 10)}€`}
-                  </Text>
 
-                  </AnimatedPressable>
 
               </React.Fragment>
             );
@@ -281,6 +252,69 @@ const Grafico_Circular: React.FC<GraficoCircularProps> = ({ categorias, tipoSele
 
         </G>
       </Svg>
+      <View style={{ position: "absolute", width: size, height: size }}>
+        {bolinhasData.map(({ categoria, animatedAngle }) => {
+          const animatedContainerStyle = useAnimatedStyle(() => {
+            const x2 = size / 2 + (radius + strokeWidth + 30) * Math.cos(animatedAngle.value);
+            const y2 = size / 2 + (radius + strokeWidth + 30) * Math.sin(animatedAngle.value);
+
+            return {
+              position: "absolute",
+              width: width * 0.166,
+              height: width * 0.166,
+              backgroundColor: categoria.cor_cat || "#000",
+              borderRadius: (width * 0.166) / 2,
+              justifyContent: "center",
+              alignItems: "center",
+              zIndex: 10,
+              transform: [
+                { translateX: x2 - (width * 0.166) / 2 },
+                { translateY: y2 - (width * 0.166) / 2 },
+              ],
+            };
+          });
+
+          return (
+            <AnimatedPressable
+              key={`bolinha-${categoria.categoria_id}`}
+              style={animatedContainerStyle}
+              onPress={() => {
+                navigation.getParent()?.navigate('DetalhesCategoria', {
+                  categoriaId: categoria.categoria_id,
+                  nomeCategoria: categoria.nome_cat,
+                  imgCategoria: categoria.img_cat,
+                  corCategoria: categoria.cor_cat,
+                });
+              }}
+            >
+              {categoria.img_cat && (
+                <Image
+                  source={getImagemCategoria(categoria.img_cat)}
+                  style={{
+                    width: width * 0.08,
+                    height: width * 0.08,
+                    marginBottom: width * 0.04,
+                    resizeMode: "contain",
+                  }}
+                />
+              )}
+              <Text
+                style={{
+                  fontSize: width * 0.035,
+                  color: "white",
+                  fontWeight: "bold",
+                  position: "absolute",
+                  top: width * 0.10,
+                  textAlign: "center",
+                  width: "100%",
+                }}
+              >
+                {`${parseInt(categoria.total_valor.toString(), 10)}€`}
+              </Text>
+            </AnimatedPressable>
+          );
+        })}
+      </View>
 
 
       <View style={styles.imagemCentro}>

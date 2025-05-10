@@ -80,7 +80,7 @@ export type RootStackParamList = {
     valorTotal: string;
     imagemUri: string | null;
   };
-  DetalhesCategoria: { categoriaId: number; nomeCategoria: string };
+  DetalhesCategoria: { categoriaId: number; nomeCategoria: string ,imgCategoria: string,corCategoria: string;};
 
 
 
