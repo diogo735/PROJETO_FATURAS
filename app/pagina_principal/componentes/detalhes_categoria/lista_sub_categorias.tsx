@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Dimensions } from 'react-native';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import FontAwesome from 'react-native-vector-icons/FontAwesome';
 const { width, height } = Dimensions.get('window');
 type SubCategoria = {
     nome: string;
@@ -12,16 +12,18 @@ type SubCategoria = {
 
 type Props = {
     subcategorias: SubCategoria[];
+    tipoCategoria: string | null;
 };
 
-const ListaSubCategorias: React.FC<Props> = ({ subcategorias }) => {
+
+const ListaSubCategorias: React.FC<Props> = ({ subcategorias, tipoCategoria }) => {
     return (
         <View style={styles.container}>
             {subcategorias.map((item, index) => (
                 <View key={index} style={styles.item}>
                     {/* círculo com ícone */}
                     <View style={[styles.circulo, { backgroundColor: item.cor }]}>
-                        <MaterialCommunityIcons name={item.icone} color="white" size={25} />
+                        <FontAwesome name={item.icone} color="white" size={20} />
                     </View>
 
                     {/* Nome + linha + % */}
@@ -42,7 +44,19 @@ const ListaSubCategorias: React.FC<Props> = ({ subcategorias }) => {
 
 
                     {/* Valor */}
-                    <Text style={styles.valor}>{item.valor} €</Text>
+                    <Text
+                        style={[
+                            styles.valor,
+                            {
+                                color: tipoCategoria === 'Despesa' ? 'red' :
+                                    tipoCategoria === 'Receita' ? 'green' :
+                                        'black',
+                            }
+                        ]}
+                    >
+                        {item.valor} €
+                    </Text>
+
                 </View>
             ))}
         </View>
@@ -51,13 +65,14 @@ const ListaSubCategorias: React.FC<Props> = ({ subcategorias }) => {
 
 const styles = StyleSheet.create({
     container: {
-        width: '90%',
-        marginVertical:'3%'
+        width: '94%',
+        marginVertical: '3%'
     },
     item: {
         flexDirection: 'row',
         alignItems: 'center',
         marginBottom: 12,
+        paddingLeft:15
     },
     circulo: {
         width: height * 0.07,
@@ -85,7 +100,7 @@ const styles = StyleSheet.create({
     },
 
     valor: {
-        color: 'red',
+        //color: 'red',
         fontWeight: 'bold',
         marginLeft: '15%',
     },

@@ -1,8 +1,9 @@
 import React from 'react';
 import { Dimensions } from 'react-native';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Animated } from 'react-native';
 const { width, height } = Dimensions.get('window');
 import { ScrollView } from 'react-native';
+
 
 type Props = {
     cor: string;
@@ -10,9 +11,10 @@ type Props = {
     valoresY: number[];
     valoresBarras: number[];
     indiceHoje: number;
+    tipoCategoria: string | null;
 };
 
-const GraficoBarras: React.FC<Props> = ({ cor, valoresX, valoresY, valoresBarras, indiceHoje }) => {
+const GraficoBarras: React.FC<Props> = ({ cor, valoresX, valoresY, valoresBarras, indiceHoje, tipoCategoria }) => {
     const valorMaximo = Math.max(...valoresY.map(Math.abs));
     const alturaGrafico = height * 0.4;
     const linhasCount = valoresY.length;
@@ -26,9 +28,20 @@ const GraficoBarras: React.FC<Props> = ({ cor, valoresX, valoresY, valoresBarras
             <View style={styles.graficoContainer}>
                 {/* Eixo Y */}
                 <View style={styles.eixoY}>
-                    {valoresY.slice().reverse().map((valor, index) => (
-                        <Text key={index} style={styles.textoEixoY}>{valor}</Text>
-                    ))}
+                    {valoresY.slice().reverse().map((valor, index) => {
+                        let prefixo = '';
+                        if (valor !== 0) {
+                            if (tipoCategoria === 'Despesa') prefixo = '- ';
+                            else if (tipoCategoria === 'Receita') prefixo = '+ ';
+                        }
+
+                        return (
+                            <Text key={index} style={styles.textoEixoY}>
+                                {prefixo}{Math.round(valor)} €
+                            </Text>
+                        );
+                    })}
+
                 </View>
 
                 {/* Gráfico de barras */}
@@ -53,7 +66,13 @@ const GraficoBarras: React.FC<Props> = ({ cor, valoresX, valoresY, valoresBarras
                                             styles.barra,
                                             {
                                                 height: alturaBarra,
-                                                backgroundColor: index === indiceHoje ? 'brown' : cor,
+                                                backgroundColor:
+                                                    indiceHoje === -1 || indiceHoje === null
+                                                        ? cor // todas com a cor da categoria
+                                                        : index === indiceHoje
+                                                            ? cor // só a do hoje com cor
+                                                            : '#D9D9D9', // outras em cinza
+
                                             },
                                         ]}
                                     />
@@ -123,10 +142,12 @@ const styles = StyleSheet.create({
     barraWrapper: {
         alignItems: 'center',
         width: '20%',
+        marginLeft: -width * 0.05
     },
     barra: {
         width: '20%',
         borderRadius: 99,
+        marginLeft: 1
     },
     textoEixoX: {
         fontSize: 10,

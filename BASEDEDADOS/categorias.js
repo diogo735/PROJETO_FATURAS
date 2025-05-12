@@ -242,7 +242,23 @@ async function apagarTodasCategorias() {
     }
   }
   
-  
+  async function obterTipoMovimentoPorCategoriaId(categoriaId) {
+  try {
+    const db = await CRIARBD();
+    const result = await db.getFirstAsync(`
+      SELECT tm.nome_movimento
+      FROM categorias c
+      INNER JOIN tipo_movimento tm ON c.tipo_movimento_id = tm.id
+      WHERE c.id = ?
+    `, [categoriaId]);
+
+    return result?.nome_movimento || null;
+  } catch (error) {
+    console.error("❌ Erro ao obter tipo de movimento da categoria:", error);
+    return null;
+  }
+}
+
 // Exporta as operações para serem usadas no app
 export { criarTabelaCategorias, 
   resetarCategorias,
@@ -255,6 +271,7 @@ export { criarTabelaCategorias,
     listarCategoriasDespesa,
     listarCategoriasReceita,
     listarCategoriasComTipo,
-    buscarCategoriaPorId
+    buscarCategoriaPorId,
+    obterTipoMovimentoPorCategoriaId
 
   };

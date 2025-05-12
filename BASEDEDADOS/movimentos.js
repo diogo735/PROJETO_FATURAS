@@ -395,6 +395,99 @@ async function limparTabelaMovimentos() {
     console.error("❌ Erro ao limpar tabela 'movimentos':", error);
   }
 }
+//////////////////////////////PAGINA DE UMA CATEGORIA
+
+async function obterSomaMovimentosPorCategoriaEMes(categoriaId, mes, ano) {
+  try {
+    const db = await CRIARBD();
+    const mesFormatado = mes.toString().padStart(2, '0');
+    const anoMes = `${ano}-${mesFormatado}`;
+
+    const resultado = await db.getFirstAsync(`
+      SELECT SUM(m.valor) AS total
+      FROM movimentos m
+      WHERE m.categoria_id = ?
+        AND strftime('%Y-%m', m.data_movimento) = ?
+    `, [categoriaId, anoMes]);
+
+    return resultado?.total ?? 0;
+  } catch (error) {
+    console.error("❌ Erro ao obter soma dos movimentos da categoria:", error);
+    return 0;
+  }
+}
+
+
+async function obterSomaMovimentosPorIntervaloFormatado(categoriaId, dataInicio, dataFim) {
+  try {
+    const db = await CRIARBD();
+    const resultado = await db.getFirstAsync(`
+      SELECT SUM(valor) as total
+      FROM movimentos
+      WHERE categoria_id = ?
+        AND date(data_movimento) BETWEEN date(?) AND date(?)
+    `, [categoriaId, dataInicio, dataFim]);
+
+    return resultado?.total ?? 0;
+  } catch (error) {
+    console.error('❌ Erro ao obter soma por intervalo:', error);
+    return 0;
+  }
+}
+
+
+async function obterSomaMovimentosPorSubCategoriaEMes(subCategoriaId, mes, ano) {
+  try {
+    const db = await CRIARBD();
+    const mesFormatado = mes.toString().padStart(2, '0');
+    const anoMes = `${ano}-${mesFormatado}`;
+
+    const resultado = await db.getFirstAsync(`
+      SELECT SUM(valor) as total
+      FROM movimentos
+      WHERE sub_categoria_id = ?
+        AND strftime('%Y-%m', data_movimento) = ?
+    `, [subCategoriaId, anoMes]);
+
+    return resultado?.total ?? 0;
+  } catch (error) {
+    console.error('❌ Erro ao obter soma de movimentos da subcategoria:', error);
+    return 0;
+  }
+}
+
+async function listarMovimentosPorCategoriaMesAno(categoriaId, mes, ano) {
+  try {
+    const db = await CRIARBD();
+    const mesFormatado = mes.toString().padStart(2, '0');
+    const anoMes = `${ano}-${mesFormatado}`;
+
+    const result = await db.getAllAsync(`
+      SELECT 
+        m.id,
+        m.valor,
+        m.nota,
+        m.data_movimento,
+        c.img_cat,
+        c.cor_cat,
+        sc.icone_nome AS img_subcat,
+        sc.cor_subcat,
+        tm.nome_movimento
+      FROM movimentos m
+      INNER JOIN categorias c ON m.categoria_id = c.id
+      LEFT JOIN sub_categorias sc ON m.sub_categoria_id = sc.id
+      INNER JOIN tipo_movimento tm ON c.tipo_movimento_id = tm.id
+      WHERE m.categoria_id = ?
+        AND strftime('%Y-%m', m.data_movimento) = ?
+      ORDER BY datetime(m.data_movimento) DESC;
+    `, [categoriaId, anoMes]);
+
+    return result;
+  } catch (error) {
+    console.error("❌ Erro ao listar movimentos da categoria:", error);
+    return [];
+  }
+}
 
 export {
   criarTabelaMovimentos,
@@ -411,6 +504,13 @@ export {
   obterBalancoGeral,
   obterCategoriaPorMovimentoId,
   limparTabelaMovimentos,
-  obterSubCategoriaPorMovimentoId
+  obterSubCategoriaPorMovimentoId,
+  obterSomaMovimentosPorCategoriaEMes,
+  obterSomaMovimentosPorIntervaloFormatado,
+  obterSomaMovimentosPorSubCategoriaEMes,
+  listarMovimentosPorCategoriaMesAno
+ 
+  
+  
 
 };

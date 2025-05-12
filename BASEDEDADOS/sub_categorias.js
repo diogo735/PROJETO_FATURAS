@@ -19,6 +19,25 @@ async function criarTabelaSubCategorias() {
     console.error('❌ Erro ao criar tabela "sub_categorias":', error);
   }
 }
+async function listarSubCategoriasPorCategoriaId(categoriaId) {
+  try {
+    const db = await CRIARBD();
+    const resultados = await db.getAllAsync(`
+      SELECT 
+        id, 
+        nome_subcat AS nome, 
+        cor_subcat AS cor, 
+        icone_nome AS icone
+      FROM sub_categorias
+      WHERE categoria_id = ?
+    `, [categoriaId]);
+
+    return resultados;
+  } catch (error) {
+    console.error('❌ Erro ao listar subcategorias por categoria:', error);
+    return [];
+  }
+}
 
 
 async function inserirSubCategoria(nome_subcat, icone_nome, cor_subcat, categoria_id) {
@@ -222,5 +241,6 @@ export {
   deletarSubCategoria,
   listarSubCategoriasComCategoria,
   criarSubCategoriasDeTeste,
-  eliminarSubCategoriaEAtualizarMovimentos
+  eliminarSubCategoriaEAtualizarMovimentos,
+  listarSubCategoriasPorCategoriaId
 };

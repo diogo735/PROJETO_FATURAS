@@ -92,7 +92,12 @@ const ListaMovimentos_de_umaCategoria: React.FC<Props> = ({ movimentos }) => {
             // Cabeçalho de cada seção (a data)
             renderSectionHeader={({ section }) => {
                 const total = section.data.reduce((acc, item) => acc + item.valor, 0);
-                const totalFormatado = `${total < 0 ? '-' : ''}${Math.abs(total)} €`;
+
+                const tipo = section.data[0]?.nome_movimento;
+                const prefixo = tipo === 'Despesa' ? '- ' : tipo === 'Receita' ? '+ ' : '';
+
+                const totalFormatado = `${prefixo}${Math.abs(total).toFixed(2)} €`;
+
 
                 return (
                     <View style={styles.headerRow}>
@@ -126,7 +131,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: 8,
+        paddingLeft: 8,
     },
 
     sectionTotal: {
