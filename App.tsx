@@ -11,6 +11,7 @@ import * as NavigationBar from 'expo-navigation-bar';
 import CriarMeta from './app/pagina_metas/criar_meta/criar_meta';
 import PaginaSucesso from './app/pagina_principal/pagina_sucesso_fatura';
 import * as SplashScreen from 'expo-splash-screen';
+import Pagina_Comecar_QR from './app/paginas_de_intruducao/pagina_qr';
 
 import PaginaMovimentos from './app/pagina_moviementos/pagina_movimentos';
 import PaginaMetas from './app/pagina_metas/pagina_metas';
@@ -26,6 +27,12 @@ import EditarSubCategoria
 import PaginaNotificacoes from './app/pagina_principal/pagina_notificacoes/pagina_notificacoes';
 import PaginaSucessoManual from './app/pagina_principal/pagina_sucesso_manual_fatura';
 import DetalhesCategoria from './app/pagina_principal/componentes/detalhes_categoria/pagina_detalhes_categoria';
+import Pagina_Comecar from './app/paginas_de_intruducao/pagina_comecar';
+
+
+
+
+
 
 const { height, width } = Dimensions.get('window');
 import 'react-native-gesture-handler';
@@ -80,7 +87,8 @@ export type RootStackParamList = {
     valorTotal: string;
     imagemUri: string | null;
   };
-  DetalhesCategoria: { categoriaId: number; nomeCategoria: string ,imgCategoria: string,corCategoria: string;};
+  DetalhesCategoria: { categoriaId: number; nomeCategoria: string, imgCategoria: string, corCategoria: string; };
+  PaginaComecarQR: undefined;
 
 
 
@@ -104,7 +112,7 @@ const SplashScren = (props: any) => {
   return (
     <View style={{ flex: 1 }}>
       <StatusBar translucent backgroundColor="transparent" style="light" />
-      <PagLoadingEntrar {...props} />
+      <Pagina_Comecar />
     </View>
   );
 };
@@ -212,6 +220,12 @@ const DetalhesCategoriaScreen = (props: any) => (
     <DetalhesCategoria {...props} />
   </View>
 );
+const PaginaComecarQRScreen = (props: any) => (
+  <View style={{ flex: 1 }}>
+    <StatusBar translucent backgroundColor="transparent" style="light" />
+    <Pagina_Comecar_QR {...props} />
+  </View>
+);
 
 
 const App: React.FC = () => {
@@ -288,7 +302,7 @@ const App: React.FC = () => {
         />
         <Stack.Screen
           name="EditarSubcategoria"
-          component={EditarSubcategoriaScreen} 
+          component={EditarSubcategoriaScreen}
           options={{
             animation: 'fade',
             transitionSpec: {
@@ -310,6 +324,15 @@ const App: React.FC = () => {
           }}
         />
 
+
+        <Stack.Screen
+          name="PaginaComecarQR"
+          component={PaginaComecarQRScreen}
+          options={{
+            headerShown: false,
+            animation: 'slide_from_right',
+          }}
+        />
 
 
 

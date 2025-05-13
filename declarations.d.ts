@@ -8,4 +8,8 @@ declare module '*.svg' {
     const value: any;
     export = value;
   }
-  
+  // declarations.d.ts
+declare module '*.gif' {
+  const value: any;
+  export default value;
+}
