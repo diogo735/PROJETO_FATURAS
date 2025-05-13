@@ -288,7 +288,7 @@ const App: React.FC = () => {
         />
         <Stack.Screen
           name="EditarSubcategoria"
-          component={EditarSubcategoriaScreen} // você pode criar isso como CriarCategoriaScreen
+          component={EditarSubcategoriaScreen} 
           options={{
             animation: 'fade',
             transitionSpec: {
