@@ -20,9 +20,9 @@
       }
     },
     "splash": {
-      "backgroundColor": "#135D99",
+      "image": "./assets/imagens/icon_app_porco.png",
       "resizeMode": "contain",
-      "image": "./assets/adaptive-icon.png"
+      "backgroundColor": "#2565A3"
     },
     "android": {
       "adaptiveIcon": {
@@ -46,7 +46,8 @@
       "expo-sqlite",
       "expo-font",
       "expo-camera",
-      "expo-barcode-scanner"
+      "expo-barcode-scanner",
+      "expo-splash-screen"
     ],
     "extra": {
       "eas": {
