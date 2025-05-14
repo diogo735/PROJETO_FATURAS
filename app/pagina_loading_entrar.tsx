@@ -185,8 +185,9 @@ const styles = StyleSheet.create({
     marginTop: "7.5%",
     position: 'absolute',
     top: '55%',
-    left: '50%',
-    transform: [{ translateX: -width * 0.25 }],
+    //left: '0%',
+    justifyContent: 'center',
+    //transform: [{ translateX: -width * 0.25 }],
     alignItems: 'center',
   },
 

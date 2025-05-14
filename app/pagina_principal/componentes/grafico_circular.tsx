@@ -104,7 +104,7 @@ const Grafico_Circular: React.FC<GraficoCircularProps> = ({ categorias, tipoSele
               width: "100%",
             }}
           >
-            Nenhuma {tipoSelecionado === 'despesas' ? 'Despesa' : 'Receita'} registrada!
+            Nenhuma {tipoSelecionado === 'despesas' ? 'Despesa' : 'Receita'} Registrada!
           </Text>
 
         </Svg>

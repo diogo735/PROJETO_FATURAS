@@ -112,7 +112,7 @@ const SplashScren = (props: any) => {
   return (
     <View style={{ flex: 1 }}>
       <StatusBar translucent backgroundColor="transparent" style="light" />
-      <Pagina_Comecar />
+      <PagLoadingEntrar />
     </View>
   );
 };

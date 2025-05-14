@@ -4,9 +4,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Logo from '../../assets/imagens/icon_app_porco.svg';
 const { width, height } = Dimensions.get('window');
 import { useFonts, Andika_700Bold } from '@expo-google-fonts/andika';
-import gifQr from '../../assets/paginas_intruducao/qr.gif';
-import gifCategorias from '../../assets/paginas_intruducao/categorias.gif';
-import gifMetas from '../../assets/paginas_intruducao/metas.gif';
+import gifQr from '../../assets/paginas_intruducao/qr2.gif';
+import gifCategorias from '../../assets/paginas_intruducao/categorias2.gif';
+import gifMetas from '../../assets/paginas_intruducao/metas2.gif';
 import { Afacad_500Medium } from '@expo-google-fonts/afacad';
 import { TouchableOpacity } from 'react-native';
 import { scale } from 'react-native-size-matters';
@@ -62,7 +62,7 @@ const Pagina_Comecar_QR = () => {
         {
             gif: gifCategorias,
             titulo: 'Organiza por categorias',
-            descricao: 'Classifiqua os teus movimentos e cria as tuas \npróprias categorias.',
+            descricao: 'Classifica os teus movimentos e cria as tuas próprias categorias.',
         },
         {
             gif: gifMetas,

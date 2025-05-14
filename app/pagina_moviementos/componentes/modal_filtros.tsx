@@ -12,7 +12,7 @@ import { Animated, Easing } from 'react-native';
 import { useRef } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 
-const faixas = ['Até 50€', '50€–100€', 'Mais de 100€'];
+const faixas = ['Até 50€', '50€ – 100€', 'Mais de 100€'];
 
 const { height, width } = Dimensions.get('window');
 interface Props {
@@ -533,7 +533,7 @@ const ModalFiltros: React.FC<Props> = ({ visivel, aoFechar, filtrosSalvos, setFi
                                 size={22}
                                 color="#2C72B4"
                             />
-                            <Text style={styles.textoOrdenar}>Por data (antigo&gt;recente)</Text>
+                            <Text style={styles.textoOrdenar}>Por data (antigo &gt; recente)</Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity
@@ -548,9 +548,9 @@ const ModalFiltros: React.FC<Props> = ({ visivel, aoFechar, filtrosSalvos, setFi
                                 size={22}
                                 color="#2C72B4"
                             />
-                            <Text style={styles.textoOrdenar}>Por montante (maior&gt;menor)</Text>
+                            <Text style={styles.textoOrdenar}>Por montante (maior &gt; menor)</Text>
                         </TouchableOpacity>
-
+ 
                         <TouchableOpacity
                             style={styles.opcaoOrdenar}
                             onPress={() =>
@@ -563,7 +563,7 @@ const ModalFiltros: React.FC<Props> = ({ visivel, aoFechar, filtrosSalvos, setFi
                                 size={22}
                                 color="#2C72B4"
                             />
-                            <Text style={styles.textoOrdenar}>Por montante (menor&gt;maior)</Text>
+                            <Text style={styles.textoOrdenar}>Por montante (menor &gt; maior)</Text>
                         </TouchableOpacity>
                     </View>
 

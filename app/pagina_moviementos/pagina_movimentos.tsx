@@ -401,7 +401,7 @@ const Pagina_movimentos: React.FC = () => {
           {temFiltrosAtivos() ? (
             <FiltroIconActive width={30} height={30} fill="#fff" />
           ) : (
-            <FiltroIcon width={28} height={28} />
+            <FiltroIcon width={30} height={30} />
           )}
         </TouchableOpacity>
 

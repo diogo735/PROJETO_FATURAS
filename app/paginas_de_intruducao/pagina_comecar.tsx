@@ -46,7 +46,7 @@ const Pagina_Comecar = () => {
                 </Text>
                 <Text style={[styles.subText, !fontsLoaded && { fontFamily: 'System' }
                 ]}>
-                    A sua maneira nova de gerira a sua{'\n'} vida financeira
+                    A sua maneira nova de gerir a sua{'\n'} vida financeira
                 </Text>
 
                 <TouchableOpacity
