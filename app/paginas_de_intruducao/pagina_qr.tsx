@@ -14,6 +14,9 @@ import { Image } from 'react-native'; // ✅ COR
 import ArrowRight from '../../assets/paginas_intruducao/SETINHA.svg';
 import { useRef, useState } from 'react';
 import { Animated, Easing } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { RootStackParamList } from '../../App';
 
 const Pagina_Comecar_QR = () => {
 
@@ -25,33 +28,37 @@ const Pagina_Comecar_QR = () => {
 
     const [paginaAtual, setPaginaAtual] = useState(0); // 0 = QR, 1 = Categorias, 2 = Metas
     const translateX = useRef(new Animated.Value(0)).current;
-
+    type NavigationProp = StackNavigationProp<RootStackParamList, 'Pagina_Login'>;
+    const navigation = useNavigation<NavigationProp>();
+    
     const proximaPagina = () => {
         if (paginaAtual < 2) {
-            // reset atual
-            Animated.timing(dotScales[paginaAtual], {
-                toValue: 1,
-                duration: 200,
-                useNativeDriver: true,
-            }).start();
-
-            // animar próximo
-            Animated.timing(dotScales[paginaAtual + 1], {
-                toValue: 1.3,
-                duration: 200,
-                useNativeDriver: true,
-            }).start();
-
-            Animated.timing(translateX, {
-                toValue: -(paginaAtual + 1) * width,
-                duration: 300,
-                useNativeDriver: true,
-                easing: Easing.out(Easing.ease),
-            }).start(() => {
-                setPaginaAtual(paginaAtual + 1);
-            });
+          // animação normal para próxima página
+          Animated.timing(dotScales[paginaAtual], {
+            toValue: 1,
+            duration: 200,
+            useNativeDriver: true,
+          }).start();
+      
+          Animated.timing(dotScales[paginaAtual + 1], {
+            toValue: 1.3,
+            duration: 200,
+            useNativeDriver: true,
+          }).start();
+      
+          Animated.timing(translateX, {
+            toValue: -(paginaAtual + 1) * width,
+            duration: 300,
+            useNativeDriver: true,
+            easing: Easing.out(Easing.ease),
+          }).start(() => {
+            setPaginaAtual(paginaAtual + 1);
+          });
+        } else {
+          navigation.navigate('Pagina_Login');
         }
-    };
+      };
+      
 
     const paginas = [
         {
@@ -144,8 +151,7 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     logoContainer: {
-
-        top: '3%',
+        top: '0%',
         alignItems: 'center',
         justifyContent: 'center',
         width: '100%',
@@ -160,7 +166,7 @@ const styles = StyleSheet.create({
         fontSize: scale(27),
         color: 'white',
         fontFamily: 'Andika_700Bold',
-        marginTop: -height * .07
+        marginTop: -height * .09
     },
 
     logoTextBrand: {
@@ -194,7 +200,7 @@ const styles = StyleSheet.create({
         fontFamily: 'Afacad_500Medium',
     },
     gif: {
-        width: width * 0.99,
+        width: width * 0.8,
         resizeMode: 'contain',
     },
     dotsContainer: {

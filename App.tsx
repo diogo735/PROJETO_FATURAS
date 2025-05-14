@@ -28,7 +28,7 @@ import PaginaNotificacoes from './app/pagina_principal/pagina_notificacoes/pagin
 import PaginaSucessoManual from './app/pagina_principal/pagina_sucesso_manual_fatura';
 import DetalhesCategoria from './app/pagina_principal/componentes/detalhes_categoria/pagina_detalhes_categoria';
 import Pagina_Comecar from './app/paginas_de_intruducao/pagina_comecar';
-
+import Pagina_Login from './app/paginas_login/pagina_login';
 
 
 
@@ -89,6 +89,7 @@ export type RootStackParamList = {
   };
   DetalhesCategoria: { categoriaId: number; nomeCategoria: string, imgCategoria: string, corCategoria: string; };
   PaginaComecarQR: undefined;
+  Pagina_Login: undefined;
 
 
 
@@ -112,7 +113,8 @@ const SplashScren = (props: any) => {
   return (
     <View style={{ flex: 1 }}>
       <StatusBar translucent backgroundColor="transparent" style="light" />
-      <PagLoadingEntrar />
+      <Pagina_Comecar />
+      {/*<PagLoadingEntrar /> */}
     </View>
   );
 };
@@ -227,6 +229,12 @@ const PaginaComecarQRScreen = (props: any) => (
   </View>
 );
 
+const PaginaLoginScreen = (props: any) => (
+  <View style={{ flex: 1 }}>
+    <StatusBar translucent backgroundColor="transparent" style="light" />
+    <Pagina_Login {...props} />
+  </View>
+);
 
 const App: React.FC = () => {
   return (
@@ -328,6 +336,14 @@ const App: React.FC = () => {
         <Stack.Screen
           name="PaginaComecarQR"
           component={PaginaComecarQRScreen}
+          options={{
+            headerShown: false,
+            animation: 'slide_from_right',
+          }}
+        />
+        <Stack.Screen
+          name="Pagina_Login"
+          component={PaginaLoginScreen}
           options={{
             headerShown: false,
             animation: 'slide_from_right',

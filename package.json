@@ -63,7 +63,8 @@
     "react-native-vector-icons": "^10.2.0",
     "react-native-vision-camera": "^4.6.4",
     "victory-native": "^41.16.1",
-    "victory-pie": "^37.3.6"
+    "victory-pie": "^37.3.6",
+    "expo-constants": "~17.0.8"
   },
   "expo": {
     "doctor": {
