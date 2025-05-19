@@ -111,6 +111,11 @@ const styles = StyleSheet.create({
         paddingHorizontal: '15%',
         borderRadius: 99,
         alignItems: 'center',
+        elevation: 4, // para sombra no Android
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 3,
     },
 
     textoBotao: {

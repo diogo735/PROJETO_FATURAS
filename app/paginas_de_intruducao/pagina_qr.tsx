@@ -55,7 +55,11 @@ const Pagina_Comecar_QR = () => {
             setPaginaAtual(paginaAtual + 1);
           });
         } else {
-          navigation.navigate('Pagina_Login');
+            navigation.reset({
+                index: 0,
+                routes: [{ name: 'Pagina_Login' }],
+              });
+              
         }
       };
       
@@ -233,7 +237,13 @@ const styles = StyleSheet.create({
         position: 'absolute',
         bottom: '5%',
         right: '7%',
-    },
+        backgroundColor: 'transparent',
+        padding: 20,
+        borderRadius: 30,
+        alignItems: 'center',
+        justifyContent: 'center',
+      },
+      
 
 
 

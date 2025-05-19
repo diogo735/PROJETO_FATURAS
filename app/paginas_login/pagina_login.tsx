@@ -15,7 +15,7 @@ import { RootStackParamList } from '../../App';
 const Pagina_Login = () => {
 
 
-    type NavigationProp = StackNavigationProp<RootStackParamList, 'PaginaComecarQR'>;
+    type NavigationProp = StackNavigationProp<RootStackParamList, 'Pagina_Login'>;
     const navigation = useNavigation<NavigationProp>();
 
     const [fontsLoaded] = useFonts({
@@ -45,12 +45,16 @@ const Pagina_Login = () => {
                     Iniciar sessão para continuar
                 </Text>
 
-                <TouchableOpacity style={styles.loginButton}>
+                <TouchableOpacity
+                    style={styles.loginButton}
+                    onPress={() => navigation.navigate('Pagina_Login_Email')}
+                >
                     <View style={styles.iconTextRow}>
                         <IconEmail width={20} height={20} style={{ marginRight: '10%' }} />
                         <Text style={styles.loginButtonText}>Continuar com e-mail</Text>
                     </View>
                 </TouchableOpacity>
+
 
 
                 <Text style={[styles.orText, !fontsLoaded && { fontFamily: 'System' }]}>ou</Text>
@@ -93,7 +97,7 @@ const styles = StyleSheet.create({
         position: 'absolute',
         bottom: 0,
         width: '100%',
-        backgroundColor: 'white',
+        backgroundColor: '#EFF2FF',
         borderTopLeftRadius: 30,
         borderTopRightRadius: 30,
         paddingVertical: '10%',

@@ -29,8 +29,9 @@ import PaginaSucessoManual from './app/pagina_principal/pagina_sucesso_manual_fa
 import DetalhesCategoria from './app/pagina_principal/componentes/detalhes_categoria/pagina_detalhes_categoria';
 import Pagina_Comecar from './app/paginas_de_intruducao/pagina_comecar';
 import Pagina_Login from './app/paginas_login/pagina_login';
-
-
+import PaginaLogin_Email from './app/paginas_login/pagina_login_email';
+import PaginaEsqueceuPass from './app/paginas_login/pagina_esqueceu_pass';
+import PaginaVerificarEmail from './app/paginas_login/pagian_verifique_email';
 
 
 
@@ -90,6 +91,10 @@ export type RootStackParamList = {
   DetalhesCategoria: { categoriaId: number; nomeCategoria: string, imgCategoria: string, corCategoria: string; };
   PaginaComecarQR: undefined;
   Pagina_Login: undefined;
+  Pagina_Login_Email: undefined;
+  Pagina_Esqueceu_Pass: undefined;
+  Pagina_Verificar_Email: undefined;
+
 
 
 
@@ -236,6 +241,26 @@ const PaginaLoginScreen = (props: any) => (
   </View>
 );
 
+const PaginaLoginEmail = (props: any) => (
+  <View style={styles.defaultContainer}>
+    <StatusBar translucent backgroundColor="transparent" style="dark" />
+    <PaginaLogin_Email {...props} />
+  </View>
+);
+const PaginaEsqueceuPassScreen = (props: any) => (
+  <View style={styles.defaultContainer}>
+    <StatusBar translucent backgroundColor="transparent" style="dark" />
+    <PaginaEsqueceuPass {...props} />
+  </View>
+);
+const PaginaVerificarEmailScreen = (props: any) => (
+  <View style={styles.defaultContainer}>
+    <StatusBar translucent backgroundColor="transparent" style="dark" />
+    <PaginaVerificarEmail {...props} />
+  </View>
+);
+
+
 const App: React.FC = () => {
   return (
     <NavigationContainer>
@@ -349,6 +374,39 @@ const App: React.FC = () => {
             animation: 'slide_from_right',
           }}
         />
+        <Stack.Screen
+          name="Pagina_Login_Email"
+          component={(
+            PaginaLoginEmail
+          )}
+          options={{
+            animation: 'fade',
+            transitionSpec: {
+              open: { animation: 'timing', config: { duration: 250 } },
+              close: { animation: 'timing', config: { duration: 250 } },
+            },
+          }}
+        />
+
+        <Stack.Screen
+          name="Pagina_Esqueceu_Pass"
+          component={(
+            PaginaEsqueceuPassScreen
+          )}
+          options={{
+            headerShown: false,
+            animation: 'slide_from_right',
+          }}
+        />
+<Stack.Screen
+  name="Pagina_Verificar_Email"
+  component={PaginaVerificarEmailScreen}
+  options={{
+    headerShown: false,
+    animation: 'slide_from_right',
+  }}
+/>
+
 
 
 
