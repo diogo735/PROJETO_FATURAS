@@ -25,7 +25,8 @@ const Tab = createBottomTabNavigator();
 
 const FundoImagem = require('../assets/imagens/FUNDO.png');
 
-const TabNavigator = () => {
+const TabNavigator = ({ initialParams }: { initialParams?: RootStackParamList['MainApp'] }) => {
+
     return (
         <Tab.Navigator
             screenOptions={({ route }) => ({
@@ -67,6 +68,7 @@ const TabNavigator = () => {
             <Tab.Screen
                 name="Home"
                 component={Pagina_principal}
+                initialParams={initialParams}
                 options={{
                     lazy: false,
                     tabBarButton: (props) => (

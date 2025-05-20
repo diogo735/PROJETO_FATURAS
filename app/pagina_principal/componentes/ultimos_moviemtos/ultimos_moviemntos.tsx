@@ -206,9 +206,11 @@ const UltimosMovimentos: React.FC<Props> = ({ movimentos }) => {
             </View>
 
 
-            <TouchableOpacity onPress={handleVerTodos}>
-                <Text style={styles.verTodosFim}>Ver Todos</Text>
-            </TouchableOpacity>
+            {movimentos.length > 0 && (
+                <TouchableOpacity onPress={handleVerTodos}>
+                    <Text style={styles.verTodosFim}>Ver Todos</Text>
+                </TouchableOpacity>
+            )}
         </View>
     );
 };

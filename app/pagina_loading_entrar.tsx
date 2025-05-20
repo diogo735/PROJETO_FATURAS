@@ -13,6 +13,7 @@ import EnovoSVG from '../assets/imagens/by_enovo.svg';
 import * as SplashScreen from 'expo-splash-screen';
 import { verificarNotificacoesDeTodasMetas } from '../BASEDEDADOS/metas';
 const { width, height } = Dimensions.get('window');
+import { obterTotalReceitas, obterTotalDespesas, listarMovimentosUltimos30Dias, obterSaldoMensalAtual, obterSomaMovimentosPorCategoriaDespesa, obterSomaMovimentosPorCategoriaReceita } from '../BASEDEDADOS/movimentos';
 
 type RootStackParamList = {
   MainApp: undefined;
@@ -23,22 +24,44 @@ const PagLoadingEntrar = () => {
   useEffect(() => {
     const carregarBD = async () => {
       try {
-       
         await inicializarBaseDeDados();
         await verificarNotificacoesDeTodasMetas();
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      await SplashScreen.hideAsync();
+
+        // Carrega dados
+        const dadosMovimentos = await listarMovimentosUltimos30Dias();
+        const saldo = await obterSaldoMensalAtual();
+        const receitas = await obterTotalReceitas();
+        const despesas = await obterTotalDespesas();
+        const dadosDespesas = await obterSomaMovimentosPorCategoriaDespesa();
+        const dadosReceitas = await obterSomaMovimentosPorCategoriaReceita();
+
+        await SplashScreen.hideAsync();
+
         setTimeout(() => {
+
+
           navigation.reset({
             index: 0,
-            routes: [{ name: 'MainApp' }],
+            routes: [{
+              name: 'MainApp',
+              params: {
+                dadosGraficoDespesas: Array.isArray(dadosDespesas) ? dadosDespesas : [],
+                dadosGraficoReceitas: Array.isArray(dadosReceitas) ? dadosReceitas : [],
+                saldoMensal: saldo,
+                totalReceitas: receitas,
+                totalDespesas: despesas,
+                movimentosRecentes: dadosMovimentos,
+              }
+
+            }]
           });
-        },900);
+        }, 900);
 
       } catch (error) {
         console.error('Erro ao carregar o banco de dados:', error);
       }
     };
+
 
     carregarBD();
   }, []);
@@ -75,11 +98,7 @@ const PagLoadingEntrar = () => {
     return <ActivityIndicator size="large" color="white" />;
   }
 
-
-
   const initialRotations = [45, 120, 80, 20, 160];
-
-
 
   const rotateInterpolations = rotateValues.map((rotateValue, index) =>
     rotateValue.interpolate({

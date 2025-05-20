@@ -12,7 +12,7 @@ import CriarMeta from './app/pagina_metas/criar_meta/criar_meta';
 import PaginaSucesso from './app/pagina_principal/pagina_sucesso_fatura';
 import * as SplashScreen from 'expo-splash-screen';
 import Pagina_Comecar_QR from './app/paginas_de_intruducao/pagina_qr';
-
+import { RouteProp } from '@react-navigation/native';
 import PaginaMovimentos from './app/pagina_moviementos/pagina_movimentos';
 import PaginaMetas from './app/pagina_metas/pagina_metas';
 import Pagina_perfil from './app/pagina_perfil/pagina_perfil';
@@ -32,6 +32,8 @@ import Pagina_Login from './app/paginas_login/pagina_login';
 import PaginaLogin_Email from './app/paginas_login/pagina_login_email';
 import PaginaEsqueceuPass from './app/paginas_login/pagina_esqueceu_pass';
 import PaginaVerificarEmail from './app/paginas_login/pagian_verifique_email';
+import { useState, } from 'react';
+import { existeUsuario } from './BASEDEDADOS/user';
 
 
 
@@ -50,9 +52,33 @@ Notify.setNotificationHandler({
   })
 });
 
+interface DadosGrafico {
+  categoria_id: number;
+  nome_cat: string;
+  cor_cat: string;
+  img_cat: string;
+  total_valor: number;
+}
+
+interface Movimento {
+  id: number;
+  valor: number;
+  data: string;
+  categoria_id: number;
+}
+
 export type RootStackParamList = {
   Splash: undefined;
-  MainApp: undefined;
+  SplashScren_intruducao: undefined;
+  MainApp: {
+    dadosGraficoDespesas: DadosGrafico[];
+    dadosGraficoReceitas: DadosGrafico[];
+    saldoMensal: number;
+    totalReceitas: number;
+    totalDespesas: number;
+    movimentosRecentes: Movimento[];
+  };
+
   Movimentos: undefined;
   Metas: undefined;
   Perfil: undefined;
@@ -118,6 +144,26 @@ const SplashScren = (props: any) => {
   return (
     <View style={{ flex: 1 }}>
       <StatusBar translucent backgroundColor="transparent" style="light" />
+      <PagLoadingEntrar />
+      {/*<PagLoadingEntrar /> */}
+    </View>
+  );
+};
+
+const SplashScren_intruducao = (props: any) => {
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      // Remove cor de fundo da UI
+      SystemUI.setBackgroundColorAsync('transparent');
+      NavigationBar.setBehaviorAsync('overlay-swipe');
+      NavigationBar.setButtonStyleAsync('light');
+    }
+  }, []);
+
+
+  return (
+    <View style={{ flex: 1 }}>
+      <StatusBar translucent backgroundColor="transparent" style="light" />
       <Pagina_Comecar />
       {/*<PagLoadingEntrar /> */}
     </View>
@@ -125,12 +171,13 @@ const SplashScren = (props: any) => {
 };
 
 // DEMAIS TELAS: com paddingTop para status bar
-const MainAppScreen = (props: any) => (
+const MainAppScreen = ({ route }: { route: RouteProp<RootStackParamList, 'MainApp'> }) => (
   <View style={styles.defaultContainer}>
     <StatusBar translucent backgroundColor="transparent" style="dark" />
-    <TabNavigator {...props} />
+    <TabNavigator initialParams={route.params} />
   </View>
 );
+
 
 const MovimentosScreen = (props: any) => (
   <View style={styles.defaultContainer}>
@@ -262,12 +309,41 @@ const PaginaVerificarEmailScreen = (props: any) => (
 
 
 const App: React.FC = () => {
+  const [telaInicial, setTelaInicial] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function verificarUser() {
+      const existe = await existeUsuario();
+      setTelaInicial(existe ? 'Splash' : 'SplashScren_intruducao');
+    }
+    verificarUser();
+  }, []);
+
+  if (!telaInicial) return null;
+
+
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Splash" component={SplashScren} />
+      <Stack.Navigator
+        initialRouteName={telaInicial as keyof RootStackParamList}
+        screenOptions={{ headerShown: false }}
+      >
+        <Stack.Screen name="SplashScren_intruducao" component={SplashScren_intruducao} />
+        <Stack.Screen name="Splash" component={SplashScren} options={{
+          animation: 'fade',
+          transitionSpec: {
+            open: { animation: 'timing', config: { duration: 350 } },
+            close: { animation: 'timing', config: { duration: 250 } },
+          },
+        }} />
         <Stack.Screen name="Camera" component={CameraScreen} options={{ headerShown: false }} />
-        <Stack.Screen name="MainApp" component={MainAppScreen} />
+        <Stack.Screen name="MainApp" component={MainAppScreen} options={{
+          animation: 'fade',
+          transitionSpec: {
+            open: { animation: 'timing', config: { duration: 350 } },
+            close: { animation: 'timing', config: { duration: 250 } },
+          },
+        }} />
         <Stack.Screen name="Movimentos" component={MovimentosScreen} />
         <Stack.Screen name="Metas" component={MetasScreen} />
         <Stack.Screen name="Perfil" component={PerfilScreen} />
@@ -376,9 +452,7 @@ const App: React.FC = () => {
         />
         <Stack.Screen
           name="Pagina_Login_Email"
-          component={(
-            PaginaLoginEmail
-          )}
+          component={PaginaLoginEmail}
           options={{
             animation: 'fade',
             transitionSpec: {
@@ -388,24 +462,23 @@ const App: React.FC = () => {
           }}
         />
 
+
         <Stack.Screen
           name="Pagina_Esqueceu_Pass"
-          component={(
-            PaginaEsqueceuPassScreen
-          )}
+          component={PaginaEsqueceuPassScreen}
           options={{
             headerShown: false,
             animation: 'slide_from_right',
           }}
         />
-<Stack.Screen
-  name="Pagina_Verificar_Email"
-  component={PaginaVerificarEmailScreen}
-  options={{
-    headerShown: false,
-    animation: 'slide_from_right',
-  }}
-/>
+        <Stack.Screen
+          name="Pagina_Verificar_Email"
+          component={PaginaVerificarEmailScreen}
+          options={{
+            headerShown: false,
+            animation: 'slide_from_right',
+          }}
+        />
 
 
 

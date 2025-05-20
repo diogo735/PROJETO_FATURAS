@@ -210,7 +210,7 @@ FROM movimentos m
 INNER JOIN categorias c ON m.categoria_id = c.id
 LEFT JOIN sub_categorias sc ON m.sub_categoria_id = sc.id
 INNER JOIN tipo_movimento tm ON c.tipo_movimento_id = tm.id
-WHERE datetime(m.data_movimento) >= datetime('now', '-30 days')
+WHERE strftime('%Y-%m', m.data_movimento) = strftime('%Y-%m', 'now')
 ORDER BY datetime(m.data_movimento) DESC;
 
       `);
@@ -509,8 +509,8 @@ export {
   obterSomaMovimentosPorIntervaloFormatado,
   obterSomaMovimentosPorSubCategoriaEMes,
   listarMovimentosPorCategoriaMesAno
- 
-  
-  
+
+
+
 
 };

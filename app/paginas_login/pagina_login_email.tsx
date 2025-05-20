@@ -10,15 +10,16 @@ import {
     Platform
 } from 'react-native';
 import { scale } from 'react-native-size-matters';
-import Icon from 'react-native-vector-icons/Feather'; // Ícone do olho
+import Icon from 'react-native-vector-icons/Feather';
 import { Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
 import { Keyboard, TouchableWithoutFeedback } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../App';
-
-
+import { Animated, Easing } from 'react-native';
+import { useEffect, useRef } from 'react';
+import IconRotativo from '../../assets/imagens/wallpaper.svg';
 
 const { width, height } = Dimensions.get('window');
 
@@ -28,6 +29,59 @@ const PaginaLoginEmail: React.FC = () => {
     const [mostrarSenha, setMostrarSenha] = useState(false);
     type NavigationProp = StackNavigationProp<RootStackParamList, 'Pagina_Login_Email'>;
     const navigation = useNavigation<NavigationProp>();
+
+    const isFormValid = email.trim() !== '' && senha.trim() !== '';
+    const [estadoBotao, setEstadoBotao] = useState<'idle' | 'loading' | 'sucesso' | 'erro'>('idle');
+
+    const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
+
+    const fazerLogin = () => {
+        Keyboard.dismiss();
+
+        if (email === 'diogo@enovo.pt' && senha === '123') {
+            setEstadoBotao('loading');
+
+
+            setTimeout(() => {
+                setEstadoBotao('sucesso');
+                setTimeout(() => {
+                    navigation.navigate('Splash');
+                }, 500);
+            }, 3000);
+        } else {
+            setEstadoBotao('erro');
+            setTimeout(() => {
+                setEstadoBotao('idle');
+            }, 2000);
+        }
+    };
+    const corFixa =
+        estadoBotao === 'sucesso'
+            ? '#28A745'
+            : estadoBotao === 'erro'
+                ? '#DC3545'
+                : '#2565A3';
+
+
+
+    const rotateAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        if (estadoBotao === 'loading') {
+            Animated.loop(
+                Animated.timing(rotateAnim, {
+                    toValue: 1,
+                    duration: 1000,
+                    easing: Easing.linear,
+                    useNativeDriver: true,
+                })
+            ).start();
+        } else {
+            rotateAnim.stopAnimation();
+            rotateAnim.setValue(0);
+        }
+    }, [estadoBotao]);
+
 
     return (
         <KeyboardAvoidingView
@@ -92,9 +146,49 @@ const PaginaLoginEmail: React.FC = () => {
 
                     </View>
                     <View style={styles.footer}>
-                        <TouchableOpacity style={styles.btnEntrar}>
-                            <Text style={styles.btnEntrarText}>Entrar</Text>
-                        </TouchableOpacity>
+                        <AnimatedTouchable
+                            disabled={!isFormValid || estadoBotao === 'loading'}
+                            onPress={fazerLogin}
+                            activeOpacity={0.8}
+                            style={[
+                                styles.btnEntrar,
+                                {
+                                    backgroundColor: corFixa,
+                                    opacity: isFormValid ? 1 : 0.5,
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                },
+                            ]}
+                        >
+
+                            {estadoBotao === 'loading' ? (
+                                <Animated.View
+                                    style={{
+                                        transform: [
+                                            {
+                                                rotate: rotateAnim.interpolate({
+                                                    inputRange: [0, 1],
+                                                    outputRange: ['0deg', '360deg'],
+                                                }),
+                                            },
+                                        ],
+                                    }}
+                                >
+                                    <IconRotativo width={20} height={20} fill="#fff" />
+                                </Animated.View>
+                            ) : estadoBotao === 'sucesso' ? (
+                                <Icon name="check" size={20} color="#fff" />
+                            ) : estadoBotao === 'erro' ? (
+                                <Icon name="x" size={20} color="#fff" />
+                            ) : (
+                                <Text style={styles.btnEntrarText}>Entrar</Text>
+                            )}
+                        </AnimatedTouchable>
+
+
+
+
+
 
                         <TouchableOpacity onPress={() => navigation.navigate('Pagina_Esqueceu_Pass')}>
                             <Text style={styles.linkSenha}>Esqueci a palavra-passe</Text>

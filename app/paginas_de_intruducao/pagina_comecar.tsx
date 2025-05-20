@@ -20,7 +20,7 @@ const Pagina_Comecar = () => {
         Andika_700Bold,
         Afacad_500Medium,
     });
-
+   if (!fontsLoaded) return null;
 
     return (
         <View style={styles.container}>

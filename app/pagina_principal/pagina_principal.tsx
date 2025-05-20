@@ -4,7 +4,7 @@ import NavbarPaginaPrincipal from './componentes/navbar_pagprincipal';
 import SaldoWidget from '../pagina_principal/componentes/saldo_widget';
 import Grafico_Circular from './componentes/grafico_circular';
 import { obterTotalReceitas, obterTotalDespesas, listarMovimentosUltimos30Dias, obterSaldoMensalAtual } from '../../BASEDEDADOS/movimentos';
-import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, runOnJS } from 'react-native-reanimated';
 import UltimosMovimentos from './componentes/ultimos_moviemtos/ultimos_moviemntos';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useCallback } from 'react';
@@ -18,7 +18,7 @@ import { Dimensions } from 'react-native';
 
 
 import { StackNavigationProp } from '@react-navigation/stack';
-import { RootStackParamList } from '../../App'; 
+import { RootStackParamList } from '../../App';
 
 
 
@@ -30,30 +30,53 @@ interface DadosGrafico {
   img_cat: string;
   total_valor: number;
 }
+
+interface Movimento {
+  id: number;
+  valor: number;
+  data: string;
+  categoria_id: number;
+  // outros campos, se existirem
+}
+
+import { RouteProp, useRoute } from '@react-navigation/native';
+
+
+
 const Pagina_principal: React.FC = () => {
 
   const [tipoSelecionado, setTipoSelecionado] = useState<'receitas' | 'despesas'>('despesas');// Estado para armazenar qual tipo de movimento está ativo (inicialmente "despesas")
 
   const [dadosGrafico, setDadosGrafico] = useState<DadosGrafico[]>([]);//armazena os dados do gráfico
   const [saldoMensal, setSaldoMensal] = useState(0);
-  
+
   const [totalReceitas, setTotalReceitas] = useState(0);
   const [totalDespesas, setTotalDespesas] = useState(0);
   const [carregarGrafico, setCarregarGrafico] = useState(false);
-  const [movimentosRecentes, setMovimentosRecentes] = useState([]);
-  const opacidadeGrafico = useSharedValue(0);
+  const [movimentosRecentes, setMovimentosRecentes] = useState<Movimento[]>([]);
+  const opacidadeTela = useSharedValue(0);
+  const opacidadeGrafico = useSharedValue(1); // <- gráfico visível por padrão
+
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+
+  const route = useRoute<RouteProp<RootStackParamList, 'MainApp'>>();
 
   const hoje = new Date();
   const nomeMes = hoje.toLocaleString('pt-PT', { month: 'long' }).replace(/^\w/, c => c.toUpperCase());
-  
-  const estiloAnimado = useAnimatedStyle(() => {
-    return {
-      opacity: withTiming(opacidadeGrafico.value, { duration: 200 }),
-    };
-  });
+  const [dadosProntos, setDadosProntos] = useState(false);
 
-  //  carregar os movimentos quando o botão for alterado
+  const estiloAnimado = useAnimatedStyle(() => ({
+    opacity: opacidadeTela.value,
+  }));
+
+  useEffect(() => {
+    opacidadeTela.value = withTiming(1, { duration: 400 });
+  }, []);
+
+
+
+
+  /*
   useFocusEffect(
     useCallback(() => {
       const carregarDadosComTransicao = async () => {
@@ -90,16 +113,50 @@ const Pagina_principal: React.FC = () => {
 
       carregarDadosComTransicao();
     }, [tipoSelecionado]));
+*/
+
+  useEffect(() => {
+    if (route?.params) {
+      setSaldoMensal(route.params.saldoMensal || 0);
+      setTotalReceitas(route.params.totalReceitas || 0);
+      setTotalDespesas(route.params.totalDespesas || 0);
+      setMovimentosRecentes(route.params.movimentosRecentes || []);
+
+      // seleciona qual gráfico mostrar de início
+      setDadosGrafico(
+        tipoSelecionado === 'despesas'
+          ? route.params.dadosGraficoDespesas || []
+          : route.params.dadosGraficoReceitas || []
+      );
+
+      setTimeout(() => {
+        opacidadeGrafico.value = withTiming(1, { duration: 400 });
+        setDadosProntos(true);
+      }, 50);
+    }
+  }, [route.params]);
+
+
+  useEffect(() => {
+    if (route?.params) {
+      const novoGrafico =
+        tipoSelecionado === 'despesas'
+          ? route.params.dadosGraficoDespesas || []
+          : route.params.dadosGraficoReceitas || [];
+
+      setDadosGrafico(novoGrafico);
+    }
+  }, [tipoSelecionado]);
 
 
 
 
-    const handleNotificacaoPress = () => {
-      navigation.navigate('Notificacoes');
-    };
+  const handleNotificacaoPress = () => {
+    navigation.navigate('Notificacoes');
+  };
 
   return (
-    <View style={styles.corpo}>
+    <Animated.View style={[styles.corpo, estiloAnimado]}>
       <NavbarPaginaPrincipal
         nome="Diogo Ferreira"
         foto={require('../../assets/imagens/1.jpg')}
@@ -115,18 +172,17 @@ const Pagina_principal: React.FC = () => {
 
 
         {/**/}
-        <Animated.View style={[styles.containerGrafico, estiloAnimado]}>
-          {carregarGrafico ? (
-            <View style={{ height: width * 0.804 + 100 }} />
+        <View style={styles.containerGrafico}>
+          {Array.isArray(dadosGrafico) && dadosGrafico.length > 0 ? (
+            <Grafico_Circular
+              key={`grafico-${tipoSelecionado}`}
+              categorias={dadosGrafico}
+              tipoSelecionado={tipoSelecionado}
+            />
           ) : (
-            <Grafico_Circular categorias={dadosGrafico} tipoSelecionado={tipoSelecionado} />
+            <Text style={{ color: '#888', padding: 20 }}>Sem dados para exibir</Text>
           )}
-        </Animated.View>
-
-
-
-
-
+        </View>
 
 
         <Botoes
@@ -138,11 +194,11 @@ const Pagina_principal: React.FC = () => {
 
         <UltimosMovimentos movimentos={movimentosRecentes} />
 
-        
+
 
       </ScrollView>
-      
-    </View>
+
+    </Animated.View>
   );
 };
 

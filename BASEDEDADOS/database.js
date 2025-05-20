@@ -1,25 +1,34 @@
 import * as SQLite from 'expo-sqlite';
-import { criarTabelaCategorias, verificarEInserirCategorias, apagarTodasCategorias,resetarCategorias ,deletarTabelaCategorias} from './categorias';
+import { criarTabelaCategorias, verificarEInserirCategorias, apagarTodasCategorias, resetarCategorias, deletarTabelaCategorias } from './categorias';
 import { criarTabelaTipoMovimento, inserirVariosTiposMovimento } from './tipo_movimento';
-import { criarTabelaMovimentos,apagarTabelaMovimentos,inserirMovimentoTesteUnico,limparTabelaMovimentos } from './movimentos';
+import { criarTabelaMovimentos, apagarTabelaMovimentos, inserirMovimentoTesteUnico, limparTabelaMovimentos } from './movimentos';
 import { CRIARBD } from './databaseInstance';
-import { criarTabelaFaturas ,apagarTabelaFaturas} from './faturas';
-import { criarTabelaMetas,limparMetas,apagarTabelaMetas } from './metas';
+import { criarTabelaFaturas, apagarTabelaFaturas } from './faturas';
+import { criarTabelaMetas, limparMetas, apagarTabelaMetas } from './metas';
 
-import { criarTabelaSubCategorias,criarSubCategoriasDeTeste, limparSubCategorias } from './sub_categorias';
+import { criarTabelaSubCategorias, criarSubCategoriasDeTeste, limparSubCategorias } from './sub_categorias';
+import { criarTabelaUsers, inserirUserTeste ,existeUsuario,apagarTodosUsers} from './user';
+
+
+
+
 
 async function inicializarBaseDeDados() {
 
   try {
 
-    
-  await CRIARBD();
+
+    await CRIARBD();
+
+    await criarTabelaUsers();
+    // await apagarTodosUsers();
+    //await inserirUserTeste();
 
     //TIPOS_MOVIMENTOS
     await criarTabelaTipoMovimento(); await inserirVariosTiposMovimento();
 
     //CATEGORIAS
-    await criarTabelaCategorias(); /*await resetarCategorias();*/  await verificarEInserirCategorias(); 
+    await criarTabelaCategorias(); /*await resetarCategorias();*/  await verificarEInserirCategorias();
 
     //sub_categorias
     await criarTabelaSubCategorias();
@@ -30,11 +39,11 @@ async function inicializarBaseDeDados() {
     await criarTabelaMovimentos();
     // await apagarTabelaMovimentos();
     //await limparTabelaMovimentos();
-    
+
     //faturas
     await criarTabelaFaturas();
-   // await apagarTabelaFaturas();
-  
+    // await apagarTabelaFaturas();
+
     //metas
     await criarTabelaMetas(); //await limparMetas();
     //await apagarTabelaMetas();

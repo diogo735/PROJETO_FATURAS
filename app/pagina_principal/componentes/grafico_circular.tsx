@@ -76,11 +76,21 @@ const Grafico_Circular: React.FC<GraficoCircularProps> = ({ categorias, tipoSele
   const size = (radius + strokeWidth + outerCircleRadius + 50) * 2;
   const circumference = 2 * Math.PI * radius;
   const navigation = useNavigation<NavigationProp>();
+  console.log('🐷 tipoSelecionado:', tipoSelecionado);
+  const opacidadeGrafico = useSharedValue(1);
+  useEffect(() => {
+    opacidadeGrafico.value = withTiming(0, { duration: 250 }, () => {
+      opacidadeGrafico.value = withTiming(1, { duration: 250 });
+    });
+  }, [tipoSelecionado]);
+  const estiloGraficoAnimado = useAnimatedStyle(() => ({
+    opacity: opacidadeGrafico.value,
+  }));
 
 
   if (!categorias.length) {
     return (
-      <View style={styles.container}>
+      <Animated.View style={[styles.container, estiloGraficoAnimado]}>
         <Svg width={size} height={size}>
           {/* Círculo padrão (cor diferente para despesas e receitas) */}
           <Circle
@@ -118,7 +128,7 @@ const Grafico_Circular: React.FC<GraficoCircularProps> = ({ categorias, tipoSele
         </View>
 
 
-      </View>
+      </Animated.View>
     );
   }
 
@@ -144,7 +154,7 @@ const Grafico_Circular: React.FC<GraficoCircularProps> = ({ categorias, tipoSele
     valorFinal: cat.valorCalculado * fatorAjuste
   }));
   let acumulado = 0;
-let acumulado2 = 0;
+  let acumulado2 = 0;
 
   const animatedProgress = useSharedValue(0);
 
@@ -176,7 +186,7 @@ let acumulado2 = 0;
 
   return (
 
-    <View style={[styles.container]}>
+    <Animated.View style={[styles.container, estiloGraficoAnimado]}>
 
       <Svg width={size} height={size} >
         <G originX={size / 2} originY={size / 2}>
@@ -215,7 +225,7 @@ let acumulado2 = 0;
               };
             });
 
-           
+
 
             return (
               <React.Fragment key={`segmento-${categoria.categoria_id}`}>
@@ -318,9 +328,14 @@ let acumulado2 = 0;
 
 
       <View style={styles.imagemCentro}>
-        <ImagemCentral width="100%" height="100%" fill="#E22121" />
+        <ImagemCentral
+          width="100%"
+          height="100%"
+          fill={tipoSelecionado === "receitas" ? "#4AAF53" : "#E12D2D"}
+        />
       </View>
-    </View>
+
+    </Animated.View>
 
   );
 

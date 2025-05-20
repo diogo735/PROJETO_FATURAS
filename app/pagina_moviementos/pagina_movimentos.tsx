@@ -320,7 +320,7 @@ const Pagina_movimentos: React.FC = () => {
 
     return () => {
       if (animation) {
-        animation.stop(); // 🛑 para caso o componente re-renderize
+        animation.stop(); 
       }
     };
   }, [carregando]);
