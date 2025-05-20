@@ -83,7 +83,22 @@ const Pagina_principal: React.FC = () => {
     setNomeUsuario(route.params.nomeUsuario || '');
     setFotoUsuario(route.params.fotoUsuario || null);
   }
-}, [route.params]);
+}, []); 
+
+
+useFocusEffect(
+  useCallback(() => {
+    const carregarUsuario = async () => {
+      const user = await buscarUsuarioAtual();
+      if (user) {
+        setNomeUsuario(user.nome);
+        setFotoUsuario(user.imagem);
+      }
+    };
+
+    carregarUsuario();
+  }, [])
+);
 
 
   /*

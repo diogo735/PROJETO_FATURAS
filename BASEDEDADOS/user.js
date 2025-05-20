@@ -1,6 +1,8 @@
 import { CRIARBD } from './databaseInstance';
-
-
+import { inserirNotificacao } from './notificacoes';
+import * as Notify from 'expo-notifications';
+import * as FileSystem from 'expo-file-system';
+import { Asset } from 'expo-asset';
 async function criarTabelaUsers() {
   try {
     const db = await CRIARBD();
@@ -9,8 +11,8 @@ async function criarTabelaUsers() {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         nome TEXT NOT NULL,
         imagem TEXT,
-        email TEXT UNIQUE NOT NULL,
-        pass TEXT NOT NULL,
+        email TEXT UNIQUE ,
+        pass TEXT ,
         ultimo_login TEXT,
         primeiro_login INTEGER DEFAULT 1
       );
@@ -21,6 +23,24 @@ async function criarTabelaUsers() {
   }
 }
 
+async function criarUsuarioAnonimo() {
+  try {
+    const nome = 'Utilizador';
+    const email = null;
+    const pass = null;
+    const ultimo_login = new Date().toISOString();
+    const primeiro_login = 1;
+
+    
+    const asset = Asset.fromModule(require('../assets/imagens/sem_foto.png'));
+    await asset.downloadAsync(); 
+    const imagem = asset.localUri || asset.uri;
+
+    await inserirUser(nome, imagem, email, pass, ultimo_login, primeiro_login);
+  } catch (error) {
+    console.error('❌ Erro ao criar usuário anônimo:', error);
+  }
+}
 // Exemplo de inserção
 async function inserirUser(nome, imagem, email, pass, ultimo_login, primeiro_login = 1) {
   try {
@@ -36,7 +56,7 @@ async function inserirUser(nome, imagem, email, pass, ultimo_login, primeiro_log
 }
 async function inserirUserTeste() {
   const nome = 'Diogo Ferreira';
-  const imagem = 'local://perfil_default.png'; // depois você substituirá com FileSystem URI
+  const imagem = 'h';
   const email = 'diogo@enovo.pt';
   const pass = '1234';
   const ultimo_login = new Date().toISOString();
@@ -68,10 +88,57 @@ async function atualizarImagemDoUsuario(uri) {
   const db = await CRIARBD();
   await db.runAsync(`UPDATE user SET imagem = ? WHERE id = (SELECT id FROM user LIMIT 1)`, uri);
 }
+async function atualizarUsuario(nome, imagem, pass) {
+  try {
+    const db = await CRIARBD();
+    await db.runAsync(
+      `UPDATE user SET nome = ?, imagem = ?, pass = ? WHERE id = (SELECT id FROM user LIMIT 1)`,
+      nome, imagem, pass
+    );
+
+    // Cria a notificação
+    const agora = new Date();
+    const dataFormatada = agora.toISOString().slice(0, 16).replace('T', ' ');
+    await inserirNotificacao(
+      'lock', // ícone
+      'Os teus dados de acesso foram atualizados com sucesso!',
+      dataFormatada
+    );
+    await Notify.scheduleNotificationAsync({
+      content: {
+        title: 'Perfil atualizado !',
+        body: 'Os teus dados de acesso foram atualizados com sucesso.',
+        sound: true,
+      },
+      trigger: null,
+    });
+
+
+    return true;
+  } catch (error) {
+    console.error('Erro ao atualizar usuário:', error);
+    return false;
+  }
+}
+
+async function deletarTabelaUsers() {
+  try {
+    const db = await CRIARBD();
+    await db.execAsync(`DROP TABLE IF EXISTS user`);
+    console.log('🗑 Tabela "user" apagada com sucesso!');
+  } catch (error) {
+    console.error('❌ Erro ao apagar a tabela "user":', error);
+  }
+}
 
 export {
   criarTabelaUsers,
   inserirUser,
   inserirUserTeste,
-  existeUsuario,apagarTodosUsers,buscarUsuarioAtual,atualizarImagemDoUsuario
+  existeUsuario,
+  apagarTodosUsers,
+  buscarUsuarioAtual,
+  atualizarImagemDoUsuario,
+  atualizarUsuario, deletarTabelaUsers,
+  criarUsuarioAnonimo
 };

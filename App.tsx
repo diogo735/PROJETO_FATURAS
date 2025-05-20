@@ -80,8 +80,8 @@ export type RootStackParamList = {
     totalReceitas: number;
     totalDespesas: number;
     movimentosRecentes: Movimento[];
-      nomeUsuario: string;
-  fotoUsuario: string | null;
+    nomeUsuario: string;
+    fotoUsuario: string | null;
   };
 
   Movimentos: undefined;
@@ -155,25 +155,14 @@ const SplashScren = (props: any) => {
   );
 };
 
-const SplashScren_intruducao = (props: any) => {
-  useEffect(() => {
-    if (Platform.OS === 'android') {
-      // Remove cor de fundo da UI
-      SystemUI.setBackgroundColorAsync('transparent');
-      NavigationBar.setBehaviorAsync('overlay-swipe');
-      NavigationBar.setButtonStyleAsync('light');
-    }
-  }, []);
+const SplashScren_intruducao = (props: any) => (
+  <View style={{ flex: 1 }}>
+    <StatusBar translucent backgroundColor="transparent" style="light" />
+    <Pagina_Comecar />
+    {/*<PagLoadingEntrar /> */}
+  </View>
+);
 
-
-  return (
-    <View style={{ flex: 1 }}>
-      <StatusBar translucent backgroundColor="transparent" style="light" />
-      <Pagina_Comecar />
-      {/*<PagLoadingEntrar /> */}
-    </View>
-  );
-};
 
 // DEMAIS TELAS: com paddingTop para status bar
 const MainAppScreen = ({ route }: { route: RouteProp<RootStackParamList, 'MainApp'> }) => (
@@ -340,7 +329,7 @@ const App: React.FC = () => {
         initialRouteName={telaInicial as keyof RootStackParamList}
         screenOptions={{ headerShown: false }}
       >
-        <Stack.Screen name="SplashScren_intruducao" component={SplashScren_intruducao} />
+       <Stack.Screen name="SplashScren_intruducao" component={SplashScren_intruducao} />
         <Stack.Screen name="Splash" component={SplashScren} options={{
           animation: 'fade',
           transitionSpec: {
@@ -356,6 +345,7 @@ const App: React.FC = () => {
             close: { animation: 'timing', config: { duration: 250 } },
           },
         }} />
+         
         <Stack.Screen name="Movimentos" component={MovimentosScreen} />
         <Stack.Screen name="Metas" component={MetasScreen} />
         <Stack.Screen name="Perfil" component={PerfilScreen} />

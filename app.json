@@ -34,7 +34,11 @@
         "CAMERA",
         "FLASHLIGHT",
         "NOTIFICATIONS"
-      ]
+      ],
+      "notification": {
+        "icon": "./assets/ios-icon.png",
+        "color": "#2565A3"
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"

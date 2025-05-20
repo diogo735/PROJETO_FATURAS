@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, StyleSheet, StatusBar, Dimensions, Text, Pressable } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, StyleSheet, StatusBar, Dimensions, Text, Pressable, Modal } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Logo from '../../assets/imagens/icon_app_porco.svg';
 const { width, height } = Dimensions.get('window');
@@ -12,9 +12,18 @@ import { TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../App';
+import { Image } from 'react-native';
+import { criarUsuarioAnonimo } from '../../BASEDEDADOS/user';
+
+
+
+
+
+
+
 const Pagina_Login = () => {
 
-
+    const [mostrarModalAviso, setMostrarModalAviso] = useState(false);
     type NavigationProp = StackNavigationProp<RootStackParamList, 'Pagina_Login'>;
     const navigation = useNavigation<NavigationProp>();
 
@@ -22,7 +31,25 @@ const Pagina_Login = () => {
         Andika_700Bold,
         Afacad_500Medium,
     });
+    const [contador, setContador] = useState(3);
+    const [botaoAtivo, setBotaoAtivo] = useState(false);
 
+    useEffect(() => {
+        if (mostrarModalAviso) {
+            setBotaoAtivo(false);
+            setContador(3);
+            const intervalo = setInterval(() => {
+                setContador((prev) => {
+                    if (prev === 1) {
+                        clearInterval(intervalo);
+                        setBotaoAtivo(true);
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+            return () => clearInterval(intervalo);
+        }
+    }, [mostrarModalAviso]);
 
     return (
         <View style={styles.container}>
@@ -59,7 +86,7 @@ const Pagina_Login = () => {
 
                 <Text style={[styles.orText, !fontsLoaded && { fontFamily: 'System' }]}>ou</Text>
 
-                <TouchableOpacity style={styles.noLoginButton}>
+                <TouchableOpacity style={styles.noLoginButton} onPress={() => setMostrarModalAviso(true)}>
                     <View style={styles.iconTextRow}>
                         <IconLogin width={20} height={20} style={{ marginRight: '10%' }} />
                         <Text style={styles.noLoginButtonText}>Continuar sem login</Text>
@@ -67,10 +94,87 @@ const Pagina_Login = () => {
                 </TouchableOpacity>
 
 
+
             </View>
             <View style={{ flex: 1, justifyContent: 'flex-end', alignItems: 'center' }}>
                 <Text style={styles.versionText}>v{Constants.expoConfig?.version}</Text>
             </View>
+            <Modal
+                transparent
+                animationType="fade"
+                visible={mostrarModalAviso}
+                onRequestClose={() => setMostrarModalAviso(false)}
+            >
+                <View style={{
+                    flex: 1,
+                    backgroundColor: 'rgba(0,0,0,0.5)',
+                    justifyContent: 'center',
+                    alignItems: 'center'
+                }}>
+                    <View style={{
+                        backgroundColor: 'white',
+                        borderRadius: 12,
+                        padding: 20,
+                        width: '85%',
+                        alignItems: 'center',
+                        shadowColor: '#000',
+                        shadowOpacity: 0.2,
+                        shadowRadius: 6,
+                        elevation: 5
+                    }}>
+                        <Image
+                            source={require('../../assets/imagens/anonimo.png')}
+                            style={{ width: 80, height: 80, marginBottom: 16 }}
+                            resizeMode="contain"
+                        />
+                        <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#2565A3', marginBottom: '10%' }}>Cuidado!</Text>
+                        <Text style={{ color: '#3F7FBC', fontSize: 14, fontWeight: '500', textAlign: 'center', marginBottom: '6%' }}>
+                            Tu podes usar a app sem fazer login, mas corres o risco de não conseguir recuperar os teus dados futuramente.
+                        </Text>
+                        <Text style={{ color: '#3F7FBC', fontSize: 14, fontWeight: '500', textAlign: 'center', marginBottom: '10%' }}>
+                            Quando quiseres fazer login, não poderás recuperar os registros que criaste.
+                        </Text>
+
+                        <View style={{ flexDirection: 'row', gap: 12 }}>
+                            <TouchableOpacity
+                                style={{
+                                    flex: 1,
+                                    paddingVertical: 10,
+                                    backgroundColor: '#eee',
+                                    borderRadius: 99,
+                                    alignItems: 'center',
+                                }}
+                                onPress={() => setMostrarModalAviso(false)}
+                            >
+                                <Text style={{ color: '#666', fontWeight: '600' }}>Fechar</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={{
+                                    flex: 1,
+                                    paddingVertical: 10,
+                                    backgroundColor: botaoAtivo ? '#2565A3' : '#ccc',
+                                    borderRadius: 99,
+                                    alignItems: 'center',
+                                }}
+                                onPress={async () => {
+                                    if (!botaoAtivo) return;
+                                    setMostrarModalAviso(false);
+                                    await criarUsuarioAnonimo();
+                                    navigation.navigate('Splash');
+                                }}
+
+                                disabled={!botaoAtivo}
+                            >
+                                <Text style={{ color: 'white', fontWeight: '600' }}>
+                                    {botaoAtivo ? 'Vou arriscar !' : `Aguarde ${contador}s`}
+                                </Text>
+                            </TouchableOpacity>
+
+                        </View>
+                    </View>
+                </View>
+            </Modal>
 
 
         </View>

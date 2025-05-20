@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions, TextInput, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, TextInput, Image, Keyboard } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
@@ -10,7 +10,7 @@ import Iconfoto from '../../../assets/pagina_perfil/pagina_editar_perfil/user.sv
 import Iconpass from '../../../assets/pagina_perfil/pagina_editar_perfil/password.svg';
 const { height, width } = Dimensions.get('window');
 import { ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
-import { buscarUsuarioAtual } from '../../../BASEDEDADOS/user';
+import { atualizarUsuario, buscarUsuarioAtual } from '../../../BASEDEDADOS/user';
 import ModalOpcoesCamera_editarfoto from './modal_foto_opcoes';
 import * as ImagePicker from 'expo-image-picker';
 import ModalCameraCheia_editarperfil from './camara_view';
@@ -20,11 +20,6 @@ import { BackHandler } from 'react-native';
 
 
 import Icon from '../../../assets/imagens/wallpaper.svg';
-import {
-
-    interpolate,
-} from 'react-native-reanimated';
-
 import { Animated, Easing } from 'react-native';
 
 
@@ -45,10 +40,47 @@ const PaginaDetalhePerfil = () => {
     const [mostrarModalConfirmacao, setMostrarModalConfirmacao] = useState(false);
     const animOpacity = useRef(new Animated.Value(0)).current;
     const animTranslateY = useRef(new Animated.Value(30)).current;
+    const [salvando, setSalvando] = useState(false);
+    const [mostrarModalSucesso, setMostrarModalSucesso] = useState(false);
+    const animModalOpacity = useRef(new Animated.Value(0)).current;
+    const animModalTranslateY = useRef(new Animated.Value(30)).current;
+    const [mostrarModalErro, setMostrarModalErro] = useState(false);
+    const animContentOpacity = useRef(new Animated.Value(1)).current;
+    useEffect(() => {
+        Animated.sequence([
+            Animated.timing(animContentOpacity, {
+                toValue: 0,
+                duration: 150,
+                useNativeDriver: true,
+            }),
+            Animated.timing(animContentOpacity, {
+                toValue: 1,
+                duration: 150,
+                useNativeDriver: true,
+            }),
+        ]).start();
+    }, [salvando, mostrarModalSucesso, mostrarModalErro]);
 
+    const animarEntradaModal = () => {
+        animModalOpacity.setValue(0);
+        animModalTranslateY.setValue(30);
+        Animated.parallel([
+            Animated.timing(animModalOpacity, {
+                toValue: 1,
+                duration: 250,
+                useNativeDriver: true,
+            }),
+            Animated.timing(animModalTranslateY, {
+                toValue: 0,
+                duration: 250,
+                useNativeDriver: true,
+            }),
+        ]).start();
+    };
 
 
     const rotateAnim = useRef(new Animated.Value(0)).current;
+
 
 
 
@@ -62,6 +94,7 @@ const PaginaDetalhePerfil = () => {
             })
         ).start();
     }, []);
+
     useEffect(() => {
         if (!carregando) {
             Animated.timing(fadeAnim, {
@@ -115,36 +148,49 @@ const PaginaDetalhePerfil = () => {
         senha !== senhaOriginal ||
         foto !== fotoOriginal;
 
-useFocusEffect(
-  React.useCallback(() => {
-    const onBackPress = () => {
-      if (houveAlteracao) {
-        setMostrarModalConfirmacao(true);
+    useFocusEffect(
+        React.useCallback(() => {
+            const onBackPress = () => {
+                if (houveAlteracao) {
+                    setMostrarModalConfirmacao(true);
 
-        Animated.parallel([
-          Animated.timing(animOpacity, {
-            toValue: 1,
-            duration: 200,
-            useNativeDriver: true,
-          }),
-          Animated.timing(animTranslateY, {
-            toValue: 0,
-            duration: 200,
-            useNativeDriver: true,
-          }),
-        ]).start();
+                    Animated.parallel([
+                        Animated.timing(animOpacity, {
+                            toValue: 1,
+                            duration: 200,
+                            useNativeDriver: true,
+                        }),
+                        Animated.timing(animTranslateY, {
+                            toValue: 0,
+                            duration: 200,
+                            useNativeDriver: true,
+                        }),
+                    ]).start();
 
-        return true; // impede voltar
-      }
+                    return true; // impede voltar
+                }
 
-      return false; // permite voltar normalmente
-    };
+                return false; // permite voltar normalmente
+            };
 
-    const backHandler = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+            const backHandler = BackHandler.addEventListener('hardwareBackPress', onBackPress);
 
-    return () => backHandler.remove();
-  }, [houveAlteracao])
-);
+            return () => backHandler.remove();
+        }, [houveAlteracao])
+    );
+    useEffect(() => {
+        if (salvando) {
+            rotateAnim.setValue(0); // reinicia o valor
+            Animated.loop(
+                Animated.timing(rotateAnim, {
+                    toValue: 1,
+                    duration: 1000,
+                    easing: Easing.linear,
+                    useNativeDriver: true,
+                })
+            ).start();
+        }
+    }, [salvando]);
 
     return (
         <View style={styles.container}>
@@ -272,12 +318,26 @@ useFocusEffect(
 
                     <TouchableOpacity
                         style={[styles.botaoGuardar, { opacity: houveAlteracao ? 1 : 0.5 }]}
-                        onPress={() => {
+                        onPress={async () => {
+                            Keyboard.dismiss();
                             if (houveAlteracao) {
-                                console.log('✅ Guardar alterações...');
+                                setSalvando(true);
+                                animarEntradaModal();
+                                const sucesso = await Promise.all([
+                                    atualizarUsuario(nome, foto, senha),
+                                    new Promise(resolve => setTimeout(resolve, 1000))
+                                ]).then(([resultado]) => resultado);
 
+                                setSalvando(false);
+
+                                if (sucesso) {
+                                    setMostrarModalSucesso(true);
+                                } else {
+                                    setMostrarModalErro(true);
+                                }
                             }
                         }}
+
                         disabled={!houveAlteracao}
                     >
                         <View style={styles.botaoConteudo}>
@@ -285,7 +345,55 @@ useFocusEffect(
                             <Text style={styles.textoBotao}>Guardar Alterações</Text>
                         </View>
                     </TouchableOpacity>
+
                 </KeyboardAvoidingView></Animated.View>
+            )}
+            {(salvando || mostrarModalSucesso || mostrarModalErro) && (
+                <View style={styles.modalOverlay}>
+                    <Animated.View style={[
+                        styles.modalBox,
+                        {
+                            opacity: animModalOpacity,
+                            transform: [{ translateY: animModalTranslateY }]
+                        }
+                    ]}>
+                        {salvando ? (
+                            <>
+                                <Animated.View style={{ transform: [{ rotate: spin }] }}>
+                                    <Icon width={50} height={50} fill="#2565A3" />
+                                </Animated.View>
+                                <Text style={styles.modalTitulo2}>Guardando alterações...</Text>
+                            </>
+                        ) : mostrarModalSucesso ? (
+                            <>
+                                <Ionicons name="checkmark-circle" size={50} color="#28a745" style={styles.modalIconAlerta} />
+                                <Text style={styles.modalTitulo}>Atualizaste o teu perfil com sucesso!</Text>
+                                <TouchableOpacity
+                                    style={[styles.botaoConfirmar2, { marginTop: 16 }]}
+                                    onPress={() => {
+                                        setMostrarModalSucesso(false);
+                                        navigation.goBack();
+                                    }}
+                                >
+                                    <Text style={styles.txtConfirmar2}>OK</Text>
+                                </TouchableOpacity>
+                            </>
+                        ) : (
+                            <>
+                                <Ionicons name="close-circle" size={50} color="#D8000C" style={styles.modalIconAlerta} />
+                                <Text style={styles.modalTitulo}>Erro ao atualizar o perfil.</Text>
+                                <TouchableOpacity
+                                    style={[styles.botaoConfirmar2, { marginTop: 16 }]}
+                                    onPress={() => {
+                                        setMostrarModalErro(false);
+                                    }}
+                                >
+                                    <Text style={styles.txtConfirmar2}>Tentar Novamente</Text>
+                                </TouchableOpacity>
+                            </>
+                        )}
+                    </Animated.View>
+                </View>
             )}
 
 
@@ -545,6 +653,13 @@ const styles = StyleSheet.create({
         marginBottom: 20,
         textAlign: 'center',
     },
+    modalTitulo2: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#333',
+        marginVertical: 20,
+        textAlign: 'center',
+    },
     modalBotoes: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -576,6 +691,20 @@ const styles = StyleSheet.create({
     },
     modalIconAlerta: {
         marginBottom: 12,
+    },
+    botaoConfirmar2: {
+        backgroundColor: '#2565A3',
+        paddingVertical: 12,
+        paddingHorizontal: 24,
+        borderRadius: 999,
+        alignItems: 'center',
+        alignSelf: 'center',
+    },
+
+    txtConfirmar2: {
+        color: '#fff',
+        fontWeight: 'bold',
+        fontSize: 15,
     },
 
 });

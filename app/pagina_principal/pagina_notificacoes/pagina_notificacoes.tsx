@@ -74,7 +74,7 @@ const PaginaNotificacoes = () => {
         const carregarNotificacoes = async () => {
             setCarregando(true);
 
-            const inicio = Date.now(); 
+            const inicio = Date.now();
 
             const lista = await listarNotificacoes();
 
@@ -84,7 +84,7 @@ const PaginaNotificacoes = () => {
             LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
             setNotificacoes(lista);
 
-        
+
             setTimeout(() => {
                 setCarregando(false);
             }, tempoRestante);
@@ -149,6 +149,7 @@ const PaginaNotificacoes = () => {
                     {notificacoes.length > 0 && (
                         <TouchableOpacity
                             onPress={() => setMostrarConfirmacao(true)}
+                            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                             style={{ position: 'absolute', right: 16 }}
                         >
                             <MaterialIcons name="delete-sweep" size={25} color="#2565A3" />

@@ -5,7 +5,7 @@ import { scale } from 'react-native-size-matters';
 import { Image } from 'react-native';
 import SetaDireita from '../../assets/pagina_perfil/setinha.svg';
 import { ScrollView } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../App'; // Ajuste o caminho se necessário
 
@@ -34,18 +34,20 @@ const Pagina_perfil: React.FC = () => {
   const [email, setEmail] = useState('');
   const [imagem, setImagem] = useState(null);
 
-  useEffect(() => {
+ useFocusEffect(
+  React.useCallback(() => {
     const carregarUsuario = async () => {
       const user = await buscarUsuarioAtual();
       if (user) {
         setNome(user.nome);
         setEmail(user.email);
-        setImagem(user.imagem); // deve ser uma URI como "file://..."
+        setImagem(user.imagem);
       }
     };
 
     carregarUsuario();
-  }, []);
+  }, [])
+);
 
   return (
     <View style={styles.container}>

@@ -22,6 +22,7 @@ type RootStackParamList = {
 
 const PagLoadingEntrar = () => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+  
   useEffect(() => {
     const carregarBD = async () => {
       try {
