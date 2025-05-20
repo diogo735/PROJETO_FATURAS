@@ -40,6 +40,7 @@ interface Movimento {
 }
 
 import { RouteProp, useRoute } from '@react-navigation/native';
+import { buscarUsuarioAtual } from '../../BASEDEDADOS/user';
 
 
 
@@ -73,7 +74,16 @@ const Pagina_principal: React.FC = () => {
     opacidadeTela.value = withTiming(1, { duration: 400 });
   }, []);
 
+  const [nomeUsuario, setNomeUsuario] = useState('');
+  const [fotoUsuario, setFotoUsuario] = useState<string | null>(null);
 
+
+ useEffect(() => {
+  if (route?.params) {
+    setNomeUsuario(route.params.nomeUsuario || '');
+    setFotoUsuario(route.params.fotoUsuario || null);
+  }
+}, [route.params]);
 
 
   /*
@@ -134,6 +144,7 @@ const Pagina_principal: React.FC = () => {
         setDadosProntos(true);
       }, 50);
     }
+    
   }, [route.params]);
 
 
@@ -158,10 +169,15 @@ const Pagina_principal: React.FC = () => {
   return (
     <Animated.View style={[styles.corpo, estiloAnimado]}>
       <NavbarPaginaPrincipal
-        nome="Diogo Ferreira"
-        foto={require('../../assets/imagens/1.jpg')}
+        nome={nomeUsuario}
+        foto={
+          fotoUsuario
+            ? { uri: fotoUsuario }
+            : require('../../assets/imagens/sem_foto.png') 
+        }
         onPressNotificacao={handleNotificacaoPress}
       />
+
 
       <ScrollView
         style={styles.scrollView}

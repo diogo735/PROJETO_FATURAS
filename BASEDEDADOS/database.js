@@ -7,11 +7,28 @@ import { criarTabelaFaturas, apagarTabelaFaturas } from './faturas';
 import { criarTabelaMetas, limparMetas, apagarTabelaMetas } from './metas';
 
 import { criarTabelaSubCategorias, criarSubCategoriasDeTeste, limparSubCategorias } from './sub_categorias';
-import { criarTabelaUsers, inserirUserTeste ,existeUsuario,apagarTodosUsers} from './user';
+import { criarTabelaUsers, inserirUserTeste, existeUsuario, apagarTodosUsers } from './user';
 
+import { criarTabelaNotificacoes, inserirNotificacoesTeste } from './notificacoes';
 
+import * as FileSystem from 'expo-file-system';
+import { Asset } from 'expo-asset';
+import { atualizarImagemDoUsuario } from './user'; 
 
+const definirImagemPadraoNoUsuario = async () => {
+  const asset = Asset.fromModule(require('../assets/splash.png'));
+  await asset.downloadAsync();
 
+  const destino = FileSystem.documentDirectory + 'perfil.jpg';
+
+  await FileSystem.copyAsync({
+    from: asset.localUri || '',
+    to: destino,
+  });
+
+  await atualizarImagemDoUsuario(destino);
+  console.log('✅ Imagem padrão atribuída ao usuário.');
+};
 
 async function inicializarBaseDeDados() {
 
@@ -23,6 +40,11 @@ async function inicializarBaseDeDados() {
     await criarTabelaUsers();
     // await apagarTodosUsers();
     //await inserirUserTeste();
+   
+
+    //NOTIFICAÇOES
+    await criarTabelaNotificacoes();
+    //await inserirNotificacoesTeste();
 
     //TIPOS_MOVIMENTOS
     await criarTabelaTipoMovimento(); await inserirVariosTiposMovimento();

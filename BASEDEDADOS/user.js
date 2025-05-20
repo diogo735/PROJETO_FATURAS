@@ -58,9 +58,20 @@ async function apagarTodosUsers() {
     console.error('❌ Erro ao apagar usuários:', error);
   }
 }
+
+async function buscarUsuarioAtual() {
+  const db = await CRIARBD();
+  const result = await db.getFirstAsync(`SELECT * FROM user LIMIT 1`);
+  return result;
+}
+async function atualizarImagemDoUsuario(uri) {
+  const db = await CRIARBD();
+  await db.runAsync(`UPDATE user SET imagem = ? WHERE id = (SELECT id FROM user LIMIT 1)`, uri);
+}
+
 export {
   criarTabelaUsers,
   inserirUser,
   inserirUserTeste,
-  existeUsuario,apagarTodosUsers
+  existeUsuario,apagarTodosUsers,buscarUsuarioAtual,atualizarImagemDoUsuario
 };

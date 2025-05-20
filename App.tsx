@@ -35,6 +35,7 @@ import PaginaVerificarEmail from './app/paginas_login/pagian_verifique_email';
 import { useState, } from 'react';
 import { existeUsuario } from './BASEDEDADOS/user';
 
+import PaginaDetalhePerfil from './app/pagina_perfil/pagina_perfil/pagina_editar_perfil';
 
 
 const { height, width } = Dimensions.get('window');
@@ -68,6 +69,8 @@ interface Movimento {
 }
 
 export type RootStackParamList = {
+  PerfilDetalhe: undefined;
+
   Splash: undefined;
   SplashScren_intruducao: undefined;
   MainApp: {
@@ -77,6 +80,8 @@ export type RootStackParamList = {
     totalReceitas: number;
     totalDespesas: number;
     movimentosRecentes: Movimento[];
+      nomeUsuario: string;
+  fotoUsuario: string | null;
   };
 
   Movimentos: undefined;
@@ -307,6 +312,13 @@ const PaginaVerificarEmailScreen = (props: any) => (
   </View>
 );
 
+const PaginaEditarPerfilScreen = (props: any) => (
+  <View style={styles.defaultContainer}>
+    <StatusBar translucent backgroundColor="transparent" style="dark" />
+    <PaginaDetalhePerfil {...props} />
+  </View>
+);
+
 
 const App: React.FC = () => {
   const [telaInicial, setTelaInicial] = useState<string | null>(null);
@@ -420,7 +432,13 @@ const App: React.FC = () => {
             },
           }}
         />
-        <Stack.Screen name="Notificacoes" component={NotificacoesScreen} />
+        <Stack.Screen name="Notificacoes" component={NotificacoesScreen} options={{
+          animation: 'fade',
+          transitionSpec: {
+            open: { animation: 'timing', config: { duration: 350 } },
+            close: { animation: 'timing', config: { duration: 250 } },
+          },
+        }} />
         <Stack.Screen
           name="DetalhesCategoria"
           component={DetalhesCategoriaScreen}
@@ -477,6 +495,17 @@ const App: React.FC = () => {
           options={{
             headerShown: false,
             animation: 'slide_from_right',
+          }}
+        />
+        <Stack.Screen
+          name="PerfilDetalhe"
+          component={PaginaEditarPerfilScreen}
+          options={{
+            animation: 'fade',
+            transitionSpec: {
+              open: { animation: 'timing', config: { duration: 350 } },
+              close: { animation: 'timing', config: { duration: 250 } },
+            },
           }}
         />
 

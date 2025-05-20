@@ -14,6 +14,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { verificarNotificacoesDeTodasMetas } from '../BASEDEDADOS/metas';
 const { width, height } = Dimensions.get('window');
 import { obterTotalReceitas, obterTotalDespesas, listarMovimentosUltimos30Dias, obterSaldoMensalAtual, obterSomaMovimentosPorCategoriaDespesa, obterSomaMovimentosPorCategoriaReceita } from '../BASEDEDADOS/movimentos';
+import { buscarUsuarioAtual } from '../BASEDEDADOS/user';
 
 type RootStackParamList = {
   MainApp: undefined;
@@ -34,6 +35,9 @@ const PagLoadingEntrar = () => {
         const despesas = await obterTotalDespesas();
         const dadosDespesas = await obterSomaMovimentosPorCategoriaDespesa();
         const dadosReceitas = await obterSomaMovimentosPorCategoriaReceita();
+        const user = await buscarUsuarioAtual();
+        const nome = user?.nome || 'Usuário';
+        const foto = user?.imagem || null;
 
         await SplashScreen.hideAsync();
 
@@ -51,6 +55,8 @@ const PagLoadingEntrar = () => {
                 totalReceitas: receitas,
                 totalDespesas: despesas,
                 movimentosRecentes: dadosMovimentos,
+                nomeUsuario: nome,
+      fotoUsuario: foto,
               }
 
             }]

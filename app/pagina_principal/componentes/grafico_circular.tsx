@@ -76,7 +76,7 @@ const Grafico_Circular: React.FC<GraficoCircularProps> = ({ categorias, tipoSele
   const size = (radius + strokeWidth + outerCircleRadius + 50) * 2;
   const circumference = 2 * Math.PI * radius;
   const navigation = useNavigation<NavigationProp>();
-  console.log('🐷 tipoSelecionado:', tipoSelecionado);
+  //console.log('🐷 tipoSelecionado:', tipoSelecionado);
   const opacidadeGrafico = useSharedValue(1);
   useEffect(() => {
     opacidadeGrafico.value = withTiming(0, { duration: 250 }, () => {

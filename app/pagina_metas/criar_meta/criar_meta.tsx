@@ -409,17 +409,16 @@ const CriarMeta: React.FC = () => {
                 aoSelecionarCategoria={(cat) => {
                     setCategoriaSelecionada(cat);
                     setSubcategoriaSelecionada(null);
-                }}
+                } }
 
                 aoSelecionarSubcategoria={(sub) => {
                     if (sub !== null) {
                         setCategoriaSelecionada(null);
                         setSubcategoriaSelecionada(sub);
                     }
-                }}
+                } }
 
-                categoriaSelecionada={categoriaSelecionada}
-            />
+                categoriaSelecionada={categoriaSelecionada} subcategoriaSelecionada={subcategoriaSelecionada}            />
 
             <ModalData
                 visivel={modalDataVisivel}

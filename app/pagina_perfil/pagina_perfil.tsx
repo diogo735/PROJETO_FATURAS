@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, Alert, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { scale } from 'react-native-size-matters';
@@ -24,11 +24,29 @@ import IconPadlock from '../../assets/pagina_perfil/padlock.png';
 
 import IconServer from '../../assets/pagina_perfil/server.png';
 import IconSupport from '../../assets/pagina_perfil/support.png';
+import { buscarUsuarioAtual } from '../../BASEDEDADOS/user';
 
 const { height, width } = Dimensions.get('window');
 
 const Pagina_perfil: React.FC = () => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+  const [nome, setNome] = useState('');
+  const [email, setEmail] = useState('');
+  const [imagem, setImagem] = useState(null);
+
+  useEffect(() => {
+    const carregarUsuario = async () => {
+      const user = await buscarUsuarioAtual();
+      if (user) {
+        setNome(user.nome);
+        setEmail(user.email);
+        setImagem(user.imagem); // deve ser uma URI como "file://..."
+      }
+    };
+
+    carregarUsuario();
+  }, []);
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -40,19 +58,22 @@ const Pagina_perfil: React.FC = () => {
 
         <View style={styles.perfilContainer}>
           <View style={styles.imagemWrapper}>
-            <Image
-              source={require('../../assets/imagens/1.jpg')}
-              style={styles.fotoPerfil}
-            />
+            {imagem ? (
+              <Image source={{ uri: imagem }} style={styles.fotoPerfil} />
+            ) : (
+              <Image source={require('../../assets/imagens/sem_foto.png')} style={styles.fotoPerfil} />
+            )}
+
           </View>
-          <Text style={styles.nome}>Diogo Ferreira</Text>
-          <Text style={styles.email}>antferreira735@gmail.com</Text>
+          <Text style={styles.nome}>{nome || 'Nome não disponível'}</Text>
+          <Text style={styles.email}>{email || 'Conta sem Login'}</Text>
+
         </View>
 
         <View style={styles.secao}>
           <Text style={styles.labelSecao}>Geral</Text>
 
-          <TouchableOpacity style={styles.botaoItem} onPress={() => Alert.alert("Editar perfil")}>
+          <TouchableOpacity style={styles.botaoItem} onPress={() => navigation.navigate('PerfilDetalhe')}>
             <View style={styles.itemEsquerda}>
               <Image
                 source={IconEditar}
@@ -304,7 +325,7 @@ const styles = StyleSheet.create({
     marginTop: 30,
     marginBottom: 0,
     flexDirection: 'row',
-    
+
   },
   logoutContent: {
     flexDirection: 'row',
@@ -321,7 +342,7 @@ const styles = StyleSheet.create({
     fontSize: scale(15),
     fontWeight: 'bold',
   },
-  
+
 
 });
 
