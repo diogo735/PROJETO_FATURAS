@@ -33,17 +33,19 @@ import PaginaLogin_Email from './app/paginas_login/pagina_login_email';
 import PaginaEsqueceuPass from './app/paginas_login/pagina_esqueceu_pass';
 import PaginaVerificarEmail from './app/paginas_login/pagian_verifique_email';
 import { useState, } from 'react';
-import { existeUsuario } from './BASEDEDADOS/user';
+import { criarTabelaUsers, existeUsuario } from './BASEDEDADOS/user';
 
 import PaginaDetalhePerfil from './app/pagina_perfil/pagina_perfil/pagina_editar_perfil';
+import PaginaMoeda from './app/pagina_perfil/pagina_moeda/pagina_moeda';
 
 
 const { height, width } = Dimensions.get('window');
 import 'react-native-gesture-handler';
 import 'react-native-reanimated';
 import * as Notify from 'expo-notifications';
+import { CRIARBD } from './BASEDEDADOS/databaseInstance';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-SplashScreen.preventAutoHideAsync();
 
 Notify.setNotificationHandler({
   handleNotification: async () => ({
@@ -66,11 +68,13 @@ interface Movimento {
   valor: number;
   data: string;
   categoria_id: number;
+
+
 }
 
 export type RootStackParamList = {
   PerfilDetalhe: undefined;
-
+  PaginaMoeda: undefined;
   Splash: undefined;
   SplashScren_intruducao: undefined;
   MainApp: {
@@ -155,13 +159,25 @@ const SplashScren = (props: any) => {
   );
 };
 
-const SplashScren_intruducao = (props: any) => (
-  <View style={{ flex: 1 }}>
-    <StatusBar translucent backgroundColor="transparent" style="light" />
-    <Pagina_Comecar />
-    {/*<PagLoadingEntrar /> */}
-  </View>
-);
+const SplashScren_intruducao = (props: any) => {
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      // Remove cor de fundo da UI
+      SystemUI.setBackgroundColorAsync('transparent');
+      NavigationBar.setBehaviorAsync('overlay-swipe');
+      NavigationBar.setButtonStyleAsync('light');
+    }
+  }, []);
+
+
+  return (
+    <View style={{ flex: 1 }}>
+      <StatusBar translucent backgroundColor="transparent" style="light" />
+      <Pagina_Comecar />
+      {/*<PagLoadingEntrar /> */}
+    </View>
+  );
+};
 
 
 // DEMAIS TELAS: com paddingTop para status bar
@@ -308,17 +324,44 @@ const PaginaEditarPerfilScreen = (props: any) => (
   </View>
 );
 
-
+const PaginamoedaScreen = (props: any) => (
+  <View style={styles.defaultContainer}>
+    <StatusBar translucent backgroundColor="transparent" style="dark" />
+    <PaginaMoeda {...props} />
+  </View>
+);
 const App: React.FC = () => {
   const [telaInicial, setTelaInicial] = useState<string | null>(null);
 
   useEffect(() => {
-    async function verificarUser() {
-      const existe = await existeUsuario();
-      setTelaInicial(existe ? 'Splash' : 'SplashScren_intruducao');
+    async function iniciarApp() {
+      await SplashScreen.preventAutoHideAsync();
+
+      try {
+        await CRIARBD();
+        await criarTabelaUsers();
+        // 👇 Verifica e define moeda padrão se necessário
+        const moedaAtual = await AsyncStorage.getItem('moedaSelecionada');
+        if (!moedaAtual) {
+          await AsyncStorage.setItem(
+            'moedaSelecionada',
+            JSON.stringify({ codigo: 'EUR', simbolo: '€' })
+          );
+        }
+
+        const existe = await existeUsuario();
+        setTelaInicial(existe ? 'Splash' : 'SplashScren_intruducao');
+      } catch (err) {
+        console.error("Erro ao inicializar o app:", err);
+        setTelaInicial('SplashScren_intruducao');
+      } finally {
+        await SplashScreen.hideAsync();
+      }
     }
-    verificarUser();
+
+    iniciarApp();
   }, []);
+
 
   if (!telaInicial) return null;
 
@@ -329,7 +372,7 @@ const App: React.FC = () => {
         initialRouteName={telaInicial as keyof RootStackParamList}
         screenOptions={{ headerShown: false }}
       >
-       <Stack.Screen name="SplashScren_intruducao" component={SplashScren_intruducao} />
+        <Stack.Screen name="SplashScren_intruducao" component={SplashScren_intruducao} />
         <Stack.Screen name="Splash" component={SplashScren} options={{
           animation: 'fade',
           transitionSpec: {
@@ -345,7 +388,7 @@ const App: React.FC = () => {
             close: { animation: 'timing', config: { duration: 250 } },
           },
         }} />
-         
+
         <Stack.Screen name="Movimentos" component={MovimentosScreen} />
         <Stack.Screen name="Metas" component={MetasScreen} />
         <Stack.Screen name="Perfil" component={PerfilScreen} />
@@ -490,6 +533,17 @@ const App: React.FC = () => {
         <Stack.Screen
           name="PerfilDetalhe"
           component={PaginaEditarPerfilScreen}
+          options={{
+            animation: 'fade',
+            transitionSpec: {
+              open: { animation: 'timing', config: { duration: 350 } },
+              close: { animation: 'timing', config: { duration: 250 } },
+            },
+          }}
+        />
+        <Stack.Screen
+          name="PaginaMoeda"
+          component={PaginamoedaScreen}
           options={{
             animation: 'fade',
             transitionSpec: {

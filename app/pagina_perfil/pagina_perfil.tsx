@@ -86,7 +86,7 @@ const Pagina_perfil: React.FC = () => {
             <SetaDireita width={16} height={16} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.botaoItem} onPress={() => Alert.alert("Editar perfil")}>
+          <TouchableOpacity style={styles.botaoItem} onPress={() => navigation.navigate('PaginaMoeda')}>
             <View style={styles.itemEsquerda}>
               <Image
                 source={MoedaIcon}

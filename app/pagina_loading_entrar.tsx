@@ -22,7 +22,13 @@ type RootStackParamList = {
 
 const PagLoadingEntrar = () => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-  
+  const placeholder = [{
+    categoria_id: 99,
+    nome_cat: 'Sem dados',
+    cor_cat: '#ccc',
+    img_cat: 'outros.png',
+    total_valor: 0,
+  }];
   useEffect(() => {
     const carregarBD = async () => {
       try {
@@ -50,14 +56,14 @@ const PagLoadingEntrar = () => {
             routes: [{
               name: 'MainApp',
               params: {
-                dadosGraficoDespesas: Array.isArray(dadosDespesas) ? dadosDespesas : [],
-                dadosGraficoReceitas: Array.isArray(dadosReceitas) ? dadosReceitas : [],
+                dadosGraficoDespesas: Array.isArray(dadosDespesas) && dadosDespesas.length > 0 ? dadosDespesas : placeholder,
+                dadosGraficoReceitas: Array.isArray(dadosReceitas) && dadosReceitas.length > 0 ? dadosReceitas : placeholder,
                 saldoMensal: saldo,
                 totalReceitas: receitas,
                 totalDespesas: despesas,
                 movimentosRecentes: dadosMovimentos,
                 nomeUsuario: nome,
-      fotoUsuario: foto,
+                fotoUsuario: foto,
               }
 
             }]

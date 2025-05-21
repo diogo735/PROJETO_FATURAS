@@ -3,6 +3,8 @@ import { inserirNotificacao } from './notificacoes';
 import * as Notify from 'expo-notifications';
 import * as FileSystem from 'expo-file-system';
 import { Asset } from 'expo-asset';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 async function criarTabelaUsers() {
   try {
     const db = await CRIARBD();

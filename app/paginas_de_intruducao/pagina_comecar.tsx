@@ -4,6 +4,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Logo from '../../assets/imagens/icon_app_porco.svg';
 const { width, height } = Dimensions.get('window');
 import { useFonts, Andika_700Bold } from '@expo-google-fonts/andika';
+import * as SplashScreen from 'expo-splash-screen';
+import { useEffect } from 'react';
 
 import { Afacad_500Medium } from '@expo-google-fonts/afacad';
 import { TouchableOpacity } from 'react-native';
@@ -20,7 +22,14 @@ const Pagina_Comecar = () => {
         Andika_700Bold,
         Afacad_500Medium,
     });
-   if (!fontsLoaded) return null;
+    
+    useEffect(() => {
+        if (fontsLoaded) {
+            SplashScreen.hideAsync();
+        }
+    }, [fontsLoaded]);
+
+    if (!fontsLoaded) return null;
 
     return (
         <View style={styles.container}>

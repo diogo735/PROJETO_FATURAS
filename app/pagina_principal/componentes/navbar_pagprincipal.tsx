@@ -4,8 +4,8 @@ import { Dimensions } from 'react-native';
 import { scale } from 'react-native-size-matters';
 const { height, width } = Dimensions.get('window');
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-
-
+import IconNova from '../../../assets/icons/pagina_notificacoa/ativas.svg';
+import Iconnao from '../../../assets/icons/pagina_notificacoa/naoativo.svg';
 const NavbarPaginaPrincipal = ({
   nome,
   foto,
@@ -60,11 +60,13 @@ const NavbarPaginaPrincipal = ({
 
         {/* Botão de Notificação */}
         <TouchableOpacity style={styles.notificationButton} onPress={onPressNotificacao}>
-          <MaterialIcons name="notifications-none" size={izonnotificao_size} color="#003366" />
-          {hasNotificacoesNovas && (
-            <View style={styles.badge} />
+          {hasNotificacoesNovas ? (
+            <IconNova width={izonnotificao_size} height={izonnotificao_size} />
+          ) : (
+             <Iconnao width={izonnotificao_size} height={izonnotificao_size} />
           )}
         </TouchableOpacity>
+
 
       </View>
     </View>
@@ -114,12 +116,12 @@ const styles = StyleSheet.create({
   },
   badge: {
     position: 'absolute',
-    top: 4,
-    right: 4,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: 'red',
+    top: '27%',
+    right: '27%',
+    width: 7,
+    height: 7,
+    borderRadius: 99,
+    backgroundColor: '#164878',
   },
 
 });

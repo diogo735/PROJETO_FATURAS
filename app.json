@@ -20,9 +20,9 @@
       }
     },
     "splash": {
-      "image": "./assets/imagens/icon_app_porco.png",
+      "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#2565A3"
+      "backgroundColor": "#0C4777"
     },
     "android": {
       "adaptiveIcon": {

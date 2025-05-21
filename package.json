@@ -13,13 +13,16 @@
     "@expo-google-fonts/afacad": "^0.3.0",
     "@expo-google-fonts/andika": "^0.3.0",
     "@expo-google-fonts/nokora": "^0.2.3",
+    "@react-native-async-storage/async-storage": "^1.23.1",
     "@react-native-community/datetimepicker": "^8.3.0",
     "@react-native-community/slider": "4.5.5",
     "@react-native-masked-view/masked-view": "^0.3.2",
     "@react-native/gradle-plugin": "^0.78.1",
+    "@react-native/metro-config": "^0.79.2",
     "@react-navigation/bottom-tabs": "^7.3.2",
     "@react-navigation/native": "^7.0.18",
     "@react-navigation/stack": "^7.1.2",
+    "country-flag-icons": "^1.5.19",
     "d3-shape": "^3.2.0",
     "date-fns": "^4.1.0",
     "expo": "~52.0.38",
@@ -65,8 +68,7 @@
     "react-native-vector-icons": "^10.2.0",
     "react-native-vision-camera": "^4.6.4",
     "victory-native": "^41.16.1",
-    "victory-pie": "^37.3.6",
-    "@react-native-async-storage/async-storage": "1.23.1"
+    "victory-pie": "^37.3.6"
   },
   "expo": {
     "doctor": {
