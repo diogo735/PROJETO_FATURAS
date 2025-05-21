@@ -8,6 +8,7 @@ import Animated, { useSharedValue, useAnimatedStyle, withTiming, runOnJS } from 
 import UltimosMovimentos from './componentes/ultimos_moviemtos/ultimos_moviemntos';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useCallback } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { ScrollView } from 'react-native';
 const { width, height } = Dimensions.get('window');
@@ -69,6 +70,15 @@ const Pagina_principal: React.FC = () => {
   const estiloAnimado = useAnimatedStyle(() => ({
     opacity: opacidadeTela.value,
   }));
+
+useEffect(() => {
+  const verificarNotificacoes = async () => {
+    const valor = await AsyncStorage.getItem('hasNotificacoesNovas');
+    setHasNotificacoesNovas(valor === 'true');
+  };
+
+  verificarNotificacoes();
+}, []);
 
   useEffect(() => {
     opacidadeTela.value = withTiming(1, { duration: 400 });
@@ -175,11 +185,19 @@ useFocusEffect(
   }, [tipoSelecionado]);
 
 
+const [hasNotificacoesNovas, setHasNotificacoesNovas] = useState(true);
+
+const handleNotificacaoPress = async () => {
+  setHasNotificacoesNovas(false);
+  await AsyncStorage.setItem('hasNotificacoesNovas', 'false');
+  navigation.navigate('Notificacoes');
+};
 
 
-  const handleNotificacaoPress = () => {
-    navigation.navigate('Notificacoes');
-  };
+
+
+
+
 
   return (
     <Animated.View style={[styles.corpo, estiloAnimado]}>
@@ -191,6 +209,7 @@ useFocusEffect(
             : require('../../assets/imagens/sem_foto.png') 
         }
         onPressNotificacao={handleNotificacaoPress}
+        hasNotificacoesNovas={hasNotificacoesNovas}
       />
 
 

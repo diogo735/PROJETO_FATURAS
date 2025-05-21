@@ -6,24 +6,34 @@ const { height, width } = Dimensions.get('window');
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 
-const NavbarPaginaPrincipal = ({ nome, foto, onPressNotificacao }: { nome: string; foto: string | number; onPressNotificacao: () => void }) => {
+const NavbarPaginaPrincipal = ({
+  nome,
+  foto,
+  onPressNotificacao,
+  hasNotificacoesNovas,
+}: {
+  nome: string;
+  foto: string | number;
+  onPressNotificacao: () => void;
+  hasNotificacoesNovas: boolean;
+}) => {
   const izonnotificao_size = width * 0.06;
   const [saudacao, setSaudacao] = useState('');
 
 
- const atualizarSaudacao = () => {
-  const hora = new Date().getHours();
-  if (hora >= 7 && hora < 12) {
-    setSaudacao('Bom dia');
-  } else if (hora >= 12 && hora < 19) {
-    setSaudacao('Boa tarde');
-  } else {
-    setSaudacao('Boa noite');
-  }
-};
+  const atualizarSaudacao = () => {
+    const hora = new Date().getHours();
+    if (hora >= 7 && hora < 12) {
+      setSaudacao('Bom dia');
+    } else if (hora >= 12 && hora < 19) {
+      setSaudacao('Boa tarde');
+    } else {
+      setSaudacao('Boa noite');
+    }
+  };
 
   useEffect(() => {
-    atualizarSaudacao(); 
+    atualizarSaudacao();
 
     const intervalo = setInterval(() => {
       atualizarSaudacao();
@@ -51,7 +61,11 @@ const NavbarPaginaPrincipal = ({ nome, foto, onPressNotificacao }: { nome: strin
         {/* Botão de Notificação */}
         <TouchableOpacity style={styles.notificationButton} onPress={onPressNotificacao}>
           <MaterialIcons name="notifications-none" size={izonnotificao_size} color="#003366" />
+          {hasNotificacoesNovas && (
+            <View style={styles.badge} />
+          )}
         </TouchableOpacity>
+
       </View>
     </View>
   );
@@ -98,6 +112,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  badge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: 'red',
+  },
+
 });
 
 export default NavbarPaginaPrincipal;

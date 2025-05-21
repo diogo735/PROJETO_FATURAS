@@ -112,6 +112,7 @@ async function atualizarUsuario(nome, imagem, pass) {
       },
       trigger: null,
     });
+    await AsyncStorage.setItem('hasNotificacoesNovas', 'true');
 
 
     return true;
