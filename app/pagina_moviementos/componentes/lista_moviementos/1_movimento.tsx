@@ -3,7 +3,7 @@ import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 import { ImageSourcePropType } from 'react-native';
 import MovimentoItem from '../../../pagina_principal/componentes/ultimos_moviemtos/movimento_item';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
-
+import { useMoeda } from '../../../MOEDA';
 function getImagemCategoria(img_cat: string): ImageSourcePropType {
     if (!img_cat) {
         return require('../../../../assets/imagens/categorias/outros.png');
@@ -51,8 +51,9 @@ interface Props {
 }
 
 const MovimentoCard: React.FC<Props> = ({ nome, valor, hora, cor, imagem, tipo, onPress }) => {
-    const isDespesa = tipo === 'Despesa';
-    const valorFormatado = `${isDespesa ? '-' : '+'}${valor}€`;
+    const isDespesa = tipo === 'Despesa';const { moeda } = useMoeda();
+    const valorFormatado = `${isDespesa ? '-' : '+'}${valor}${moeda.simbolo}`;
+
 
     return (
         <TouchableOpacity style={styles.card} onPress={onPress}>

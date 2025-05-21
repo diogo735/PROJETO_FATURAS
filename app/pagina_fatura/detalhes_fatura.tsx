@@ -31,7 +31,7 @@ import RNFS from 'react-native-fs';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import { Animated, Easing } from 'react-native';
 import IconRotativo from '../../assets/imagens/wallpaper.svg'; // ou o caminho certo do seu SVG
-
+import { useMoeda } from '../MOEDA';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 
@@ -97,6 +97,8 @@ async function converterImagemParaBase64(url: string): Promise<string | null> {
 }
 
 const DetalhesFatura: React.FC<Props> = ({ route }) => {
+    const { moeda } = useMoeda();
+
     const { id } = route.params;
     const [fatura, setFatura] = useState<Fatura | null>(null);
     const [categoriaInfo, setCategoriaInfo] = useState<{
@@ -269,9 +271,9 @@ const DetalhesFatura: React.FC<Props> = ({ route }) => {
 
                     <div class="bloco">
                     <div class="titulo">Pagamento</div>
-                    <div class="pagamento"><span>Subtotal</span><span>${(fatura.total_final - fatura.total_iva).toFixed(2)}€</span></div>
-                    <div class="pagamento"><span>IVA (23%)</span><span>${fatura.total_iva.toFixed(2)}€</span></div>
-                    <div class="total"><span>Total</span><span>${fatura.total_final.toFixed(2)}€</span></div>
+                    <div class="pagamento"><span>Subtotal</span><span>${(fatura.total_final - fatura.total_iva).toFixed(2)}${moeda.simbolo}</span></div>
+                    <div class="pagamento"><span>IVA (23%)</span><span>${fatura.total_iva.toFixed(2)}${moeda.simbolo}</span></div>
+                    <div class="total"><span>Total</span><span>${fatura.total_final.toFixed(2)}${moeda.simbolo}</span></div>
                     </div>
                 </div>
                 ${imagemBase64}
@@ -443,9 +445,9 @@ const DetalhesFatura: React.FC<Props> = ({ route }) => {
 
                     <div class="bloco">
                     <div class="titulo">Pagamento</div>
-                    <div class="pagamento"><span>Subtotal</span><span>${(fatura.total_final - fatura.total_iva).toFixed(2)}€</span></div>
-                    <div class="pagamento"><span>IVA (23%)</span><span>${fatura.total_iva.toFixed(2)}€</span></div>
-                    <div class="total"><span>Total</span><span>${fatura.total_final.toFixed(2)}€</span></div>
+                    <div class="pagamento"><span>Subtotal</span><span>${(fatura.total_final - fatura.total_iva).toFixed(2)}${moeda.simbolo}</span></div>
+                    <div class="pagamento"><span>IVA (23%)</span><span>${fatura.total_iva.toFixed(2)}${moeda.simbolo}</span></div>
+                    <div class="total"><span>Total</span><span>${fatura.total_final.toFixed(2)}${moeda.simbolo}</span></div>
                     </div>
                 </div>
                 ${imagemBase64}
@@ -772,17 +774,17 @@ const DetalhesFatura: React.FC<Props> = ({ route }) => {
 
                                 <View style={styles.pagamentoLinha}>
                                     <Text style={styles.labelPagamento}>Subtotal</Text>
-                                    <Text style={styles.valorPagamento}>{(fatura?.total_final! - fatura?.total_iva!).toFixed(2)}€</Text>
+                                    <Text style={styles.valorPagamento}>{(fatura?.total_final! - fatura?.total_iva!).toFixed(2)}{moeda.simbolo}</Text>
                                 </View>
 
                                 <View style={styles.pagamentoLinha}>
                                     <Text style={styles.labelPagamento}>IVA (23%)</Text>
-                                    <Text style={styles.valorPagamento}>{fatura?.total_iva.toFixed(2)}€</Text>
+                                    <Text style={styles.valorPagamento}>{fatura?.total_iva.toFixed(2)}{moeda.simbolo}</Text>
                                 </View>
 
                                 <View style={styles.pagamentoLinha}>
                                     <Text style={styles.labelTotal}>Total</Text>
-                                    <Text style={styles.valorTotal}>{fatura?.total_final.toFixed(2)}€</Text>
+                                    <Text style={styles.valorTotal}>{fatura?.total_final.toFixed(2)}{moeda.simbolo}</Text>
                                 </View>
                             </View>
 

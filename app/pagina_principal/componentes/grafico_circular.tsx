@@ -15,7 +15,8 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../../App'; // ajuste o caminho
 type NavigationProp = StackNavigationProp<RootStackParamList>;
-
+import { FadeIn, FadeOut } from 'react-native-reanimated';
+import { useMoeda } from '../../MOEDA'; 
 interface DadosGrafico {
   categoria_id: number;
   nome_cat: string;
@@ -76,62 +77,11 @@ const Grafico_Circular: React.FC<GraficoCircularProps> = ({ categorias, tipoSele
   const size = (radius + strokeWidth + outerCircleRadius + 50) * 2;
   const circumference = 2 * Math.PI * radius;
   const navigation = useNavigation<NavigationProp>();
-  //console.log('🐷 tipoSelecionado:', tipoSelecionado);
-  const opacidadeGrafico = useSharedValue(1);
-  useEffect(() => {
-    opacidadeGrafico.value = withTiming(0, { duration: 250 }, () => {
-      opacidadeGrafico.value = withTiming(1, { duration: 250 });
-    });
-  }, [tipoSelecionado]);
-  const estiloGraficoAnimado = useAnimatedStyle(() => ({
-    opacity: opacidadeGrafico.value,
-  }));
+ 
+const { moeda } = useMoeda();
 
 
-  if (!categorias.length) {
-    return (
-      <Animated.View style={[styles.container, estiloGraficoAnimado]}>
-        <Svg width={size} height={size}>
-          {/* Círculo padrão (cor diferente para despesas e receitas) */}
-          <Circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            stroke={tipoSelecionado === 'despesas' ? '#F2A0A0' : '#7CD47C'}
-            strokeWidth={strokeWidth}
-            fill="none"
-          />
-          {/* Texto dentro do SVG */}
-          <Text
-            style={{
-              position: "absolute",
-              alignSelf: "center",
-              top: size / 2 - radius - height * 0.1, // Equivalente ao y
-              fontSize: width * 0.05,
-              fontWeight: "bold",
-              color: tipoSelecionado === 'despesas' ? '#F2A0A0' : '#7CD47C',
-              textAlign: "center",
-              width: "100%",
-            }}
-          >
-            Nenhuma {tipoSelecionado === 'despesas' ? 'Despesa' : 'Receita'} Registrada!
-          </Text>
-
-        </Svg>
-
-        <View style={styles.imagemCentro}>
-          <ImagemCentral
-            width="100%"
-            height="100%"
-            fill={tipoSelecionado === "receitas" ? "#4AAF53" : "#E12D2D"}
-          />
-        </View>
-
-
-      </Animated.View>
-    );
-  }
-
+  
 
 
 
@@ -186,7 +136,11 @@ const Grafico_Circular: React.FC<GraficoCircularProps> = ({ categorias, tipoSele
 
   return (
 
-    <Animated.View style={[styles.container, estiloGraficoAnimado]}>
+    <Animated.View
+  entering={FadeIn.duration(300)}
+  exiting={FadeOut.duration(300)}
+  style={styles.container}
+>
 
       <Svg width={size} height={size} >
         <G originX={size / 2} originY={size / 2}>
@@ -319,7 +273,7 @@ const Grafico_Circular: React.FC<GraficoCircularProps> = ({ categorias, tipoSele
                   width: "100%",
                 }}
               >
-                {`${parseInt(categoria.total_valor.toString(), 10)}€`}
+                {`${parseInt(categoria.total_valor.toString(), 10)}${moeda.simbolo}`}
               </Text>
             </AnimatedPressable>
           );

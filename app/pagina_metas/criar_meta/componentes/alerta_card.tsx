@@ -4,6 +4,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import SwitchCustomizado from '../componentes/switch_customizado';
 import Slider from '@react-native-community/slider';
 import Animated, { FadeIn, FadeOut, useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import { useMoeda } from '../../../MOEDA';
 
 
 
@@ -26,7 +27,8 @@ const AlertaCard: React.FC<Props> = ({ alertaAtivo, onToggle, valor, onValorCalc
       valorInicial = (valorCalculadoAlerta / valor) * 100;
     }
     
-        
+        const { moeda } = useMoeda();
+
     const percentual = useSharedValue(valorInicial);
     const [sliderValue, setSliderValue] = useState(valorInicial);
 
@@ -56,8 +58,8 @@ const AlertaCard: React.FC<Props> = ({ alertaAtivo, onToggle, valor, onValorCalc
 
                         <Text style={styles.alertaValor}>
                             {valor !== null && !isNaN(valor)
-                                ? Math.floor((valor * sliderValue) / 100).toString() + '€'
-                                : '0€'}
+                                ? `${Math.floor((valor * sliderValue) / 100)}${moeda.simbolo}`
+                                : `0${moeda.simbolo}`}
                         </Text>
                     </View>
 

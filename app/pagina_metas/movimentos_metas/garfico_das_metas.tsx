@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Dimensions, StyleSheet } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
+import { useMoeda } from '../../MOEDA';
 
 const { width, height } = Dimensions.get('window');
 
@@ -11,6 +12,8 @@ interface GraficoMetaProps {
   cor?: string;
 }
 const GraficoMeta: React.FC<Partial<GraficoMetaProps>> = (props) => {
+  const { moeda } = useMoeda();
+
   const dadosTeste = {
     dias: ['1 abr.', ],
     dados: [8,],
@@ -46,7 +49,7 @@ const GraficoMeta: React.FC<Partial<GraficoMetaProps>> = (props) => {
         width={width * 0.9}
         height={height * 0.25}
         xLabelsOffset={0}
-        yAxisSuffix="€"
+        yAxisSuffix={moeda.simbolo}
         yAxisInterval={1}
         chartConfig={{
           fillShadowGradient: corFinal,

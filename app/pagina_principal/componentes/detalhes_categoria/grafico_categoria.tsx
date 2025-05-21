@@ -3,6 +3,7 @@ import { Dimensions } from 'react-native';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 const { width, height } = Dimensions.get('window');
 import { ScrollView } from 'react-native';
+import { useMoeda } from '../../../MOEDA';
 
 
 type Props = {
@@ -15,6 +16,8 @@ type Props = {
 };
 
 const GraficoBarras: React.FC<Props> = ({ cor, valoresX, valoresY, valoresBarras, indiceHoje, tipoCategoria }) => {
+    const { moeda } = useMoeda();
+
     const valorMaximo = Math.max(...valoresY.map(Math.abs));
     const alturaGrafico = height * 0.4;
     const linhasCount = valoresY.length;
@@ -37,7 +40,7 @@ const GraficoBarras: React.FC<Props> = ({ cor, valoresX, valoresY, valoresBarras
 
                         return (
                             <Text key={index} style={styles.textoEixoY}>
-                                {prefixo}{Math.round(valor)} €
+                                {prefixo}{Math.round(valor)} {moeda.simbolo}
                             </Text>
                         );
                     })}

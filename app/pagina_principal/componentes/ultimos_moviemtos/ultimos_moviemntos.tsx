@@ -7,7 +7,7 @@ import { pt } from 'date-fns/locale';
 import { Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-
+import { useMoeda } from '../../../MOEDA';
 import { RootStackParamList } from '../../../../App';
 type NavigationProps = StackNavigationProp<RootStackParamList, 'Movimentos'>
 const { width, height } = Dimensions.get('window');
@@ -54,6 +54,7 @@ const UltimosMovimentos: React.FC<Props> = ({ movimentos }) => {
     function capitalizar(texto: string) {
         return texto.charAt(0).toUpperCase() + texto.slice(1);
     }
+const { moeda } = useMoeda();
 
     return (
 
@@ -114,7 +115,7 @@ const UltimosMovimentos: React.FC<Props> = ({ movimentos }) => {
                                                 totalReceitas === 0 && { color: '#969696' },
                                             ]}
                                         >
-                                            +{formatarNumero(Number(totalReceitas) || 0)} €
+                                            +{formatarNumero(Number(totalReceitas) || 0)} {moeda.simbolo}
                                         </Text>
 
                                         <Text
@@ -123,7 +124,7 @@ const UltimosMovimentos: React.FC<Props> = ({ movimentos }) => {
                                                 totalDespesas === 0 && { color: '#969696' },
                                             ]}
                                         >
-                                            -{formatarNumero(Number(totalDespesas) || 0)} €
+                                            -{formatarNumero(Number(totalDespesas) || 0)} {moeda.simbolo}
                                         </Text>
                                     </View>
 

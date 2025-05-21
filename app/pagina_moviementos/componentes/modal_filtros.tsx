@@ -11,8 +11,10 @@ import { Keyboard, TouchableWithoutFeedback } from 'react-native';
 import { Animated, Easing } from 'react-native';
 import { useRef } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useMoeda } from '../../MOEDA';
 
-const faixas = ['Até 50€', '50€ – 100€', 'Mais de 100€'];
+
+
 
 const { height, width } = Dimensions.get('window');
 interface Props {
@@ -82,6 +84,13 @@ function getImagemCategoria(img_cat: any): ImageSourcePropType {
 
 
 const ModalFiltros: React.FC<Props> = ({ visivel, aoFechar, filtrosSalvos, setFiltrosSalvos }) => {
+    const { moeda } = useMoeda();
+
+    const faixas = [
+        `Até 50${moeda.simbolo}`,
+        `50${moeda.simbolo} – 100${moeda.simbolo}`,
+        `Mais de 100${moeda.simbolo}`
+    ];
 
     const [categorias, setCategorias] = useState<Categoria[]>([]);
     const [categoriasSelecionadas, setCategoriasSelecionadas] = useState<number[]>([0]);
@@ -322,7 +331,7 @@ const ModalFiltros: React.FC<Props> = ({ visivel, aoFechar, filtrosSalvos, setFi
                                 right: 0,
                                 width: 30,
                                 height: '100%',
-                                backgroundColor: 'rgba(255,255,255,0)', 
+                                backgroundColor: 'rgba(255,255,255,0)',
                                 zIndex: 1,
                                 justifyContent: 'center',
                                 alignItems: 'center',
@@ -550,7 +559,7 @@ const ModalFiltros: React.FC<Props> = ({ visivel, aoFechar, filtrosSalvos, setFi
                             />
                             <Text style={styles.textoOrdenar}>Por montante (maior &gt; menor)</Text>
                         </TouchableOpacity>
- 
+
                         <TouchableOpacity
                             style={styles.opcaoOrdenar}
                             onPress={() =>

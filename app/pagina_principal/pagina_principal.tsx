@@ -2,13 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, Image, StyleSheet, Alert } from 'react-native';
 import NavbarPaginaPrincipal from './componentes/navbar_pagprincipal';
 import SaldoWidget from '../pagina_principal/componentes/saldo_widget';
-import Grafico_Circular from './componentes/grafico_circular';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { obterTotalReceitas, obterTotalDespesas, listarMovimentosUltimos30Dias, obterSaldoMensalAtual } from '../../BASEDEDADOS/movimentos';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, runOnJS } from 'react-native-reanimated';
 import UltimosMovimentos from './componentes/ultimos_moviemtos/ultimos_moviemntos';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useCallback } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { ScrollView } from 'react-native';
 const { width, height } = Dimensions.get('window');
@@ -17,11 +16,13 @@ import { obterSomaMovimentosPorCategoriaDespesa, obterSomaMovimentosPorCategoria
 import Botoes from './componentes/botoes_despesa_receita';
 import { Dimensions } from 'react-native';
 
+import { RefreshControl } from 'react-native';
 
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../App';
 
-
+import Grafico_Circular from './componentes/grafico_circular';
+import Grafico_CircularVazio from './componentes/grafico_circular_vazio';
 
 
 interface DadosGrafico {
@@ -57,7 +58,9 @@ const Pagina_principal: React.FC = () => {
   const [carregarGrafico, setCarregarGrafico] = useState(false);
   const [movimentosRecentes, setMovimentosRecentes] = useState<Movimento[]>([]);
   const opacidadeTela = useSharedValue(0);
-  const opacidadeGrafico = useSharedValue(1); // <- gráfico visível por padrão
+  const opacidadeGrafico = useSharedValue(1);
+  const [refreshing, setRefreshing] = useState(false);
+const [primeiraVez, setPrimeiraVez] = useState(true);
 
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 
@@ -71,14 +74,6 @@ const Pagina_principal: React.FC = () => {
     opacity: opacidadeTela.value,
   }));
 
-useEffect(() => {
-  const verificarNotificacoes = async () => {
-    const valor = await AsyncStorage.getItem('hasNotificacoesNovas');
-    setHasNotificacoesNovas(valor === 'true');
-  };
-
-  verificarNotificacoes();
-}, []);
 
   useEffect(() => {
     opacidadeTela.value = withTiming(1, { duration: 400 });
@@ -88,110 +83,151 @@ useEffect(() => {
   const [fotoUsuario, setFotoUsuario] = useState<string | null>(null);
 
 
- useEffect(() => {
-  if (route?.params) {
-    setNomeUsuario(route.params.nomeUsuario || '');
-    setFotoUsuario(route.params.fotoUsuario || null);
-  }
-}, []); 
+  useEffect(() => {
+    if (route?.params) {
+      setNomeUsuario(route.params.nomeUsuario || '');
+      setFotoUsuario(route.params.fotoUsuario || null);
+    }
+  }, [route.params]);
+
+  useEffect(() => {
+    const verificarNotificacoes = async () => {
+      const valor = await AsyncStorage.getItem('hasNotificacoesNovas');
+      setHasNotificacoesNovas(valor === 'true');
+    };
+
+    verificarNotificacoes();
+  }, []);
+
+  useEffect(() => {
+    opacidadeTela.value = withTiming(1, { duration: 400 });
+  }, []);
 
 
-useFocusEffect(
+  useEffect(() => {
+    if (route?.params) {
+      setNomeUsuario(route.params.nomeUsuario || '');
+      setFotoUsuario(route.params.fotoUsuario || null);
+    }
+  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      const carregarUsuario = async () => {
+        const user = await buscarUsuarioAtual();
+        if (user) {
+          setNomeUsuario(user.nome);
+          setFotoUsuario(user.imagem);
+        }
+      };
+
+      carregarUsuario();
+    }, [])
+  );
+  const [hasNotificacoesNovas, setHasNotificacoesNovas] = useState(true);
+
+  const handleNotificacaoPress = async () => {
+    setHasNotificacoesNovas(false);
+    await AsyncStorage.setItem('hasNotificacoesNovas', 'false');
+    navigation.navigate('Notificacoes');
+  };
+
+  useFocusEffect(
   useCallback(() => {
-    const carregarUsuario = async () => {
-      const user = await buscarUsuarioAtual();
-      if (user) {
-        setNomeUsuario(user.nome);
-        setFotoUsuario(user.imagem);
+    if (primeiraVez) return;
+
+    const carregarDados = async () => {
+      setDadosProntos(false);
+
+      try {
+        let dados: DadosGrafico[] = [];
+        if (tipoSelecionado === 'despesas') {
+          dados = await obterSomaMovimentosPorCategoriaDespesa() || [];
+        } else {
+          dados = await obterSomaMovimentosPorCategoriaReceita() || [];
+        }
+
+        setDadosGrafico(dados);
+        const receitas = await obterTotalReceitas();
+        const despesas = await obterTotalDespesas();
+        setTotalReceitas(receitas);
+        setTotalDespesas(despesas);
+
+        const movimentos = await listarMovimentosUltimos30Dias();
+        setMovimentosRecentes(movimentos || []);
+        const saldo = await obterSaldoMensalAtual();
+        setSaldoMensal(saldo);
+      } catch (err) {
+        console.error("Erro ao carregar dados:", err);
+      } finally {
+        setDadosProntos(true);
       }
     };
 
-    carregarUsuario();
-  }, [])
+    carregarDados();
+  }, [tipoSelecionado, primeiraVez])
 );
 
 
-  /*
-  useFocusEffect(
-    useCallback(() => {
-      const carregarDadosComTransicao = async () => {
-
-        opacidadeGrafico.value = withTiming(0, { duration: 200 });
-
-        setCarregarGrafico(true);
-        setTimeout(async () => {
-          // Carrega dados do gráfico
-          let dados: DadosGrafico[] = [];
-          if (tipoSelecionado === 'despesas') {
-            dados = await obterSomaMovimentosPorCategoriaDespesa() || [];
-          } else {
-            dados = await obterSomaMovimentosPorCategoriaReceita() || [];
-          }
-          setDadosGrafico(dados);
 
 
-          const receitas = await obterTotalReceitas();
-          const despesas = await obterTotalDespesas();
-          setTotalReceitas(receitas);
-          setTotalDespesas(despesas);
+useEffect(() => {
+  if (route?.params) {
+    setSaldoMensal(route.params.saldoMensal || 0);
+    setTotalReceitas(route.params.totalReceitas || 0);
+    setTotalDespesas(route.params.totalDespesas || 0);
+    setMovimentosRecentes(route.params.movimentosRecentes || []);
 
-          setCarregarGrafico(false);
-          opacidadeGrafico.value = withTiming(1, { duration: 200 });
-        }, 160);
-        const dadosMovimentos = await listarMovimentosUltimos30Dias();
-        setMovimentosRecentes(dadosMovimentos || []);
+    setDadosGrafico(
+      tipoSelecionado === 'despesas'
+        ? route.params.dadosGraficoDespesas || []
+        : route.params.dadosGraficoReceitas || []
+    );
 
-        const saldo = await obterSaldoMensalAtual();
-        setSaldoMensal(saldo);
-      };
+    setTimeout(() => {
+      opacidadeGrafico.value = withTiming(1, { duration: 400 });
+      setDadosProntos(true);
+      setPrimeiraVez(false); 
+    }, 50);
+  }
+}, [route.params]);
 
 
-      carregarDadosComTransicao();
-    }, [tipoSelecionado]));
-*/
 
-  useEffect(() => {
-    if (route?.params) {
-      setSaldoMensal(route.params.saldoMensal || 0);
-      setTotalReceitas(route.params.totalReceitas || 0);
-      setTotalDespesas(route.params.totalDespesas || 0);
-      setMovimentosRecentes(route.params.movimentosRecentes || []);
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      let dados: DadosGrafico[] = [];
+      if (tipoSelecionado === 'despesas') {
+        dados = await obterSomaMovimentosPorCategoriaDespesa() || [];
+      } else {
+        dados = await obterSomaMovimentosPorCategoriaReceita() || [];
+      }
 
-      // seleciona qual gráfico mostrar de início
-      setDadosGrafico(
-        tipoSelecionado === 'despesas'
-          ? route.params.dadosGraficoDespesas || []
-          : route.params.dadosGraficoReceitas || []
-      );
+      setDadosGrafico(dados);
 
-      setTimeout(() => {
-        opacidadeGrafico.value = withTiming(1, { duration: 400 });
-        setDadosProntos(true);
-      }, 50);
+      const receitas = await obterTotalReceitas();
+      const despesas = await obterTotalDespesas();
+      setTotalReceitas(receitas);
+      setTotalDespesas(despesas);
+
+      const dadosMovimentos = await listarMovimentosUltimos30Dias();
+      setMovimentosRecentes(dadosMovimentos || []);
+
+      const saldo = await obterSaldoMensalAtual();
+      setSaldoMensal(saldo);
+
+    } catch (err) {
+      console.error('Erro ao atualizar:', err);
+    } finally {
+      setRefreshing(false);
     }
-    
-  }, [route.params]);
+  };
 
 
-  useEffect(() => {
-    if (route?.params) {
-      const novoGrafico =
-        tipoSelecionado === 'despesas'
-          ? route.params.dadosGraficoDespesas || []
-          : route.params.dadosGraficoReceitas || [];
-
-      setDadosGrafico(novoGrafico);
-    }
-  }, [tipoSelecionado]);
 
 
-const [hasNotificacoesNovas, setHasNotificacoesNovas] = useState(true);
 
-const handleNotificacaoPress = async () => {
-  setHasNotificacoesNovas(false);
-  await AsyncStorage.setItem('hasNotificacoesNovas', 'false');
-  navigation.navigate('Notificacoes');
-};
+
 
 
 
@@ -206,7 +242,7 @@ const handleNotificacaoPress = async () => {
         foto={
           fotoUsuario
             ? { uri: fotoUsuario }
-            : require('../../assets/imagens/sem_foto.png') 
+            : require('../../assets/imagens/sem_foto.png')
         }
         onPressNotificacao={handleNotificacaoPress}
         hasNotificacoesNovas={hasNotificacoesNovas}
@@ -217,22 +253,36 @@ const handleNotificacaoPress = async () => {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#2565A3']} 
+            tintColor="#2565A3"   
+          />
+        }
       >
+
         <SaldoWidget saldoTotal={saldoMensal} mesAtual={nomeMes} />
 
 
         {/**/}
         <View style={styles.containerGrafico}>
-          {Array.isArray(dadosGrafico) && dadosGrafico.length > 0 ? (
+          {dadosGrafico.length > 0 ? (
             <Grafico_Circular
-              key={`grafico-${tipoSelecionado}`}
               categorias={dadosGrafico}
               tipoSelecionado={tipoSelecionado}
             />
           ) : (
-            <Text style={{ color: '#888', padding: 20 }}>Sem dados para exibir</Text>
+            <Grafico_CircularVazio
+              tipoSelecionado={tipoSelecionado}
+            />
           )}
         </View>
+
+
+
+
 
 
         <Botoes

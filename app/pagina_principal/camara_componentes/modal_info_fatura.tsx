@@ -25,6 +25,7 @@ import { listarSubCategorias } from '../../../BASEDEDADOS/sub_categorias';
 import { SubCategoria } from '../../../BASEDEDADOS/tipos_tabelas';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import { BackHandler } from 'react-native';
+import { useMoeda } from '../../MOEDA';
 
 const { width, height } = Dimensions.get('window');
 interface Props {
@@ -61,6 +62,8 @@ function getImagemCategoria(img_cat: string): ImageSourcePropType {
 }
 
 const Modal_Info_Fatura: React.FC<Props> = ({ visivel, uri, aoFechar, aoEliminar, conteudoQr }) => {
+    const { moeda } = useMoeda();
+
     const [alturaInfo, setAlturaInfo] = React.useState(0);
     const [mostrarModalCategoria, setMostrarModalCategoria] = React.useState(false);
     const [categoriaSelecionada, setCategoriaSelecionada] = useState<(Categoria & { tipo_nome: string }) | null>(null);
@@ -503,7 +506,7 @@ const Modal_Info_Fatura: React.FC<Props> = ({ visivel, uri, aoFechar, aoEliminar
                                                 <Text style={[styles.valor, { fontStyle: 'italic' }]}>a carregar...</Text>
                                             ) : (
                                                 <Text style={styles.valor}>
-                                                    {dadosInterpretados?.total ? `${parseFloat(dadosInterpretados.total).toFixed(2)} €` : '---'}
+                                                    {dadosInterpretados?.total ? `${parseFloat(dadosInterpretados.total).toFixed(2)} ${moeda.simbolo}` : '---'}
                                                 </Text>
 
                                             )}

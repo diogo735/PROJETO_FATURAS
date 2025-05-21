@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 const { height, width } = Dimensions.get('window');
 import TrianguloIcon from '../../../assets/icons/seta_balanco_geral.svg';
-
+import { useMoeda } from '../../MOEDA';
 import { useRef, useState } from 'react';
 import { Animated, TouchableOpacity } from 'react-native';
 
@@ -19,6 +19,7 @@ interface Props {
 
 const BalancoGeral: React.FC<Props> = ({ resumo, expandidoInicial }) => {
 
+const { moeda } = useMoeda();
 
     const [expandido, setExpandido] = useState(expandidoInicial ?? true);
 
@@ -74,18 +75,18 @@ const BalancoGeral: React.FC<Props> = ({ resumo, expandidoInicial }) => {
                     <View>
                         <View style={styles.linhaInfo}>
                             <Text style={styles.label}>Receitas</Text>
-                            <Text style={[styles.value, { color: 'limegreen' }]}>{resumo.totalReceitas} €</Text>
+                            <Text style={[styles.value, { color: 'limegreen' }]}>{resumo.totalReceitas} {moeda.simbolo}</Text>
                         </View>
 
                         <View style={styles.linhaInfo}>
                             <Text style={styles.label}>Despesas</Text>
-                            <Text style={[styles.value, { color: 'tomato' }]}>{resumo.totalDespesas} €</Text>
+                            <Text style={[styles.value, { color: 'tomato' }]}>{resumo.totalDespesas} {moeda.simbolo}</Text>
                         </View>
 
                         <View style={styles.linha}></View>
 
                         <Text style={[styles.total, { color: resumo.totalReceitas - resumo.totalDespesas >= 0 ? 'limegreen' : 'tomato' }]}>
-                        {(resumo.totalReceitas - resumo.totalDespesas).toFixed(2).replace(/\.00$/, '')} €
+                        {(resumo.totalReceitas - resumo.totalDespesas).toFixed(2).replace(/\.00$/, '')} {moeda.simbolo}
                         </Text>
                     </View>
                 </Animated.View>

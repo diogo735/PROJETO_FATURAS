@@ -7,6 +7,7 @@ import 'moment/locale/pt-br';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../../../App';
+import { useMoeda } from '../../../MOEDA';
 
 type NavigationProp = StackNavigationProp<RootStackParamList>;
 
@@ -62,6 +63,7 @@ const agruparMovimentosPorData = (movimentos: Movimento[]) => {
 };
 
 const ListaMovimentos_de_umaCategoria: React.FC<Props> = ({ movimentos }) => {
+const { moeda } = useMoeda();
 
     const navigation = useNavigation<NavigationProp>();
     const sections = agruparMovimentosPorData(movimentos);
@@ -96,7 +98,7 @@ const ListaMovimentos_de_umaCategoria: React.FC<Props> = ({ movimentos }) => {
                 const tipo = section.data[0]?.nome_movimento;
                 const prefixo = tipo === 'Despesa' ? '- ' : tipo === 'Receita' ? '+ ' : '';
 
-                const totalFormatado = `${prefixo}${Math.abs(total).toFixed(2)} €`;
+                const totalFormatado = `${prefixo}${Math.abs(total).toFixed(2)} ${moeda.simbolo}`;
 
 
                 return (

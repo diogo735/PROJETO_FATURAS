@@ -27,6 +27,7 @@ import { Keyboard, TouchableWithoutFeedback } from 'react-native';
 import ModalAguardeCirarMeta from './componentes/modal_sucesso_criar_meta';
 import { BackHandler } from 'react-native';
 import { Animated } from 'react-native';
+import { useMoeda } from '../../MOEDA';
 
 function getImagemCategoria(img_cat: any): ImageSourcePropType {
     // Se já for um objeto (tipo require), retorna diretamente
@@ -71,6 +72,7 @@ function getImagemCategoria(img_cat: any): ImageSourcePropType {
 
 const CriarMeta: React.FC = () => {
     const [valorCalculadoAlerta, setValorCalculadoAlerta] = useState(0);
+const { moeda } = useMoeda();
 
     const [repetir, setRepetir] = React.useState(false);
     const [alertaAtivo, setAlertaAtivo] = React.useState(false);
@@ -332,7 +334,7 @@ const CriarMeta: React.FC = () => {
                                         placeholderTextColor="#164878"
                                     />
 
-                                    <Text style={styles.euro}>€</Text>
+                                    <Text style={styles.euro}>{moeda.simbolo}</Text>
                                 </View>
                             </View>
 

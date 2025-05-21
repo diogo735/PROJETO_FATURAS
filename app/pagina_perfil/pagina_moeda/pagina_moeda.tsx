@@ -7,6 +7,9 @@ const { height, width } = Dimensions.get('window');
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect } from 'react';
 import Iconsvg from '../../../assets/icons/moedas.svg';
+
+import { useMoeda } from '../../MOEDA';
+
 const PaginaMoeda = () => {
     const navigation = useNavigation();
     const moedas = [
@@ -41,19 +44,13 @@ const PaginaMoeda = () => {
     const [moedaSelecionada, setMoedaSelecionada] = useState<string>('EUR');
     const [mostrarModalMoeda, setMostrarModalMoeda] = useState(false);
     const [novaMoeda, setNovaMoeda] = useState<{ codigo: string, simbolo: string } | null>(null);
+    const { moeda, setMoeda } = useMoeda();
 
 
     useEffect(() => {
-        const carregarMoeda = async () => {
-            const valor = await AsyncStorage.getItem('moedaSelecionada');
-            if (valor) {
-                const { codigo } = JSON.parse(valor);
-                setMoedaSelecionada(codigo);
-            }
-        };
+        setMoedaSelecionada(moeda.codigo);
+    }, [moeda]);
 
-        carregarMoeda();
-    }, []);
 
     const [contadorConfirmar, setContadorConfirmar] = useState(3);
     const [botaoAtivo, setBotaoAtivo] = useState(false);
@@ -195,7 +192,8 @@ const PaginaMoeda = () => {
                                 onPress={async () => {
                                     if (!botaoAtivo || !novaMoeda) return;
                                     setMoedaSelecionada(novaMoeda.codigo);
-                                    await AsyncStorage.setItem('moedaSelecionada', JSON.stringify(novaMoeda));
+                                    setMoeda(novaMoeda); // atualiza no contexto + AsyncStorage
+
                                     setMostrarModalMoeda(false);
                                 }}
                             >

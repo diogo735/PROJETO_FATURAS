@@ -31,6 +31,7 @@ import { SubCategoria } from '../../BASEDEDADOS/tipos_tabelas';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import { BackHandler } from 'react-native';
 import ModalAguardeEditarMeta from './componestes_metas/modal_sucesso_editar_meta';
+import { useMoeda } from '../MOEDA';
 
 
 type ParamList = {
@@ -79,7 +80,7 @@ function getImagemCategoria(img_cat: any): ImageSourcePropType {
 
 
 const EditarMeta: React.FC = () => {
-
+const { moeda } = useMoeda();
     const route = useRoute<RouteProp<ParamList, 'EditarMeta'>>();
     const { id_meta } = route.params;
     const [valorCalculadoAlerta, setValorCalculadoAlerta] = useState(0);
@@ -329,6 +330,7 @@ const EditarMeta: React.FC = () => {
     }
 
 
+
     return (
 
         <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
@@ -413,7 +415,7 @@ const EditarMeta: React.FC = () => {
                                         placeholderTextColor="#164878"
                                     />
 
-                                    <Text style={styles.euro}>€</Text>
+                                    <Text style={styles.euro}>{moeda.simbolo}</Text>
                                 </View>
                             </View>
 

@@ -37,7 +37,7 @@ import { criarTabelaUsers, existeUsuario } from './BASEDEDADOS/user';
 
 import PaginaDetalhePerfil from './app/pagina_perfil/pagina_perfil/pagina_editar_perfil';
 import PaginaMoeda from './app/pagina_perfil/pagina_moeda/pagina_moeda';
-
+import { MoedaProvider } from './app/MOEDA';
 
 const { height, width } = Dimensions.get('window');
 import 'react-native-gesture-handler';
@@ -340,14 +340,7 @@ const App: React.FC = () => {
       try {
         await CRIARBD();
         await criarTabelaUsers();
-        // 👇 Verifica e define moeda padrão se necessário
-        const moedaAtual = await AsyncStorage.getItem('moedaSelecionada');
-        if (!moedaAtual) {
-          await AsyncStorage.setItem(
-            'moedaSelecionada',
-            JSON.stringify({ codigo: 'EUR', simbolo: '€' })
-          );
-        }
+        
 
         const existe = await existeUsuario();
         setTelaInicial(existe ? 'Splash' : 'SplashScren_intruducao');
@@ -367,6 +360,7 @@ const App: React.FC = () => {
 
 
   return (
+      <MoedaProvider>
     <NavigationContainer>
       <Stack.Navigator
         initialRouteName={telaInicial as keyof RootStackParamList}
@@ -558,6 +552,7 @@ const App: React.FC = () => {
 
       </Stack.Navigator>
     </NavigationContainer>
+    </MoedaProvider>
   );
 };
 

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Dimensions } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import { useMoeda } from '../../MOEDA'; // ajusta o caminho se necessário
 
 const { width, height } = Dimensions.get('window');
 
@@ -19,6 +20,7 @@ interface BotoesProps {
 
 const Botoes: React.FC<BotoesProps> = ({ tipoSelecionado, setTipoSelecionado, totalReceitas, totalDespesas }) => {
 
+const { moeda } = useMoeda();
 
     return (
         <View style={styles.container}>
@@ -44,7 +46,7 @@ const Botoes: React.FC<BotoesProps> = ({ tipoSelecionado, setTipoSelecionado, to
                             Receitas
                         </Text>
                         <Text style={tipoSelecionado === 'receitas' ? styles.textovalorAtivoReceita : styles.textovalorInativoReceita}>
-                            {totalReceitas.toFixed(2)}€
+                            {totalReceitas.toFixed(2)}{moeda.simbolo}
                         </Text>
 
                     </View>
@@ -73,7 +75,7 @@ const Botoes: React.FC<BotoesProps> = ({ tipoSelecionado, setTipoSelecionado, to
                             Despesas
                         </Text>
                         <Text style={tipoSelecionado === 'despesas' ? styles.textovalorAtivoDespesa : styles.textovalorInativoDespesa}>
-                            {totalDespesas > 0 ? `-${totalDespesas.toFixed(2)}€` : `${totalDespesas.toFixed(2)}€`}
+                            {totalDespesas > 0 ? `-${totalDespesas.toFixed(2)}${moeda.simbolo}` : `${totalDespesas.toFixed(2)}${moeda.simbolo}`}
                         </Text>
 
 

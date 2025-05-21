@@ -20,6 +20,7 @@ import {
   Gesture,
 } from 'react-native-gesture-handler';
 import { runOnJS } from 'react-native-reanimated';
+import { useMoeda } from '../../../MOEDA';
 
 
 
@@ -71,6 +72,8 @@ type SubcategoriaDetalhada = {
 
 
 const DetalhesCategoria: React.FC<Props> = ({ route }) => {
+  const { moeda } = useMoeda();
+
   const { categoriaId, nomeCategoria, imgCategoria, corCategoria } = route.params;
   const [totalMovimentos, setTotalMovimentos] = React.useState<number>(0);
   const [tipoCategoria, setTipoCategoria] = React.useState<string | null>(null);
@@ -424,7 +427,7 @@ const swipeGesture = Gesture.Pan()
                       : tipoCategoria === 'Receita'
                         ? '+ '
                         : ''}
-                    {Math.abs(totalMovimentos).toFixed(2)} €
+                    {Math.abs(totalMovimentos).toFixed(2)} {moeda.simbolo}
                   </Text>
                 </View>
 

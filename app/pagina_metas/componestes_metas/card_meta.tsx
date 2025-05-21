@@ -7,6 +7,7 @@ import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import { AnimatedCircularProgress } from 'react-native-circular-progress';
 
 import { Image, ImageSourcePropType } from 'react-native';
+import { useMoeda } from '../../MOEDA';
 
 
 function getImagemCategoria(img_cat: any): ImageSourcePropType {
@@ -48,6 +49,7 @@ interface CardMetasProps {
 
 const CardMetas: React.FC<CardMetasProps> = ({ meta }) => {
     if (!meta) return null;
+const { moeda } = useMoeda();
 
     const {
         nome_cat,
@@ -145,8 +147,8 @@ const CardMetas: React.FC<CardMetasProps> = ({ meta }) => {
                                 {Number(meta.valor_atual).toLocaleString('pt-PT', {
                                     minimumFractionDigits: 0,
                                     maximumFractionDigits: 2,
-                                })} €
-                            </Text> / {valor_meta}€
+                                })} {moeda.simbolo}
+                            </Text> / {valor_meta}{moeda.simbolo}
                         </Text>
                     </View>
 

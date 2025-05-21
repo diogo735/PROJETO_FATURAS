@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
+import { useMoeda } from '../../../MOEDA';
 const { width, height } = Dimensions.get('window');
 type SubCategoria = {
     nome: string;
@@ -17,6 +18,8 @@ type Props = {
 
 
 const ListaSubCategorias: React.FC<Props> = ({ subcategorias, tipoCategoria }) => {
+    const { moeda } = useMoeda();
+
     return (
         <View style={styles.container}>
             {subcategorias.map((item, index) => (
@@ -54,7 +57,7 @@ const ListaSubCategorias: React.FC<Props> = ({ subcategorias, tipoCategoria }) =
                             }
                         ]}
                     >
-                        {item.valor} €
+                        {item.valor} {moeda.simbolo}
                     </Text>
 
                 </View>

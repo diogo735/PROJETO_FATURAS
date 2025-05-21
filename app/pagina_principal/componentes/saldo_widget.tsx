@@ -3,11 +3,15 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { scale } from 'react-native-size-matters';
+import { useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useMoeda } from '../../MOEDA';
 
 const SaldoWidget = ({ saldoTotal, mesAtual }: { saldoTotal: number; mesAtual: string }) => {
 
   const [mostrarSaldo, setMostrarSaldo] = useState(true);
-
+  const { moeda } = useMoeda();
+ 
   return (
     <LinearGradient
       colors={['#164878', '#1F67AB', '#2985DE']}
@@ -25,7 +29,10 @@ const SaldoWidget = ({ saldoTotal, mesAtual }: { saldoTotal: number; mesAtual: s
 
 
       <View style={styles.saldoRow}>
-        <Text style={styles.saldo}>{mostrarSaldo ? `${saldoTotal.toFixed(2)} €` : '- - -'}</Text>
+        <Text style={styles.saldo}>
+          {mostrarSaldo ? `${saldoTotal.toFixed(2)} ${moeda.simbolo}` : '- - -'}
+        </Text>
+
 
 
 
@@ -57,9 +64,9 @@ const styles = StyleSheet.create({
     marginBottom: scale(5),
   },
   saldoRow: {
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    alignItems: 'center', 
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   saldo: {
     color: 'white',
@@ -71,13 +78,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  
+
   mes: {
     color: 'white',
     fontSize: scale(18),
     fontWeight: '800',
   },
-  
+
 
 });
 

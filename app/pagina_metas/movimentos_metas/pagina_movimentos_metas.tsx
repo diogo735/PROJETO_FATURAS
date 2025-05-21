@@ -17,6 +17,7 @@ import { Image } from 'react-native';
 import { buscarCorDaMeta } from '../../../BASEDEDADOS/metas';
 
 import { Movimento } from '../../../BASEDEDADOS/tipos_tabelas';
+import { useMoeda } from '../../MOEDA';
 
 type MovimentoComDetalhes = Movimento & {
     nome_movimento: string;
@@ -34,6 +35,7 @@ type ParamList = {
 
 const MovimentosDaMeta: React.FC = () => {
     const navigation = useNavigation();
+const { moeda } = useMoeda();
 
     const route = useRoute<RouteProp<ParamList, 'MovimentosDaMeta'>>();
     const { id_meta } = route.params;
@@ -162,7 +164,7 @@ const MovimentosDaMeta: React.FC = () => {
 
                         <View style={{ marginTop: 20, alignItems: 'center', marginBottom: 40 }}>
                             <Text style={{ color: '#CDCDCD' }}>
-                                Fluxo de meta total: {fluxoTotal.toFixed(2)} €
+                                Fluxo de meta total: {fluxoTotal.toFixed(2)} {moeda.simbolo}
                             </Text>
                             <Text style={{ color: '#CDCDCD' }}>
                                 {numMovimentos} movimento{numMovimentos !== 1 ? 's' : ''}

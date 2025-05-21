@@ -28,6 +28,7 @@ import { BackHandler } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import ModalCameraCheia
     from '../modal_camera_manualmente';
+import { useMoeda } from '../../MOEDA';
 const { width, height } = Dimensions.get('window');
 interface Props {
     visivel: boolean;
@@ -63,6 +64,8 @@ function getImagemCategoria(img_cat: string): ImageSourcePropType {
 }
 
 const Modal_Info_Fatura_Preencher: React.FC<Props> = ({ visivel, onAbrirCameraManual, uri, aoFechar, aoEliminar, }) => {
+    const { moeda } = useMoeda();
+
     const [alturaInfo, setAlturaInfo] = React.useState(0);
     const [mostrarModalCategoria, setMostrarModalCategoria] = React.useState(false);
     const [categoriaSelecionada, setCategoriaSelecionada] = useState<(Categoria & { tipo_nome: string }) | null>(null);
@@ -600,7 +603,7 @@ const Modal_Info_Fatura_Preencher: React.FC<Props> = ({ visivel, onAbrirCameraMa
                                                     }}
                                                 >
                                                     <Text style={styles.valor}>
-                                                        {valorIva ? `${parseFloat(valorIva).toFixed(2)} €` : '---'}
+                                                        {valorIva ? `${parseFloat(valorIva).toFixed(2)} ${moeda.simbolo}` : '---'}
                                                     </Text>
                                                 </TouchableOpacity>
 
@@ -627,7 +630,7 @@ const Modal_Info_Fatura_Preencher: React.FC<Props> = ({ visivel, onAbrirCameraMa
                                                     }}
                                                 >
                                                     <Text style={styles.valor}>
-                                                        {valor ? `${parseFloat(valor).toFixed(2)} €` : '---'}
+                                                        {valor ? `${parseFloat(valor).toFixed(2)} ${moeda.simbolo}` : '---'}
                                                     </Text>
                                                 </TouchableOpacity>
 

@@ -3,6 +3,7 @@ import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 import { ImageSourcePropType } from 'react-native';
 
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
+import { useMoeda } from '../../../MOEDA';
 
 function getImagemCategoria(img_cat: string): ImageSourcePropType {
     if (!img_cat) {
@@ -51,8 +52,10 @@ interface Props {
 }
 
 const MovimentoCard2: React.FC<Props> = ({ nome, valor, hora, cor, imagem, tipo, onPress }) => {
+    const { moeda } = useMoeda();
+
     const isDespesa = tipo === 'Despesa';
-    const valorFormatado = `${isDespesa ? '-' : '+'}${valor}€`;
+    const valorFormatado = `${isDespesa ? '-' : '+'}${valor}${moeda.simbolo}`;
 
     return (
         <TouchableOpacity style={styles.card} onPress={onPress}>

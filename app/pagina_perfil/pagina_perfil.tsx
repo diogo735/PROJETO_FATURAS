@@ -25,6 +25,8 @@ import IconPadlock from '../../assets/pagina_perfil/padlock.png';
 import IconServer from '../../assets/pagina_perfil/server.png';
 import IconSupport from '../../assets/pagina_perfil/support.png';
 import { buscarUsuarioAtual } from '../../BASEDEDADOS/user';
+import { limparTabelaMovimentos as limparMovimentosBD } from '../../BASEDEDADOS/movimentos';
+
 
 const { height, width } = Dimensions.get('window');
 
@@ -33,6 +35,19 @@ const Pagina_perfil: React.FC = () => {
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [imagem, setImagem] = useState(null);
+const handleLogout = async () => {
+  try {
+   await limparMovimentosBD();
+    console.log('Movimentos limpos.');
+
+    // Se tiver outras coisas para limpar, adicione aqui
+
+   
+  } catch (error) {
+    console.error('Erro ao fazer logout:', error);
+    Alert.alert('Erro', 'Não foi possível fazer logout.');
+  }
+};
 
  useFocusEffect(
   React.useCallback(() => {
@@ -210,7 +225,7 @@ const Pagina_perfil: React.FC = () => {
             <SetaDireita width={16} height={16} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.botaoLogout} onPress={() => Alert.alert('Logout')}>
+          <TouchableOpacity style={styles.botaoLogout} onPress={handleLogout}>
             <View style={styles.logoutContent}>
               <Image source={IconLogout} style={styles.iconeLogout} />
               <Text style={styles.textoLogout}>Fazer Logout</Text>
@@ -349,3 +364,7 @@ const styles = StyleSheet.create({
 });
 
 export default Pagina_perfil;
+function limparTabelaMovimentos() {
+  throw new Error('Function not implemented.');
+}
+
