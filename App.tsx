@@ -45,6 +45,13 @@ import 'react-native-reanimated';
 import * as Notify from 'expo-notifications';
 import { CRIARBD } from './BASEDEDADOS/databaseInstance';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import PaginaNotificacoesMinhas from './app/pagina_perfil/pagina_notificacoes/pagina_notificiacoes';
+import CriarNotificacao from './app/pagina_perfil/pagina_notificacoes/criar_notificacao/criar_notificacao';
+import EditarNotificacao from './app/pagina_perfil/pagina_notificacoes/criar_notificacao/editar_notificacao';
+import { iniciarTarefaBackground } from './app/backgorund/notificacoes_user';
+
+
+
 
 
 Notify.setNotificationHandler({
@@ -73,6 +80,9 @@ interface Movimento {
 }
 
 export type RootStackParamList = {
+  EditarNotificacao: { id: string };
+  CriarNotificacao: undefined;
+  PaginaNotificacoesMinhas: undefined;
   PerfilDetalhe: undefined;
   PaginaMoeda: undefined;
   Splash: undefined;
@@ -330,17 +340,45 @@ const PaginamoedaScreen = (props: any) => (
     <PaginaMoeda {...props} />
   </View>
 );
+
+const PaginaNotificacoesMinhasScreen = (props: any) => (
+  <View style={styles.defaultContainer}>
+    <StatusBar translucent backgroundColor="transparent" style="dark" />
+    <PaginaNotificacoesMinhas {...props} />
+  </View>
+);
+
+const PaginaNotificacoesCriar = (props: any) => (
+  <View style={styles.defaultContainer}>
+    <StatusBar translucent backgroundColor="transparent" style="dark" />
+    <CriarNotificacao {...props} />
+  </View>
+);
+
+const PaginaNotificacoesEditaR = (props: any) => (
+  <View style={styles.defaultContainer}>
+    <StatusBar translucent backgroundColor="transparent" style="dark" />
+    <EditarNotificacao {...props} />
+  </View>
+);
+
+
 const App: React.FC = () => {
   const [telaInicial, setTelaInicial] = useState<string | null>(null);
 
+
+
+
+
   useEffect(() => {
     async function iniciarApp() {
+      iniciarTarefaBackground();
       await SplashScreen.preventAutoHideAsync();
 
       try {
         await CRIARBD();
         await criarTabelaUsers();
-        
+
 
         const existe = await existeUsuario();
         setTelaInicial(existe ? 'Splash' : 'SplashScren_intruducao');
@@ -360,198 +398,235 @@ const App: React.FC = () => {
 
 
   return (
-      <MoedaProvider>
-    <NavigationContainer>
-      <Stack.Navigator
-        initialRouteName={telaInicial as keyof RootStackParamList}
-        screenOptions={{ headerShown: false }}
-      >
-        <Stack.Screen name="SplashScren_intruducao" component={SplashScren_intruducao} />
-        <Stack.Screen name="Splash" component={SplashScren} options={{
-          animation: 'fade',
-          transitionSpec: {
-            open: { animation: 'timing', config: { duration: 350 } },
-            close: { animation: 'timing', config: { duration: 250 } },
-          },
-        }} />
-        <Stack.Screen name="Camera" component={CameraScreen} options={{ headerShown: false }} />
-        <Stack.Screen name="MainApp" component={MainAppScreen} options={{
-          animation: 'fade',
-          transitionSpec: {
-            open: { animation: 'timing', config: { duration: 350 } },
-            close: { animation: 'timing', config: { duration: 250 } },
-          },
-        }} />
-
-        <Stack.Screen name="Movimentos" component={MovimentosScreen} />
-        <Stack.Screen name="Metas" component={MetasScreen} />
-        <Stack.Screen name="Perfil" component={PerfilScreen} />
-        <Stack.Screen
-          name="Fatura"
-          component={FaturaScreen}
-          options={{
-            animation: 'fade',
-
-            transitionSpec: {
-              open: { animation: 'timing', config: { duration: 350 } },
-              close: { animation: 'timing', config: { duration: 250 } },
-            },
-          }}
-        />
-
-        <Stack.Screen name="CriarMeta" component={CriarMetaScreen} />
-        <Stack.Screen name="PaginaSucesso" component={PaginaSucessoScreen} />
-        <Stack.Screen name="PaginaSucessoManual" component={PaginaSucessoManualScreen} />
-
-
-        <Stack.Screen
-          name="MovimentosDaMeta"
-          component={MovimentosMetaScreen}
-          options={{
-            animation: 'fade',
-
-            transitionSpec: {
-              open: { animation: 'timing', config: { duration: 350 } },
-              close: { animation: 'timing', config: { duration: 250 } },
-            },
-          }}
-
-        />
-        <Stack.Screen
-          name="EditarMeta"
-          component={EditarMetaScreen}
-          options={{
-            animation: 'fade',
-            transitionSpec: {
-              open: { animation: 'timing', config: { duration: 350 } },
-              close: { animation: 'timing', config: { duration: 250 } },
-            },
-          }}
-        />
-
-        <Stack.Screen name="PaginaCategorias" component={CategoriasScreen}
-          options={{
+    <MoedaProvider>
+      <NavigationContainer>
+        <Stack.Navigator
+          initialRouteName={telaInicial as keyof RootStackParamList}
+          screenOptions={{ headerShown: false }}
+        >
+          <Stack.Screen name="SplashScren_intruducao" component={SplashScren_intruducao} />
+          <Stack.Screen name="Splash" component={SplashScren} options={{
             animation: 'fade',
             transitionSpec: {
               open: { animation: 'timing', config: { duration: 350 } },
               close: { animation: 'timing', config: { duration: 250 } },
             },
           }} />
-        <Stack.Screen
-          name="CriarCategoria"
-          component={CriarCategoriaScreen}
-          options={{
+          <Stack.Screen name="Camera" component={CameraScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="MainApp" component={MainAppScreen} options={{
             animation: 'fade',
             transitionSpec: {
               open: { animation: 'timing', config: { duration: 350 } },
               close: { animation: 'timing', config: { duration: 250 } },
             },
-          }}
-        />
-        <Stack.Screen
-          name="EditarSubcategoria"
-          component={EditarSubcategoriaScreen}
-          options={{
+          }} />
+
+          <Stack.Screen name="Movimentos" component={MovimentosScreen} />
+          <Stack.Screen name="Metas" component={MetasScreen} />
+          <Stack.Screen name="Perfil" component={PerfilScreen} />
+          <Stack.Screen
+            name="Fatura"
+            component={FaturaScreen}
+            options={{
+              animation: 'fade',
+
+              transitionSpec: {
+                open: { animation: 'timing', config: { duration: 350 } },
+                close: { animation: 'timing', config: { duration: 250 } },
+              },
+            }}
+          />
+
+          <Stack.Screen name="CriarMeta" component={CriarMetaScreen} />
+          <Stack.Screen name="PaginaSucesso" component={PaginaSucessoScreen} />
+          <Stack.Screen name="PaginaSucessoManual" component={PaginaSucessoManualScreen} />
+
+
+          <Stack.Screen
+            name="MovimentosDaMeta"
+            component={MovimentosMetaScreen}
+            options={{
+              animation: 'fade',
+
+              transitionSpec: {
+                open: { animation: 'timing', config: { duration: 350 } },
+                close: { animation: 'timing', config: { duration: 250 } },
+              },
+            }}
+
+          />
+          <Stack.Screen
+            name="EditarMeta"
+            component={EditarMetaScreen}
+            options={{
+              animation: 'fade',
+              transitionSpec: {
+                open: { animation: 'timing', config: { duration: 350 } },
+                close: { animation: 'timing', config: { duration: 250 } },
+              },
+            }}
+          />
+
+          <Stack.Screen name="PaginaCategorias" component={CategoriasScreen}
+            options={{
+              animation: 'fade',
+              transitionSpec: {
+                open: { animation: 'timing', config: { duration: 350 } },
+                close: { animation: 'timing', config: { duration: 250 } },
+              },
+            }} />
+          <Stack.Screen
+            name="CriarCategoria"
+            component={CriarCategoriaScreen}
+            options={{
+              animation: 'fade',
+              transitionSpec: {
+                open: { animation: 'timing', config: { duration: 350 } },
+                close: { animation: 'timing', config: { duration: 250 } },
+              },
+            }}
+          />
+          <Stack.Screen
+            name="EditarSubcategoria"
+            component={EditarSubcategoriaScreen}
+            options={{
+              animation: 'fade',
+              transitionSpec: {
+                open: { animation: 'timing', config: { duration: 350 } },
+                close: { animation: 'timing', config: { duration: 250 } },
+              },
+            }}
+          />
+          <Stack.Screen name="Notificacoes" component={NotificacoesScreen} options={{
             animation: 'fade',
             transitionSpec: {
               open: { animation: 'timing', config: { duration: 350 } },
               close: { animation: 'timing', config: { duration: 250 } },
             },
-          }}
-        />
-        <Stack.Screen name="Notificacoes" component={NotificacoesScreen} options={{
-          animation: 'fade',
-          transitionSpec: {
-            open: { animation: 'timing', config: { duration: 350 } },
-            close: { animation: 'timing', config: { duration: 250 } },
-          },
-        }} />
-        <Stack.Screen
-          name="DetalhesCategoria"
-          component={DetalhesCategoriaScreen}
-          options={{
-            animation: 'fade',
-            transitionSpec: {
-              open: { animation: 'timing', config: { duration: 350 } },
-              close: { animation: 'timing', config: { duration: 250 } },
-            },
-          }}
-        />
+          }} />
+          <Stack.Screen
+            name="DetalhesCategoria"
+            component={DetalhesCategoriaScreen}
+            options={{
+              animation: 'fade',
+              transitionSpec: {
+                open: { animation: 'timing', config: { duration: 350 } },
+                close: { animation: 'timing', config: { duration: 250 } },
+              },
+            }}
+          />
 
 
-        <Stack.Screen
-          name="PaginaComecarQR"
-          component={PaginaComecarQRScreen}
-          options={{
-            headerShown: false,
-            animation: 'slide_from_right',
-          }}
-        />
-        <Stack.Screen
-          name="Pagina_Login"
-          component={PaginaLoginScreen}
-          options={{
-            headerShown: false,
-            animation: 'slide_from_right',
-          }}
-        />
-        <Stack.Screen
-          name="Pagina_Login_Email"
-          component={PaginaLoginEmail}
-          options={{
-            animation: 'fade',
-            transitionSpec: {
-              open: { animation: 'timing', config: { duration: 250 } },
-              close: { animation: 'timing', config: { duration: 250 } },
-            },
-          }}
-        />
+          <Stack.Screen
+            name="PaginaComecarQR"
+            component={PaginaComecarQRScreen}
+            options={{
+              headerShown: false,
+              animation: 'slide_from_right',
+            }}
+          />
+          <Stack.Screen
+            name="Pagina_Login"
+            component={PaginaLoginScreen}
+            options={{
+              headerShown: false,
+              animation: 'slide_from_right',
+            }}
+          />
+          <Stack.Screen
+            name="Pagina_Login_Email"
+            component={PaginaLoginEmail}
+            options={{
+              animation: 'fade',
+              transitionSpec: {
+                open: { animation: 'timing', config: { duration: 250 } },
+                close: { animation: 'timing', config: { duration: 250 } },
+              },
+            }}
+          />
 
 
-        <Stack.Screen
-          name="Pagina_Esqueceu_Pass"
-          component={PaginaEsqueceuPassScreen}
-          options={{
-            headerShown: false,
-            animation: 'slide_from_right',
-          }}
-        />
-        <Stack.Screen
-          name="Pagina_Verificar_Email"
-          component={PaginaVerificarEmailScreen}
-          options={{
-            headerShown: false,
-            animation: 'slide_from_right',
-          }}
-        />
-        <Stack.Screen
-          name="PerfilDetalhe"
-          component={PaginaEditarPerfilScreen}
-          options={{
-            animation: 'fade',
-            transitionSpec: {
-              open: { animation: 'timing', config: { duration: 350 } },
-              close: { animation: 'timing', config: { duration: 250 } },
-            },
-          }}
-        />
-        <Stack.Screen
-          name="PaginaMoeda"
-          component={PaginamoedaScreen}
-          options={{
-            animation: 'fade',
-            transitionSpec: {
-              open: { animation: 'timing', config: { duration: 350 } },
-              close: { animation: 'timing', config: { duration: 250 } },
-            },
-          }}
-        />
+          <Stack.Screen
+            name="Pagina_Esqueceu_Pass"
+            component={PaginaEsqueceuPassScreen}
+            options={{
+              headerShown: false,
+              animation: 'slide_from_right',
+            }}
+          />
+          <Stack.Screen
+            name="Pagina_Verificar_Email"
+            component={PaginaVerificarEmailScreen}
+            options={{
+              headerShown: false,
+              animation: 'slide_from_right',
+            }}
+          />
+          <Stack.Screen
+            name="PerfilDetalhe"
+            component={PaginaEditarPerfilScreen}
+            options={{
+              animation: 'fade',
+              transitionSpec: {
+                open: { animation: 'timing', config: { duration: 350 } },
+                close: { animation: 'timing', config: { duration: 250 } },
+              },
+            }}
+          />
+          <Stack.Screen
+            name="PaginaMoeda"
+            component={PaginamoedaScreen}
+            options={{
+              animation: 'fade',
+              transitionSpec: {
+                open: { animation: 'timing', config: { duration: 350 } },
+                close: { animation: 'timing', config: { duration: 250 } },
+              },
+            }}
+          />
+          <Stack.Screen
+            name="PaginaNotificacoesMinhas"
+            component={PaginaNotificacoesMinhasScreen}
+            options={{
+              animation: 'fade',
+              transitionSpec: {
+                open: { animation: 'timing', config: { duration: 350 } },
+                close: { animation: 'timing', config: { duration: 250 } },
+              },
+            }}
+          />
+          <Stack.Screen
+            name="CriarNotificacao"
+            component={PaginaNotificacoesCriar}
+            options={{
+              animation: 'fade',
+              transitionSpec: {
+                open: { animation: 'timing', config: { duration: 350 } },
+                close: { animation: 'timing', config: { duration: 250 } },
+              },
+            }}
+          />
+          <Stack.Screen
+            name="EditarNotificacao"
+            component={PaginaNotificacoesEditaR}
+            options={{
+              animation: 'fade',
+              transitionSpec: {
+                open: { animation: 'timing', config: { duration: 350 } },
+                close: { animation: 'timing', config: { duration: 250 } },
+              },
+            }}
+          />
 
 
 
 
-      </Stack.Navigator>
-    </NavigationContainer>
+
+
+
+
+        </Stack.Navigator>
+      </NavigationContainer>
     </MoedaProvider>
   );
 };

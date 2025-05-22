@@ -33,10 +33,11 @@
       "permissions": [
         "CAMERA",
         "FLASHLIGHT",
-        "NOTIFICATIONS"
+        "NOTIFICATIONS",
+        "ACCESS_BACKGROUND_LOCATION"
       ],
       "notification": {
-        "icon": "./assets/ios-icon.png",
+        "icon": "./assets/notification-icon.png",
         "color": "#2565A3"
       }
     },

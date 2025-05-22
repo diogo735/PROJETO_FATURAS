@@ -124,13 +124,13 @@ const handleLogout = async () => {
             <SetaDireita width={16} height={16} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.botaoItem} onPress={() => Alert.alert("Editar perfil")}>
+          <TouchableOpacity style={styles.botaoItem} onPress={() => navigation.navigate('PaginaNotificacoesMinhas')}>
             <View style={styles.itemEsquerda}>
               <Image
                 source={IconBell}
                 style={styles.iconePNG}
               />
-              <Text style={styles.textoItem}>Notificações</Text>
+              <Text style={styles.textoItem}>Minhas Notificações</Text>
             </View>
             <SetaDireita width={16} height={16} />
           </TouchableOpacity>
