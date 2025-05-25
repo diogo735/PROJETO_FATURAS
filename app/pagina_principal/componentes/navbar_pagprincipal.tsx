@@ -25,7 +25,7 @@ const NavbarPaginaPrincipal = ({
     const hora = new Date().getHours();
     if (hora >= 7 && hora < 12) {
       setSaudacao('Bom dia');
-    } else if (hora >= 12 && hora < 19) {
+    } else if (hora >= 12 && hora < 20) {
       setSaudacao('Boa tarde');
     } else {
       setSaudacao('Boa noite');

@@ -49,9 +49,9 @@ import PaginaNotificacoesMinhas from './app/pagina_perfil/pagina_notificacoes/pa
 import CriarNotificacao from './app/pagina_perfil/pagina_notificacoes/criar_notificacao/criar_notificacao';
 import EditarNotificacao from './app/pagina_perfil/pagina_notificacoes/criar_notificacao/editar_notificacao';
 import { iniciarTarefaBackground } from './app/backgorund/notificacoes_user';
-
-
-
+import PaginaSeguranca from './app/pagina_perfil/pagina_seguranca/pagiona_seguranca';
+import TelaCodigo from './app/pagina_perfil/pagina_seguranca/tela_codgio';
+import PaginaCodigo from './app/PAGINA_CODIGO';
 
 
 Notify.setNotificationHandler({
@@ -80,6 +80,9 @@ interface Movimento {
 }
 
 export type RootStackParamList = {
+  PaginaCodigo: undefined;
+  TelaCodigo: { modo?: 'criar' | 'alterar' };
+  PaginaSeguranca: undefined;
   EditarNotificacao: { id: string };
   CriarNotificacao: undefined;
   PaginaNotificacoesMinhas: undefined;
@@ -362,11 +365,30 @@ const PaginaNotificacoesEditaR = (props: any) => (
   </View>
 );
 
+const PaginaSegurancaScreen = (props: any) => (
+  <View style={styles.defaultContainer}>
+    <StatusBar translucent backgroundColor="transparent" style="dark" />
+    <PaginaSeguranca {...props} />
+  </View>
+);
 
+const TelaCodigoScreen = (props: any) => (
+  <View style={styles.defaultContainer}>
+    <StatusBar translucent backgroundColor="transparent" style="dark" />
+    <TelaCodigo {...props} />
+  </View>
+);
+
+const PaginaCodigoScreen = (props: any) => (
+  <View style={{ flex: 1 }}>
+    <StatusBar translucent backgroundColor="transparent" style="dark" />
+    <PaginaCodigo {...props} />
+  </View>
+);
+
+//////////////////////////////////////////////////////////////////
 const App: React.FC = () => {
   const [telaInicial, setTelaInicial] = useState<string | null>(null);
-
-
 
 
 
@@ -375,13 +397,23 @@ const App: React.FC = () => {
       iniciarTarefaBackground();
       await SplashScreen.preventAutoHideAsync();
 
+
+
+
       try {
         await CRIARBD();
         await criarTabelaUsers();
 
 
         const existe = await existeUsuario();
-        setTelaInicial(existe ? 'Splash' : 'SplashScren_intruducao');
+        const codigo = await AsyncStorage.getItem('@codigo_app');
+
+        if (codigo) {
+          setTelaInicial('PaginaCodigo');
+        } else {
+          setTelaInicial(existe ? 'Splash' : 'SplashScren_intruducao');
+        }
+
       } catch (err) {
         console.error("Erro ao inicializar o app:", err);
         setTelaInicial('SplashScren_intruducao');
@@ -617,12 +649,39 @@ const App: React.FC = () => {
               },
             }}
           />
-
-
-
-
-
-
+          <Stack.Screen
+            name="PaginaSeguranca"
+            component={PaginaSegurancaScreen}
+            options={{
+              animation: 'fade',
+              transitionSpec: {
+                open: { animation: 'timing', config: { duration: 350 } },
+                close: { animation: 'timing', config: { duration: 250 } },
+              },
+            }}
+          />
+          <Stack.Screen
+            name="TelaCodigo"
+            component={TelaCodigoScreen}
+            options={{
+              animation: 'fade',
+              transitionSpec: {
+                open: { animation: 'timing', config: { duration: 350 } },
+                close: { animation: 'timing', config: { duration: 250 } },
+              },
+            }}
+          />
+          <Stack.Screen
+            name="PaginaCodigo"
+            component={PaginaCodigoScreen}
+            options={{
+              animation: 'fade',
+              transitionSpec: {
+                open: { animation: 'timing', config: { duration: 350 } },
+                close: { animation: 'timing', config: { duration: 250 } },
+              },
+            }}
+          />
 
 
         </Stack.Navigator>

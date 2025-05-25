@@ -136,7 +136,7 @@ const handleLogout = async () => {
           </TouchableOpacity>
 
           <Text style={styles.labelSecao}>Configurações</Text>
-          <TouchableOpacity style={styles.botaoItem} onPress={() => Alert.alert("Editar perfil")}>
+          <TouchableOpacity style={styles.botaoItem} onPress={() => navigation.navigate('PaginaSeguranca')}>
             <View style={styles.itemEsquerda}>
               <Image
                 source={IconPadlock}
@@ -175,7 +175,7 @@ const handleLogout = async () => {
                 source={IconDrive}
                 style={styles.iconePNG}
               />
-              <Text style={styles.textoItem}>Google Drive</Text>
+              <Text style={styles.textoItem}>Google Drive(sais)</Text>
             </View>
             <SetaDireita width={16} height={16} />
           </TouchableOpacity>
