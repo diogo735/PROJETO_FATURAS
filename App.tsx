@@ -52,7 +52,7 @@ import { iniciarTarefaBackground } from './app/backgorund/notificacoes_user';
 import PaginaSeguranca from './app/pagina_perfil/pagina_seguranca/pagiona_seguranca';
 import TelaCodigo from './app/pagina_perfil/pagina_seguranca/tela_codgio';
 import PaginaCodigo from './app/PAGINA_CODIGO';
-
+import Pagina_Permissoes from './app/paginas_de_intruducao/pagina_premissoes';
 
 Notify.setNotificationHandler({
   handleNotification: async () => ({
@@ -80,6 +80,7 @@ interface Movimento {
 }
 
 export type RootStackParamList = {
+  Pagina_Permissoes: undefined;
   PaginaCodigo: undefined;
   TelaCodigo: { modo?: 'criar' | 'alterar' };
   PaginaSeguranca: undefined;
@@ -386,6 +387,13 @@ const PaginaCodigoScreen = (props: any) => (
   </View>
 );
 
+const PaginaPermissoesScreen = (props: any) => (
+  <View style={{ flex: 1 }}>
+    <StatusBar translucent backgroundColor="transparent" style="light" />
+    <Pagina_Permissoes {...props} />
+  </View>
+);
+
 //////////////////////////////////////////////////////////////////
 const App: React.FC = () => {
   const [telaInicial, setTelaInicial] = useState<string | null>(null);
@@ -682,7 +690,14 @@ const App: React.FC = () => {
               },
             }}
           />
-
+          <Stack.Screen
+            name="Pagina_Permissoes"
+            component={PaginaPermissoesScreen}
+            options={{
+              headerShown: false,
+              animation: 'slide_from_right',
+            }}
+          />
 
         </Stack.Navigator>
       </NavigationContainer>

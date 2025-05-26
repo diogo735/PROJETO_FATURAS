@@ -57,7 +57,7 @@ const Pagina_Comecar_QR = () => {
         } else {
             navigation.reset({
                 index: 0,
-                routes: [{ name: 'Pagina_Login' }],
+                routes: [{ name: 'Pagina_Permissoes' }],
               });
               
         }

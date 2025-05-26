@@ -108,6 +108,30 @@ const PaginaCodigo = () => {
   };
 
   const teclas = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '←', '0', ''];
+const atualizarDataUltimoAcesso = async () => {
+  try {
+    const dados = await AsyncStorage.getItem('@codigo_app');
+    if (dados) {
+      const objeto = JSON.parse(dados);
+
+      const agora = new Date();
+      const dataFormatada = agora.toLocaleString('pt-PT', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+
+      objeto.data_ultimo_acesso = dataFormatada;
+
+      await AsyncStorage.setItem('@codigo_app', JSON.stringify(objeto));
+      console.log('Data de último acesso atualizada com sucesso!');
+    }
+  } catch (error) {
+    console.error('Erro ao atualizar a data de último acesso:', error);
+  }
+};
 
 
 
@@ -243,12 +267,13 @@ const PaginaCodigo = () => {
                       toValue: 0,
                       duration: 300,
                       useNativeDriver: true,
-                    }).start(() => {
+                    }).start(async () => {
                       setCarregando(false);
                       if (codigo === codigoSalvo) {
 
 
                         setCodigoCorreto(true);
+                        await atualizarDataUltimoAcesso();
                         setTimeout(() => {
                           navigation.navigate('Splash');
                         }, 1000);
