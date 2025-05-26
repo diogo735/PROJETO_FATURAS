@@ -33,9 +33,9 @@ async function criarUsuarioAnonimo() {
     const ultimo_login = new Date().toISOString();
     const primeiro_login = 1;
 
-    
+
     const asset = Asset.fromModule(require('../assets/imagens/sem_foto.png'));
-    await asset.downloadAsync(); 
+    await asset.downloadAsync();
     const imagem = asset.localUri || asset.uri;
 
     await inserirUser(nome, imagem, email, pass, ultimo_login, primeiro_login);

@@ -37,7 +37,7 @@ const NavbarPaginaPrincipal = ({
 
     const intervalo = setInterval(() => {
       atualizarSaudacao();
-    }, 60 * 1000); // atualiza a cada 1 minuto
+    }, 60 * 1000); 
 
     return () => clearInterval(intervalo);
   }, []);

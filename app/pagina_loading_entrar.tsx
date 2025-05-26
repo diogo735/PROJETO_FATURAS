@@ -28,7 +28,6 @@ const PagLoadingEntrar = () => {
       try {
         await inicializarBaseDeDados();
         await verificarNotificacoesDeTodasMetas();
-
         // Carrega dados
         const dadosMovimentos = await listarMovimentosUltimos30Dias();
         const saldo = await obterSaldoMensalAtual();
