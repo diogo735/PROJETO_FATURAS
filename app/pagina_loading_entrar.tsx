@@ -14,21 +14,67 @@ import * as SplashScreen from 'expo-splash-screen';
 import { verificarNotificacoesDeTodasMetas } from '../BASEDEDADOS/metas';
 const { width, height } = Dimensions.get('window');
 import { obterTotalReceitas, obterTotalDespesas, listarMovimentosUltimos30Dias, obterSaldoMensalAtual, obterSomaMovimentosPorCategoriaDespesa, obterSomaMovimentosPorCategoriaReceita } from '../BASEDEDADOS/movimentos';
-import { buscarUsuarioAtual } from '../BASEDEDADOS/user';
+import { buscarUsuarioAtual, obter_imagem_user } from '../BASEDEDADOS/user';
+import { buscarDadosDoUsuarioAPI } from '../APIs/login';
+import * as FileSystem from 'expo-file-system';
 
 type RootStackParamList = {
   MainApp: undefined;
 };
 
+
+
+
 const PagLoadingEntrar = () => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+
+  const baixarImagemParaLocal = async (url: string, nomeArquivo: string) => {
+    try {
+      const caminhoLocal = `${FileSystem.documentDirectory}${nomeArquivo}`;
+      const download = await FileSystem.downloadAsync(url, caminhoLocal);
+      return download.uri;
+    } catch (error) {
+      console.error('Erro ao baixar imagem:', error);
+      return null;
+    }
+  };
+
+
+
+
+
+
 
   useEffect(() => {
     const carregarBD = async () => {
       try {
         await inicializarBaseDeDados();
         await verificarNotificacoesDeTodasMetas();
-        // Carrega dados
+
+
+        // 👉 Buscar dados atualizados da API e salvar localmente
+        const userRemoto = await buscarDadosDoUsuarioAPI();
+        if (userRemoto) {
+          const imagemUrl = userRemoto.imagem;
+          const caminhoLocalImagem = await baixarImagemParaLocal(imagemUrl, 'foto_usuario.jpg');
+
+          if (caminhoLocalImagem) {
+            await obter_imagem_user(caminhoLocalImagem);
+          }
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+        // Carrega dados locais
         const dadosMovimentos = await listarMovimentosUltimos30Dias();
         const saldo = await obterSaldoMensalAtual();
         const receitas = await obterTotalReceitas();
@@ -71,6 +117,8 @@ const PagLoadingEntrar = () => {
 
     carregarBD();
   }, []);
+
+
   const rotateValues = [
     useRef(new Animated.Value(0)).current,
     useRef(new Animated.Value(0)).current,
@@ -236,3 +284,4 @@ const styles = StyleSheet.create({
 });
 
 export default PagLoadingEntrar;
+

@@ -15,7 +15,7 @@ async function criarTabelaUsers() {
         imagem TEXT,
         email TEXT UNIQUE ,
         pass TEXT ,
-        ultimo_login TEXT,
+        token TEXT,
         primeiro_login INTEGER DEFAULT 1
       );
     `);
@@ -30,42 +30,34 @@ async function criarUsuarioAnonimo() {
     const nome = 'Utilizador';
     const email = null;
     const pass = null;
-    const ultimo_login = new Date().toISOString();
+    const token = null;
     const primeiro_login = 1;
-
+    const id = 1;
 
     const asset = Asset.fromModule(require('../assets/imagens/sem_foto.png'));
     await asset.downloadAsync();
     const imagem = asset.localUri || asset.uri;
 
-    await inserirUser(nome, imagem, email, pass, ultimo_login, primeiro_login);
+    await inserirUser(id, nome, imagem, email, pass, token, primeiro_login);
   } catch (error) {
     console.error('❌ Erro ao criar usuário anônimo:', error);
   }
 }
 // Exemplo de inserção
-async function inserirUser(nome, imagem, email, pass, ultimo_login, primeiro_login = 1) {
+async function inserirUser(id, nome, imagem, email, pass, token, primeiro_login) {
   try {
     const db = await CRIARBD();
     await db.runAsync(
-      `INSERT INTO user (nome, imagem, email, pass, ultimo_login, primeiro_login) VALUES (?, ?, ?, ?, ?, ?)`,
-      nome, imagem, email, pass, ultimo_login, primeiro_login
+      `INSERT INTO user (id, nome, imagem, email, pass, token, primeiro_login) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      id, nome, imagem, email, pass, token, primeiro_login
     );
-    console.log(`✅ User ${nome} inserido.`);
+    console.log(`✅ User ${nome} inserido com ID ${id}.`);
   } catch (error) {
     console.error('❌ Erro ao inserir user:', error);
   }
 }
-async function inserirUserTeste() {
-  const nome = 'Diogo Ferreira';
-  const imagem = 'h';
-  const email = 'diogo@enovo.pt';
-  const pass = '1234';
-  const ultimo_login = new Date().toISOString();
-  const primeiro_login = 1;
 
-  await inserirUser(nome, imagem, email, pass, ultimo_login, primeiro_login);
-}
+
 async function existeUsuario() {
   const db = await CRIARBD();
   const result = await db.getFirstAsync(`SELECT COUNT(*) as total FROM user`);
@@ -134,14 +126,22 @@ async function deletarTabelaUsers() {
   }
 }
 
+async function obter_imagem_user(uri) {
+  const db = await CRIARBD();
+  await db.runAsync(
+    `UPDATE user SET imagem = ? WHERE id = (SELECT id FROM user LIMIT 1)`,
+    uri
+  );
+}
+
 export {
   criarTabelaUsers,
   inserirUser,
-  inserirUserTeste,
   existeUsuario,
   apagarTodosUsers,
   buscarUsuarioAtual,
   atualizarImagemDoUsuario,
   atualizarUsuario, deletarTabelaUsers,
-  criarUsuarioAnonimo
+  criarUsuarioAnonimo,
+obter_imagem_user
 };

@@ -21,6 +21,16 @@ import { Animated, Easing } from 'react-native';
 import { useEffect, useRef } from 'react';
 import IconRotativo from '../../assets/imagens/wallpaper.svg';
 
+import { login } from '../../APIs/login';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { inserirUser } from '../../BASEDEDADOS/user';
+import { SharedObject } from 'expo';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import NetInfo from '@react-native-community/netinfo';
+import ModalErro from './modal_erro';
+
+
+
 const { width, height } = Dimensions.get('window');
 
 const PaginaLoginEmail: React.FC = () => {
@@ -34,27 +44,80 @@ const PaginaLoginEmail: React.FC = () => {
     const [estadoBotao, setEstadoBotao] = useState<'idle' | 'loading' | 'sucesso' | 'erro'>('idle');
 
     const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
+    const [mostrarErro, setMostrarErro] = useState(false);
+    const [tipoErro, setTipoErro] = useState<'wifi' | 'servidor'>('wifi');
 
-    const fazerLogin = () => {
+    const API_BASE_URL = 'https://faturas-backend.onrender.com';
+
+
+    const [mensagemErro, setMensagemErro] = useState('');
+
+    const fazerLogin = async () => {
         Keyboard.dismiss();
 
-        if (email === 'diogo@enovo.pt' && senha === '123') {
-            setEstadoBotao('loading');
-
-
-            setTimeout(() => {
-                setEstadoBotao('sucesso');
-                setTimeout(() => {
-                    navigation.navigate('Splash');
-                }, 500);
-            }, 3000);
-        } else {
-            setEstadoBotao('erro');
-            setTimeout(() => {
-                setEstadoBotao('idle');
-            }, 2000);
+        setTipoErro('wifi');
+        setMostrarErro(true);
+/*
+        // ✅ Verificar se há internet
+        const net = await NetInfo.fetch();
+        if (!net.isConnected) {
+            setTipoErro('wifi');
+            setMostrarErro(true);
+            return;
         }
+
+        // ✅ Verificar se a API está respondendo
+        try {
+            const ping = await fetch(`${API_BASE_URL}/ping`, { method: 'GET' });
+            if (!ping.ok) throw new Error();
+        } catch (e) {
+            setTipoErro('servidor');
+            setMostrarErro(true);
+            return;
+        }
+        if (!email || !senha) return;
+        if (!email.endsWith('@enovo.pt')) {
+            setMensagemErro('Apenas email @enovo.pt aceites!');
+            return;
+        }
+*/
+        setEstadoBotao('loading');
+        /*
+                try {
+                    const { token, user } = await login(email, senha);
+                    console.log('🔑 Token recebido da API:', token);
+        
+                    // Salva no SQLite
+                    await inserirUser(
+                        user.id,
+                        user.nome,
+                        user.imagem,
+                        user.email,
+                        senha,
+                        token,
+                        user.primeiro_login ? 1 : 0
+                    );
+        
+        
+                    setMensagemErro(''); // limpa erro se login funcionar
+                    setEstadoBotao('sucesso');
+                    setTimeout(() => {
+                        navigation.navigate('Splash');
+                    }, 800);
+        
+                } catch (error: any) {
+        
+                    setMensagemErro(error.message || 'Erro ao conectar. Tente novamente.');
+                    setEstadoBotao('erro');
+        
+                    setTimeout(() => {
+                        setEstadoBotao('idle');
+                    }, 2000);
+                }*/
     };
+
+
+
     const corFixa =
         estadoBotao === 'sucesso'
             ? '#28A745'
@@ -117,7 +180,10 @@ const PaginaLoginEmail: React.FC = () => {
                                 style={styles.inputInterno}
                                 placeholder="Digita o teu email"
                                 value={email}
-                                onChangeText={setEmail}
+                                onChangeText={(texto) => {
+                                    setEmail(texto);
+                                    setMensagemErro(''); // limpa erro ao digitar
+                                }}
                                 placeholderTextColor="#7FA5CB"
                             />
                         </View>
@@ -132,7 +198,11 @@ const PaginaLoginEmail: React.FC = () => {
                                 placeholder="Digita a tua palavra-passe"
                                 secureTextEntry={!mostrarSenha}
                                 value={senha}
-                                onChangeText={setSenha}
+
+                                onChangeText={(texto) => {
+                                    setSenha(texto);
+                                    setMensagemErro(''); // limpa erro ao digitar
+                                }}
                                 placeholderTextColor="#7FA5CB"
                             />
 
@@ -140,6 +210,15 @@ const PaginaLoginEmail: React.FC = () => {
                                 <Icon name={mostrarSenha ? 'eye' : 'eye-off'} size={20} color="#5385B4" />
                             </TouchableOpacity>
                         </View>
+                        {mensagemErro !== '' && (
+                            <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 10, marginBottom: 10 }}>
+                                <Ionicons name="warning-outline" size={18} color="#DC3545" style={{ marginRight: 6 }} />
+                                <Text style={{ color: '#DC3545', fontSize: 14 }}>
+                                    {mensagemErro}
+                                </Text>
+                            </View>
+                        )}
+
 
 
 
@@ -196,6 +275,12 @@ const PaginaLoginEmail: React.FC = () => {
 
                     </View>
                 </View></TouchableWithoutFeedback>
+                <ModalErro
+  visivel={mostrarErro}
+  tipoErro={tipoErro}
+  aoFechar={() => setMostrarErro(false)}
+/>
+
         </KeyboardAvoidingView>
     );
 };
