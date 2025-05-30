@@ -142,7 +142,7 @@ export type RootStackParamList = {
   Pagina_Login: undefined;
   Pagina_Login_Email: undefined;
   Pagina_Esqueceu_Pass: undefined;
-  Pagina_Verificar_Email: undefined;
+Pagina_Verificar_Email: { email: string };
 
 
 
@@ -404,9 +404,6 @@ const App: React.FC = () => {
     async function iniciarApp() {
       iniciarTarefaBackground();
       await SplashScreen.preventAutoHideAsync();
-
-
-
 
       try {
         await CRIARBD();

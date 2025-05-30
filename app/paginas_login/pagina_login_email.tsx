@@ -47,7 +47,7 @@ const PaginaLoginEmail: React.FC = () => {
     const [mostrarErro, setMostrarErro] = useState(false);
     const [tipoErro, setTipoErro] = useState<'wifi' | 'servidor'>('wifi');
 
-    const API_BASE_URL = 'https://faturas-backend.onrender.com';
+    const API_BASE_URL = 'https://faturas-backend.onrender.com/api';
 
 
     const [mensagemErro, setMensagemErro] = useState('');
@@ -55,66 +55,72 @@ const PaginaLoginEmail: React.FC = () => {
     const fazerLogin = async () => {
         Keyboard.dismiss();
 
-        setTipoErro('wifi');
-        setMostrarErro(true);
-/*
-        // ✅ Verificar se há internet
+        setEstadoBotao('loading');
+
+        // Verifica conexão com a internet
         const net = await NetInfo.fetch();
         if (!net.isConnected) {
             setTipoErro('wifi');
             setMostrarErro(true);
+            setEstadoBotao('idle');
             return;
         }
 
-        // ✅ Verificar se a API está respondendo
+        // Verifica se o servidor está disponível
         try {
-            const ping = await fetch(`${API_BASE_URL}/ping`, { method: 'GET' });
-            if (!ping.ok) throw new Error();
+            const response = await fetch(`${API_BASE_URL}/ping`, { method: 'GET' });
+            const data = await response.json();
+
+            if (!response.ok || data.message !== 'online') throw new Error();
         } catch (e) {
             setTipoErro('servidor');
             setMostrarErro(true);
+            setEstadoBotao('idle');
             return;
         }
-        if (!email || !senha) return;
+
+        // Validação de email
+        if (!email || !senha) {
+            setMensagemErro('Preencha todos os campos!');
+            setEstadoBotao('idle');
+            return;
+        }
         if (!email.endsWith('@enovo.pt')) {
             setMensagemErro('Apenas email @enovo.pt aceites!');
+            setEstadoBotao('idle');
             return;
         }
-*/
-        setEstadoBotao('loading');
-        /*
-                try {
-                    const { token, user } = await login(email, senha);
-                    console.log('🔑 Token recebido da API:', token);
-        
-                    // Salva no SQLite
-                    await inserirUser(
-                        user.id,
-                        user.nome,
-                        user.imagem,
-                        user.email,
-                        senha,
-                        token,
-                        user.primeiro_login ? 1 : 0
-                    );
-        
-        
-                    setMensagemErro(''); // limpa erro se login funcionar
-                    setEstadoBotao('sucesso');
-                    setTimeout(() => {
-                        navigation.navigate('Splash');
-                    }, 800);
-        
-                } catch (error: any) {
-        
-                    setMensagemErro(error.message || 'Erro ao conectar. Tente novamente.');
-                    setEstadoBotao('erro');
-        
-                    setTimeout(() => {
-                        setEstadoBotao('idle');
-                    }, 2000);
-                }*/
+
+        // Tenta fazer login
+        try {
+            const { token, user } = await login(email, senha);
+
+            await inserirUser(
+                user.id,
+                user.nome,
+                user.imagem,
+                user.email,
+                senha,
+                token,
+                user.primeiro_login ? 1 : 0
+            );
+
+            setMensagemErro('');
+            setEstadoBotao('sucesso');
+
+            setTimeout(() => {
+                navigation.navigate('Splash');
+            }, 800);
+        } catch (error: any) {
+            setMensagemErro(error.message || 'Erro ao conectar. Tente novamente.');
+            setEstadoBotao('erro');
+
+            setTimeout(() => {
+                setEstadoBotao('idle');
+            }, 2000);
+        }
     };
+
 
 
 
@@ -164,7 +170,7 @@ const PaginaLoginEmail: React.FC = () => {
 
                     <View style={styles.logoArea}>
                         <Image
-                            source={require('../../assets/splash.png')}
+                            source={require('../../assets/ios_icon.png')}
                             style={styles.logoBox}
                             resizeMode="contain"
                         />
@@ -275,11 +281,11 @@ const PaginaLoginEmail: React.FC = () => {
 
                     </View>
                 </View></TouchableWithoutFeedback>
-                <ModalErro
-  visivel={mostrarErro}
-  tipoErro={tipoErro}
-  aoFechar={() => setMostrarErro(false)}
-/>
+            <ModalErro
+                visivel={mostrarErro}
+                tipoErro={tipoErro}
+                aoFechar={() => setMostrarErro(false)}
+            />
 
         </KeyboardAvoidingView>
     );

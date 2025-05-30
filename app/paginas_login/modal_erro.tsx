@@ -8,8 +8,14 @@ interface ModalErroProps {
 }
 
 const ModalErro: React.FC<ModalErroProps> = ({ visivel, tipoErro, aoFechar }) => {
-  const imagem = require('../assets/minha_imagem.png'); // 🔁 sua imagem local
+  const imagem = tipoErro === 'wifi'
+    ? require('../../assets/imagens/sem_wifi.png')
+    : require('../../assets/imagens/sem_servidor.png');
+
   const mensagem = tipoErro === 'wifi' ? 'Sem ligação à internet' : 'Erro no servidor';
+  const subtexto = tipoErro === 'wifi'
+    ? 'Verifiqua a tua ligação Wi-Fi ou dados móveis.'
+    : 'O servidor pode estar em manutenção ou indisponivel. Tenta novamente mais tarde.';
 
   return (
     <Modal visible={visivel} transparent animationType="fade">
@@ -17,7 +23,7 @@ const ModalErro: React.FC<ModalErroProps> = ({ visivel, tipoErro, aoFechar }) =>
         <View style={styles.modal}>
           <Image source={imagem} style={styles.imagem} resizeMode="contain" />
           <Text style={styles.texto}>{mensagem}</Text>
-
+          <Text style={styles.subtexto}>{subtexto}</Text>
           <TouchableOpacity style={styles.botao} onPress={aoFechar}>
             <Text style={styles.botaoTexto}>Tentar novamente</Text>
           </TouchableOpacity>
@@ -49,8 +55,9 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   texto: {
-    fontSize: 16,
-    color: '#333',
+    fontSize: 20,
+    color: '#2565A3',
+    fontWeight: '600',
     textAlign: 'center',
     marginBottom: 20,
   },
@@ -58,10 +65,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#3592EB',
     paddingVertical: 10,
     paddingHorizontal: 20,
-    borderRadius: 8,
+    borderRadius: 99,
   },
   botaoTexto: {
     color: '#fff',
     fontWeight: 'bold',
   },
+  subtexto: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+
 });

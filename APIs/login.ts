@@ -1,6 +1,7 @@
 
 import axios from 'axios';
 import { buscarUsuarioAtual } from '../BASEDEDADOS/user';
+import NetInfo from '@react-native-community/netinfo';
 
 const API_BASE_URL = 'https://faturas-backend.onrender.com/api'; 
 
@@ -52,4 +53,48 @@ export const buscarDadosDoUsuarioAPI = async () => {
   }
 };
 
+export const resetar_pass_email = async (email: string) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/recuperar_pass`, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email }),
+    });
 
+    const data = await response.json();
+
+    if (!response.ok) {
+      // Erro como 404, etc.
+      throw new Error(data.message || 'Erro ao recuperar palavra-passe.');
+    }
+
+    return data.message; // Sucesso
+  } catch (error: any) {
+    throw new Error(error.message || 'Erro de rede.');
+  }
+};
+
+export const verificarConectividade = async (): Promise<'ok' | 'wifi' | 'servidor'> => {
+  // Verifica se há internet
+  const net = await NetInfo.fetch();
+  if (!net.isConnected) {
+    return 'wifi';
+  }
+
+  // Verifica se o servidor está online
+  try {
+    const response = await fetch(`${API_BASE_URL}/ping`, { method: 'GET' });
+    const data = await response.json();
+
+    if (!response.ok || data.message !== 'online') {
+      return 'servidor';
+    }
+
+    return 'ok';
+  } catch (e) {
+    return 'servidor';
+  }
+};

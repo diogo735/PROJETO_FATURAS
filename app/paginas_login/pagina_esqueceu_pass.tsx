@@ -17,7 +17,9 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../App';
 
 import { Keyboard, TouchableWithoutFeedback } from 'react-native';
-
+import { resetar_pass_email, verificarConectividade } from '../../APIs/login';
+import NetInfo from '@react-native-community/netinfo';
+import ModalErro from './modal_erro';
 
 const { width, height } = Dimensions.get('window');
 
@@ -26,7 +28,48 @@ const PaginaEsqueceuPass: React.FC = () => {
 
     type NavigationProp = StackNavigationProp<RootStackParamList, 'Pagina_Esqueceu_Pass'>;
     const navigation = useNavigation<NavigationProp>();
-    
+    const [tentouSubmeter, setTentouSubmeter] = useState(false);
+    const [mensagemErro, setMensagemErro] = useState('');
+    const [mensagemSucesso, setMensagemSucesso] = useState('');
+    const [mostrarErro, setMostrarErro] = useState(false);
+    const [tipoErro, setTipoErro] = useState<'wifi' | 'servidor'>('wifi');
+
+    const dominioValido = (): boolean => {
+        return email.endsWith('@gmail.com') || email.endsWith('@enovo.pt');
+    };
+    const continuar = async () => {
+        setTentouSubmeter(true);
+
+        if (!dominioValido()) return;
+
+        // Verifica conectividade e servidor
+        const status = await verificarConectividade();
+
+        if (status !== 'ok') {
+            setTipoErro(status);
+            setMostrarErro(true);
+            return;
+        }
+
+        try {
+            const mensagem = await resetar_pass_email(email);
+
+            // Sucesso: limpa erro e navega
+            setMensagemErro('');
+            setTimeout(() => {
+                navigation.navigate('Pagina_Verificar_Email', { email });
+            }, 1000);
+
+        } catch (error: any) {
+            // Erro: mostra a mensagem de erro
+            setMensagemErro(error.message);
+        }
+    };
+
+
+
+
+
 
     return (
         <KeyboardAvoidingView
@@ -46,7 +89,7 @@ const PaginaEsqueceuPass: React.FC = () => {
 
                     <View style={styles.logoArea}>
                         <Image
-                            source={require('../../assets/splash.png')}
+                            source={require('../../assets/ios_icon.png')}
                             style={styles.logoBox}
                             resizeMode="contain"
                         />
@@ -68,17 +111,37 @@ const PaginaEsqueceuPass: React.FC = () => {
                                 placeholderTextColor="#7FA5CB"
                             />
                         </View>
+                        {tentouSubmeter && !dominioValido() && (
+                            <Text style={{ color: '#DC3545', marginLeft: 10, marginBottom: 10 }}>
+                                O email deve terminar com @gmail.com ou @enovo.pt
+                            </Text>
+                        )}
+                        {mensagemErro !== '' && (
+                            <Text style={{ color: '#DC3545', marginLeft: 10, marginBottom: 10 }}>
+                                {mensagemErro}
+                            </Text>
+                        )}
+
+
                     </View>
                     <View style={styles.footer}>
                         <TouchableOpacity
-                            style={styles.btnEntrar}
-                            onPress={() => navigation.navigate('Pagina_Verificar_Email')}
+                            style={[styles.btnEntrar, { opacity: email.trim() !== '' ? 1 : 0.5 }]}
+                            onPress={continuar}
+                            disabled={email.trim() === ''}
                         >
                             <Text style={styles.btnEntrarText}>Continuar</Text>
                         </TouchableOpacity>
 
+
+
                     </View>
                 </View></TouchableWithoutFeedback>
+                <ModalErro
+                visivel={mostrarErro}
+                tipoErro={tipoErro}
+                aoFechar={() => setMostrarErro(false)}
+            />
         </KeyboardAvoidingView>
     );
 };

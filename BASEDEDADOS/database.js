@@ -25,9 +25,9 @@ async function inicializarBaseDeDados() {
     await CRIARBD();
 
     await criarTabelaUsers();
-   //await deletarTabelaUsers();
-  await apagarTodosUsers();
-  //await inserirUserTeste();
+    //await deletarTabelaUsers();
+    //await apagarTodosUsers();
+    //await inserirUserTeste();
    
 
     //NOTIFICAÇOES
