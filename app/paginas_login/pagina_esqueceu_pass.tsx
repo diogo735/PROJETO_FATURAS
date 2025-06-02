@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
     View,
     Text,
@@ -7,7 +7,9 @@ import {
     TouchableOpacity,
     Dimensions,
     KeyboardAvoidingView,
-    Platform
+    Platform,
+    Animated,
+    Easing
 } from 'react-native';
 import { scale } from 'react-native-size-matters';
 import Icon from 'react-native-vector-icons/Feather'; // Ícone do olho
@@ -20,7 +22,8 @@ import { Keyboard, TouchableWithoutFeedback } from 'react-native';
 import { resetar_pass_email, verificarConectividade } from '../../APIs/login';
 import NetInfo from '@react-native-community/netinfo';
 import ModalErro from './modal_erro';
-
+import IconRotativo from '../../assets/imagens/wallpaper.svg';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 const { width, height } = Dimensions.get('window');
 
 const PaginaEsqueceuPass: React.FC = () => {
@@ -33,40 +36,61 @@ const PaginaEsqueceuPass: React.FC = () => {
     const [mensagemSucesso, setMensagemSucesso] = useState('');
     const [mostrarErro, setMostrarErro] = useState(false);
     const [tipoErro, setTipoErro] = useState<'wifi' | 'servidor'>('wifi');
+    const [loading, setLoading] = useState(false);
 
     const dominioValido = (): boolean => {
         return email.endsWith('@gmail.com') || email.endsWith('@enovo.pt');
     };
     const continuar = async () => {
+        Keyboard.dismiss();
         setTentouSubmeter(true);
+        setLoading(true);
 
-        if (!dominioValido()) return;
+        if (!dominioValido()) {
+            setLoading(false);
+            return;
+        }
 
-        // Verifica conectividade e servidor
         const status = await verificarConectividade();
 
         if (status !== 'ok') {
             setTipoErro(status);
             setMostrarErro(true);
+            setLoading(false);
             return;
         }
 
         try {
-            const mensagem = await resetar_pass_email(email);
-
-            // Sucesso: limpa erro e navega
+            await resetar_pass_email(email);
             setMensagemErro('');
-            setTimeout(() => {
-                navigation.navigate('Pagina_Verificar_Email', { email });
-            }, 1000);
-
+            navigation.navigate('Pagina_Verificar_Email', { email });
         } catch (error: any) {
-            // Erro: mostra a mensagem de erro
             setMensagemErro(error.message);
+        } finally {
+            setLoading(false);
         }
     };
 
 
+    const rotateAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        if (loading) {
+            Animated.loop(
+                Animated.timing(rotateAnim, {
+                    toValue: 1,
+                    duration: 1000,
+                    easing: Easing.linear,
+                    useNativeDriver: true,
+                })
+            ).start();
+        } else {
+            rotateAnim.stopAnimation();
+            rotateAnim.setValue(0);
+        }
+    }, [loading]);
+
+    const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
 
 
 
@@ -112,32 +136,67 @@ const PaginaEsqueceuPass: React.FC = () => {
                             />
                         </View>
                         {tentouSubmeter && !dominioValido() && (
-                            <Text style={{ color: '#DC3545', marginLeft: 10, marginBottom: 10 }}>
-                                O email deve terminar com @gmail.com ou @enovo.pt
-                            </Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 10, marginBottom: 10 }}>
+                                <Ionicons name="warning-outline" size={18} color="#DC3545" style={{ marginRight: 6 }} />
+                                <Text style={{ color: '#DC3545' }}>
+                                    O email deve terminar com @gmail.com ou @enovo.pt
+                                </Text>
+                            </View>
                         )}
+
                         {mensagemErro !== '' && (
-                            <Text style={{ color: '#DC3545', marginLeft: 10, marginBottom: 10 }}>
-                                {mensagemErro}
-                            </Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 10, marginBottom: 10 }}>
+                                <Ionicons name="warning-outline" size={18} color="#DC3545" style={{ marginRight: 6 }} />
+                                <Text style={{ color: '#DC3545' }}>
+                                    {mensagemErro}
+                                </Text>
+                            </View>
                         )}
+
 
 
                     </View>
                     <View style={styles.footer}>
-                        <TouchableOpacity
-                            style={[styles.btnEntrar, { opacity: email.trim() !== '' ? 1 : 0.5 }]}
+                        <AnimatedTouchable
+                            style={[
+                                styles.btnEntrar,
+                                {
+                                    opacity: email.trim() !== '' && !loading ? 1 : 0.5,
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    backgroundColor: '#2565A3',
+                                },
+                            ]}
                             onPress={continuar}
-                            disabled={email.trim() === ''}
+                            disabled={email.trim() === '' || loading}
+                            activeOpacity={0.8}
                         >
-                            <Text style={styles.btnEntrarText}>Continuar</Text>
-                        </TouchableOpacity>
+                            {loading ? (
+                                <Animated.View
+                                    style={{
+                                        transform: [
+                                            {
+                                                rotate: rotateAnim.interpolate({
+                                                    inputRange: [0, 1],
+                                                    outputRange: ['0deg', '360deg'],
+                                                }),
+                                            },
+                                        ],
+                                    }}
+                                >
+                                    <IconRotativo width={20} height={20} fill="#fff" />
+                                </Animated.View>
+                            ) : (
+                                <Text style={styles.btnEntrarText}>Continuar</Text>
+                            )}
+                        </AnimatedTouchable>
+
 
 
 
                     </View>
                 </View></TouchableWithoutFeedback>
-                <ModalErro
+            <ModalErro
                 visivel={mostrarErro}
                 tipoErro={tipoErro}
                 aoFechar={() => setMostrarErro(false)}
