@@ -2,7 +2,7 @@ import * as SQLite from 'expo-sqlite';
 import { CRIARBD } from './databaseInstance';
 import { verificar_se_envia_notificacao } from './metas';
 import NetInfo from '@react-native-community/netinfo';
-import { criarMovimentoAPI } from '../APIs/movimentos';
+import { criarMovimentoAPI ,atualizarMovimentoAPI} from '../APIs/movimentos';
 import { adicionarNaFila } from './sincronizacao';
 
 
@@ -96,6 +96,81 @@ async function salvarMovimentoLocalEPendencia(movimento, db) {
   await atualizarMeta(valor, categoria_id, data_movimento, db);
 
   return result.lastInsertRowId;
+}
+
+async function atualizarMovimento(id, { nota, categoria_id, sub_categoria_id }) {
+  try {
+    const db = await CRIARBD();
+    const updated_at = new Date().toISOString();
+
+    // 1. Atualiza localmente e marca como 'pending'
+    await db.runAsync(
+      `UPDATE movimentos SET nota = ?, categoria_id = ?, sub_categoria_id = ?, updated_at = ?, sync_status = ? WHERE id = ?`,
+      [
+        nota,
+        categoria_id,
+        sub_categoria_id ?? null,
+        updated_at,
+        'pending',
+        id
+      ]
+    );
+
+    // 2. Busca remote_id para saber se já foi sincronizado antes
+    const movimento = await db.getFirstAsync(`SELECT remote_id FROM movimentos WHERE id = ?`, [id]);
+
+    if (!movimento?.remote_id) {
+      // Não foi sincronizado ainda, só deixa como pending (a criação cuidará disso)
+      return true;
+    }
+
+    // 3. Verifica se está online
+    const estado = await NetInfo.fetch();
+
+    if (estado.isConnected && estado.isInternetReachable) {
+      try {
+        // 4. Tenta atualizar a API diretamente
+        await atualizarMovimentoAPI(movimento.remote_id, {
+          nota,
+          categoria_id,
+          sub_categoria_id,
+          updated_at
+        });
+
+        // 5. Se sucesso, marca como sincronizado localmente
+        await db.runAsync(
+          `UPDATE movimentos SET sync_status = ? WHERE id = ?`,
+          ['synced', id]
+        );
+
+      } catch (err) {
+        console.warn('⚠️ Falha ao atualizar movimento na API. Adicionando à fila:', err.message);
+
+        // 6. Adiciona à fila de sincronização
+        await adicionarNaFila('movimentos', 'update', {
+          nota,
+          categoria_id,
+          sub_categoria_id,
+          updated_at
+        }, movimento.remote_id);
+      }
+
+    } else {
+      // 7. Está offline, adiciona à fila
+      await adicionarNaFila('movimentos', 'update', {
+        nota,
+        categoria_id,
+        sub_categoria_id,
+        updated_at
+      }, movimento.remote_id);
+    }
+
+    return true;
+
+  } catch (error) {
+    console.error('❌ Erro ao atualizar movimento:', error);
+    return false;
+  }
 }
 
 async function atualizarMeta(valor, categoria_id, data_movimento, db) {
@@ -571,7 +646,8 @@ export {
   obterSomaMovimentosPorCategoriaEMes,
   obterSomaMovimentosPorIntervaloFormatado,
   obterSomaMovimentosPorSubCategoriaEMes,
-  listarMovimentosPorCategoriaMesAno
+  listarMovimentosPorCategoriaMesAno,
+  atualizarMovimento
 
 
 

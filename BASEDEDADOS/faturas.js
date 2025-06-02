@@ -1,7 +1,9 @@
 import { CRIARBD } from './databaseInstance';
 
 import { inserirMovimento } from './movimentos';
-
+import NetInfo from '@react-native-community/netinfo';
+import { criarFaturaAPI, atualizarFaturaAPI } from '../APIs/faturas';
+import { adicionarNaFila } from './sincronizacao';
 
 
 async function criarTabelaFaturas() {
@@ -10,18 +12,21 @@ async function criarTabelaFaturas() {
     await db.execAsync(`
       CREATE TABLE IF NOT EXISTS faturas (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        remote_id INTEGER,
         movimento_id INTEGER NOT NULL,
         tipo_documento TEXT NOT NULL,
         numero_fatura TEXT NOT NULL,
         data_fatura TEXT NOT NULL,
         nif_emitente TEXT NOT NULL,
         codigo_ATCUD TEXT NOT NULL,
-        nome_empresa TEXT NULL,
+        nome_empresa TEXT,
         nif_cliente TEXT,
         descricao TEXT,
         total_iva REAL NOT NULL,
         total_final REAL NOT NULL,
         imagem_fatura TEXT,
+        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+        sync_status TEXT NOT NULL DEFAULT 'pending',
         FOREIGN KEY (movimento_id) REFERENCES movimentos(id) ON DELETE CASCADE
       );
     `);
@@ -30,6 +35,7 @@ async function criarTabelaFaturas() {
     console.error('❌ Erro ao criar tabela "faturas":', error);
   }
 }
+
 async function obterTipoMovimentoPorCategoria(categoriaId) {
   const db = await CRIARBD();
   const result = await db.getFirstAsync(`
@@ -66,42 +72,144 @@ async function inserirFatura({
 }) {
   try {
     const db = await CRIARBD();
-
+    const updated_at = new Date().toISOString();
     nomeEmpresa = nomeEmpresa?.trim() || 'Empresa';
 
+    const fatura = {
+      movimento_id: movimentoId,
+      tipo_documento: tipoDocumento,
+      numero_fatura: numeroFatura,
+      codigo_ATCUD: codigoATCUD,
+      data_fatura: dataFatura,
+      nif_emitente: nifEmitente,
+      nome_empresa: nomeEmpresa,
+      nif_cliente: nifCliente,
+      descricao,
+      total_iva: totalIva,
+      total_final: totalFinal,
+      imagem_fatura: imagemFatura,
+      updated_at
+    };
 
-    const result = await db.runAsync(
-      `INSERT INTO faturas (
-    movimento_id, tipo_documento, numero_fatura, codigo_ATCUD, data_fatura,
-    nif_emitente, nome_empresa, nif_cliente, descricao,
-    total_iva, total_final, imagem_fatura
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-`,
-      [
-        movimentoId,
-        tipoDocumento,
-        numeroFatura,
-        codigoATCUD,
-        dataFatura,
-        nifEmitente,
-        nomeEmpresa,
-        nifCliente,
-        descricao,
-        totalIva,
-        totalFinal,
-        imagemFatura
-      ]
-    );
+    const estado = await NetInfo.fetch();
 
-    const faturaId = result.lastInsertRowId;
+    if (estado.isConnected && estado.isInternetReachable) {
+      try {
+        const response = await criarFaturaAPI(fatura);
+        const remoteId = response.id;
 
-    return faturaId;
+        const result = await db.runAsync(
+          `INSERT INTO faturas (
+            remote_id, movimento_id, tipo_documento, numero_fatura, codigo_ATCUD, data_fatura,
+            nif_emitente, nome_empresa, nif_cliente, descricao,
+            total_iva, total_final, imagem_fatura,
+            updated_at, sync_status
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            remoteId, movimentoId, tipoDocumento, numeroFatura, codigoATCUD, dataFatura,
+            nifEmitente, nomeEmpresa, nifCliente, descricao,
+            totalIva, totalFinal, imagemFatura,
+            updated_at, 'synced'
+          ]
+        );
+
+        return result.lastInsertRowId;
+
+      } catch (err) {
+        console.warn('⚠️ API falhou. Salvando local + fila:', err.message);
+        return await salvarFaturaLocalEPendencia(fatura, db);
+      }
+
+    } else {
+      return await salvarFaturaLocalEPendencia(fatura, db);
+    }
 
   } catch (error) {
     console.error('❌ Erro ao inserir fatura:', error);
     return null;
   }
 }
+
+async function salvarFaturaLocalEPendencia(fatura, db) {
+  const {
+    movimento_id, tipo_documento, numero_fatura, codigo_ATCUD, data_fatura,
+    nif_emitente, nome_empresa, nif_cliente, descricao,
+    total_iva, total_final, imagem_fatura, updated_at
+  } = fatura;
+
+  const result = await db.runAsync(
+    `INSERT INTO faturas (
+      movimento_id, tipo_documento, numero_fatura, codigo_ATCUD, data_fatura,
+      nif_emitente, nome_empresa, nif_cliente, descricao,
+      total_iva, total_final, imagem_fatura,
+      updated_at, sync_status
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      movimento_id, tipo_documento, numero_fatura, codigo_ATCUD, data_fatura,
+      nif_emitente, nome_empresa, nif_cliente, descricao,
+      total_iva, total_final, imagem_fatura,
+      updated_at, 'pending'
+    ]
+  );
+
+  await adicionarNaFila('faturas', 'create', fatura);
+  return result.lastInsertRowId;
+}
+async function atualizarFatura(id, novaDescricao) {
+  try {
+    const db = await CRIARBD();
+    const updated_at = new Date().toISOString();
+
+    // Atualiza localmente e marca como 'pending'
+    await db.runAsync(
+      `UPDATE faturas SET descricao = ?, updated_at = ?, sync_status = ? WHERE id = ?`,
+      [novaDescricao, updated_at, 'pending', id]
+    );
+
+    // Pega remote_id para sincronizar se possível
+    const fatura = await db.getFirstAsync(`SELECT remote_id FROM faturas WHERE id = ?`, [id]);
+    if (!fatura?.remote_id) return true; // será sincronizada depois como 'create'
+
+    const estado = await NetInfo.fetch();
+
+    if (estado.isConnected && estado.isInternetReachable) {
+      try {
+        // Envia update para a API
+        await atualizarFaturaAPI(fatura.remote_id, {
+          descricao: novaDescricao,
+          updated_at
+        });
+
+        await db.runAsync(
+          `UPDATE faturas SET sync_status = ? WHERE id = ?`,
+          ['synced', id]
+        );
+
+      } catch (err) {
+        console.warn('⚠️ API falhou, adicionando fatura à fila:', err.message);
+        await adicionarNaFila('faturas', 'update', {
+          descricao: novaDescricao,
+          updated_at
+        }, fatura.remote_id);
+      }
+
+    } else {
+      // Está offline: adiciona à fila
+      await adicionarNaFila('faturas', 'update', {
+        descricao: novaDescricao,
+        updated_at
+      }, fatura.remote_id);
+    }
+
+    return true;
+
+  } catch (error) {
+    console.error('❌ Erro ao atualizar fatura:', error);
+    return false;
+  }
+}
+
+
 
 async function registarFatura_BDLOCAL({
   dataMovimento,
@@ -182,6 +290,8 @@ async function registarFatura_BDLOCAL({
     console.error('❌ Erro ao registrar fatura:', error);
   }
 }
+
+
 async function verificarFaturaPorATCUD(codigoATCUD) {
   try {
     const db = await CRIARBD();
@@ -235,71 +345,40 @@ async function atualizarMovimentoPorFatura(faturaId, novaDescricao, categoriaId 
   try {
     const db = await CRIARBD();
 
-    // 1. Obter o movimento_id da fatura
     const fatura = await db.getFirstAsync(`SELECT movimento_id FROM faturas WHERE id = ?`, [faturaId]);
-
     if (!fatura?.movimento_id) {
       console.warn('⚠️ Fatura não encontrada ou sem movimento ligado:', faturaId);
       return false;
     }
 
     const movimentoId = fatura.movimento_id;
-
     let categoriaFinalId = categoriaId;
-    let tipoMovimentoId = null;
 
-    // 2. Se recebeu apenas subcategoriaId, buscar a categoria correspondente
     if (!categoriaId && subcategoriaId) {
-      const subcat = await db.getFirstAsync(
-        `SELECT categoria_id FROM sub_categorias WHERE id = ?`,
-        [subcategoriaId]
-      );
-
+      const subcat = await db.getFirstAsync(`SELECT categoria_id FROM sub_categorias WHERE id = ?`, [subcategoriaId]);
       if (!subcat?.categoria_id) {
         console.warn('⚠️ Categoria não encontrada para subcategoria:', subcategoriaId);
         return false;
       }
-
       categoriaFinalId = subcat.categoria_id;
     }
 
-    // 3. Buscar tipo_movimento_id a partir da categoriaFinalId
-    const tipo = await db.getFirstAsync(
-      `SELECT tipo_movimento_id FROM categorias WHERE id = ?`,
-      [categoriaFinalId]
-    );
-
+    const tipo = await db.getFirstAsync(`SELECT tipo_movimento_id FROM categorias WHERE id = ?`, [categoriaFinalId]);
     if (!tipo?.tipo_movimento_id) {
       console.warn('⚠️ Tipo de movimento não encontrado para categoria:', categoriaFinalId);
       return false;
     }
 
-    tipoMovimentoId = tipo.tipo_movimento_id;
+    const sucesso = await atualizarMovimento(movimentoId, {
+      nota: novaDescricao,
+      categoria_id: categoriaFinalId,
+      sub_categoria_id: subcategoriaId ?? null
+    });
 
-    // 4. Atualizar o movimento
-    await db.runAsync(
-      `UPDATE movimentos 
-       SET nota = ?, categoria_id = ?, sub_categoria_id = ?
-       WHERE id = ?`,
-      [
-        novaDescricao,
-        categoriaFinalId,
-        subcategoriaId ?? null,
-        movimentoId
-      ]
-    );
+    if (!sucesso) return false;
 
-    // 5. Atualizar a descrição da fatura
-    await db.runAsync(
-      `UPDATE faturas SET descricao = ? WHERE id = ?`,
-      [novaDescricao, faturaId]
-    );
-
-    console.log(`✅ Movimento ${movimentoId} atualizado com:
-      - categoria_id: ${categoriaFinalId}
-      - sub_categoria_id: ${subcategoriaId ?? 'null'}
-      - tipo_movimento_id: ${tipoMovimentoId}
-      - descrição: ${novaDescricao}`);
+    // Atualiza a fatura corretamente com sincronização
+    await atualizarFatura(faturaId, novaDescricao);
 
     return true;
 

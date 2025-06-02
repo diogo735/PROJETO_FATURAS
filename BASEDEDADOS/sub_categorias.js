@@ -3,7 +3,7 @@ import NetInfo from '@react-native-community/netinfo';
 import { adicionarNaFila } from './sincronizacao';
 
 import { criarSubCategoriaAPI } from '../APIs/sub_categorias';
-import { atualizarSubCategoriaAPI ,deletarSubCategoriaAPI} from '../APIs/sub_categorias';
+import { atualizarSubCategoriaAPI, deletarSubCategoriaAPI } from '../APIs/sub_categorias';
 
 async function criarTabelaSubCategorias() {
   try {
@@ -47,7 +47,7 @@ async function listarSubCategoriasPorCategoriaId(categoriaId) {
   }
 }
 
-
+NAO ESTA A RETORNAR O ID DA SUBCATEGORIA AO CRIAR LA
 
 async function inserirSubCategoria(nome_subcat, icone_nome, cor_subcat, categoria_id) {
   try {
@@ -82,8 +82,13 @@ async function inserirSubCategoria(nome_subcat, icone_nome, cor_subcat, categori
           updated_at
         });
 
-        const remoteId = response.id;
+        const remoteId = response.subcategoria?.id;
+        if (!remoteId) {
+          console.warn('⚠️ Nenhum remote_id retornado pela API.');
+          return 'erro';
+        }
 
+        console.log('🆔 ID remoto da subcategoria criada:', remoteId);
         // Salva localmente como sincronizada
         await db.runAsync(
           `INSERT INTO sub_categorias 
@@ -91,6 +96,14 @@ async function inserirSubCategoria(nome_subcat, icone_nome, cor_subcat, categori
            VALUES (?, ?, ?, ?, ?, ?, ?)`,
           [remoteId, nome_subcat.trim(), icone_nome, cor_subcat, categoria_id, updated_at, 'synced']
         );
+
+        // 🔍 Busca a subcategoria recém inserida para log
+        const resultado = await db.getFirstAsync(
+          `SELECT * FROM sub_categorias WHERE remote_id = ?`,
+          [remoteId]
+        );
+
+        console.log('✅ Subcategoria inserida localmente após criação na API:', resultado);
 
         return 'sucesso';
 
@@ -227,6 +240,7 @@ async function atualizarSubCategoriaComVerificacao(id, nome_subcat, icone_nome, 
 
       } catch (err) {
         console.warn('⚠️ Erro ao sincronizar atualização com API, adicionando na fila:', err.message);
+        console.log('🔍 Detalhes do erro:', err);
         await adicionarNaFila('sub_categorias', 'update', {
           nome_subcat,
           icone_nome,
