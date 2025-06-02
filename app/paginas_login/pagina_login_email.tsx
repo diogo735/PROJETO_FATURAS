@@ -85,7 +85,7 @@ const PaginaLoginEmail: React.FC = () => {
             setEstadoBotao('idle');
             return;
         }
-        if (!email.endsWith('@enovo.pt')) {
+        if (!email.endsWith('@enovo.pt') && !email.endsWith('@gmail.com')) {
             setMensagemErro('Apenas email @enovo.pt aceites!');
             setEstadoBotao('idle');
             return;

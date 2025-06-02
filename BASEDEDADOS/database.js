@@ -10,6 +10,7 @@ import { criarTabelaSubCategorias, criarSubCategoriasDeTeste, limparSubCategoria
 import { criarTabelaUsers, inserirUserTeste, existeUsuario, apagarTodosUsers, deletarTabelaUsers } from './user';
 
 import { criarTabelaNotificacoes, inserirNotificacoesTeste } from './notificacoes';
+import { criarTabelaSincronizacoes } from './sincronizacao';
 
 import * as FileSystem from 'expo-file-system';
 import { Asset } from 'expo-asset';
@@ -29,6 +30,8 @@ async function inicializarBaseDeDados() {
     //await apagarTodosUsers();
     //await inserirUserTeste();
    
+    //sincronizaçao
+    await criarTabelaSincronizacoes();
 
     //NOTIFICAÇOES
     await criarTabelaNotificacoes();
@@ -57,6 +60,8 @@ async function inicializarBaseDeDados() {
     //metas
     await criarTabelaMetas(); //await limparMetas();
     //await apagarTabelaMetas();
+
+    
 
     console.log('🎉 Todas as tabelas foram inicializadas com sucesso!');
   } catch (error) {

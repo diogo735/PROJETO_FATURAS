@@ -1,22 +1,32 @@
 import * as SQLite from 'expo-sqlite';
 import { CRIARBD } from './databaseInstance';
 import { verificar_se_envia_notificacao } from './metas';
+import NetInfo from '@react-native-community/netinfo';
+import { criarMovimentoAPI } from '../APIs/movimentos';
+import { adicionarNaFila } from './sincronizacao';
+
+
 async function criarTabelaMovimentos() {
 
+  
   try {
     const db = await CRIARBD();
-    await db.execAsync(
-      `CREATE TABLE IF NOT EXISTS movimentos (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              valor REAL NOT NULL,
-              data_movimento TEXT NOT NULL,
-              categoria_id INTEGER NOT NULL,
-              sub_categoria_id INTEGER,
-              nota TEXT,
-              FOREIGN KEY (categoria_id) REFERENCES categorias(id) ON DELETE CASCADE,
-              FOREIGN KEY (sub_categoria_id) REFERENCES sub_categorias(id) ON DELETE SET NULL
-          );`
-    );
+    await db.execAsync(`
+  CREATE TABLE IF NOT EXISTS movimentos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    remote_id INTEGER,
+    valor REAL NOT NULL,
+    data_movimento TEXT NOT NULL,
+    categoria_id INTEGER NOT NULL,
+    sub_categoria_id INTEGER,
+    nota TEXT,
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    sync_status TEXT NOT NULL DEFAULT 'pending',
+    FOREIGN KEY (categoria_id) REFERENCES categorias(id) ON DELETE CASCADE,
+    FOREIGN KEY (sub_categoria_id) REFERENCES sub_categorias(id) ON DELETE SET NULL
+  );
+`);
+
 
     /*console.log('✅ Tabela "movimentos" criada ou já existente com sucesso!');*/
   } catch (error) {
@@ -24,45 +34,98 @@ async function criarTabelaMovimentos() {
   }
 }
 
+
 async function inserirMovimento(valor, data_movimento, categoria_id, sub_categoria_id, nota) {
+  const db = await CRIARBD();
+  const updated_at = new Date().toISOString();
+
+  const movimentoLocal = {
+    valor,
+    data_movimento,
+    categoria_id,
+    sub_categoria_id,
+    nota,
+    updated_at
+  };
+
   try {
-    const db = await CRIARBD();
+    const estado = await NetInfo.fetch();
 
-    const result = await db.runAsync(
-      `INSERT INTO movimentos (valor, data_movimento, categoria_id, sub_categoria_id, nota) 
-             VALUES (?, ?, ?, ?, ?);`,
-      [valor, data_movimento, categoria_id, sub_categoria_id, nota]
-    );
+    if (estado.isConnected && estado.isInternetReachable) {
+      try {
+        // Envia para API
+        const response = await criarMovimentoAPI(movimentoLocal);
+        const remoteId = response.id;
 
-    const movimentoId = result.lastInsertRowId;
+        // Salva localmente como sincronizado
+        const result = await db.runAsync(
+          `INSERT INTO movimentos (remote_id, valor, data_movimento, categoria_id, sub_categoria_id, nota, updated_at, sync_status)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [remoteId, valor, data_movimento, categoria_id, sub_categoria_id, nota, updated_at, 'synced']
+        );
 
-    // Atualiza metas (continua igual)
-    const meta = await db.getFirstAsync(
-      `SELECT * FROM metas 
-             WHERE categoria_id = ? 
-               AND meta_ativa = 1
-               AND date(?) BETWEEN date(data_inicio) AND date(data_fim)`,
-      [categoria_id, data_movimento]
-    );
+        await atualizarMeta(valor, categoria_id, data_movimento, db);
+        return result.lastInsertRowId;
 
-    if (meta) {
-      const novoValor = (meta.valor_atual || 0) + valor;
+      } catch (err) {
+        console.warn('⚠️ Erro ao criar movimento na API, salvando local:', err.message);
+        return await salvarMovimentoLocalEPendencia(movimentoLocal, db);
+      }
 
-      await db.runAsync(
-        `UPDATE metas SET valor_atual = ? WHERE id_meta = ?`,
-        [novoValor, meta.id_meta]
-      );
-      const metaAtualizada = { ...meta, valor_atual: novoValor };
-      await verificar_se_envia_notificacao(metaAtualizada);
+    } else {
+      return await salvarMovimentoLocalEPendencia(movimentoLocal, db);
     }
-
-    return movimentoId;
 
   } catch (error) {
     console.error('❌ Erro ao inserir movimento:', error);
     return null;
   }
 }
+
+async function salvarMovimentoLocalEPendencia(movimento, db) {
+  const { valor, data_movimento, categoria_id, sub_categoria_id, nota, updated_at } = movimento;
+
+  const result = await db.runAsync(
+    `INSERT INTO movimentos (valor, data_movimento, categoria_id, sub_categoria_id, nota, updated_at, sync_status)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [valor, data_movimento, categoria_id, sub_categoria_id, nota, updated_at, 'pending']
+  );
+
+  await adicionarNaFila('movimentos', 'create', movimento);
+
+  await atualizarMeta(valor, categoria_id, data_movimento, db);
+
+  return result.lastInsertRowId;
+}
+
+async function atualizarMeta(valor, categoria_id, data_movimento, db) {
+  try {
+    const meta = await db.getFirstAsync(
+      `SELECT * FROM metas 
+       WHERE categoria_id = ? AND meta_ativa = 1
+       AND date(?) BETWEEN date(data_inicio) AND date(data_fim)`,
+      [categoria_id, data_movimento]
+    );
+
+    if (meta) {
+      const novoValor = (meta.valor_atual ?? 0) + valor;
+
+      await db.runAsync(
+        `UPDATE metas SET valor_atual = ? WHERE id_meta = ?`,
+        [novoValor, meta.id_meta]
+      );
+
+      const metaAtualizada = { ...meta, valor_atual: novoValor };
+
+      // Verifica se notificação deve ser enviada
+      await verificar_se_envia_notificacao(metaAtualizada);
+    }
+
+  } catch (error) {
+    console.error('❌ Erro ao atualizar meta:', error);
+  }
+}
+
 
 
 
