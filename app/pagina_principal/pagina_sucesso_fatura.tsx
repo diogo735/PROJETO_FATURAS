@@ -147,7 +147,7 @@ export default function PaginaSucesso() {
         imagemFatura: imagemSalva
       };
 
-      console.log('📦 Dados que vão ser enviados para o BD:', dadosParaSalvar);
+      //console.log('📦 Dados que vão ser enviados para o BD:', dadosParaSalvar);
 
       const faturaIdCriada = await registarFatura_BDLOCAL(dadosParaSalvar);
 
@@ -203,7 +203,7 @@ export default function PaginaSucesso() {
         return [chave, valor];
       })
     );
-    console.log('🔍 Dados lidos do QR:', dados);
+    //console.log('🔍 Dados lidos do QR:', dados);
 
     function formatarData(dataStr?: string): string {
       if (!dataStr) return '---';

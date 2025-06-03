@@ -1,6 +1,6 @@
 // detalhes_fatura.tsx
 import React, { useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ImageSourcePropType } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ImageSourcePropType, ActivityIndicator } from 'react-native';
 import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../../App';
 import { scale } from 'react-native-size-matters';
@@ -112,6 +112,7 @@ const DetalhesFatura: React.FC<Props> = ({ route }) => {
     const textoVat = fatura?.nif_emitente ? `NIF: PT${fatura.nif_emitente}` : 'NIF: ---';
     const [imagemAmpliada, setImagemAmpliada] = useState(false);
     const [mostrarModalErro, setMostrarModalErro] = useState(false);
+    const [mostrarModalCarregando, setMostrarModalCarregando] = useState(false);
 
     const [mostrarModalOpcoes, setMostrarModalOpcoes] = useState(false);
     const [mostrarModalEditar, setMostrarModalEditar] = useState(false);
@@ -120,7 +121,7 @@ const DetalhesFatura: React.FC<Props> = ({ route }) => {
     const [loadingFatura, setLoadingFatura] = useState(true);
     const rotateAnim = useRef(new Animated.Value(0)).current;
     const fadeAnim = useRef(new Animated.Value(0)).current;
-
+    const rotateAnimModal = useRef(new Animated.Value(0)).current;
     const editarFatura = () => {
         if (!categoriaInfo) {
             console.warn('⚠️ Categoria ainda não carregada, não pode abrir o modal!');
@@ -526,6 +527,8 @@ const DetalhesFatura: React.FC<Props> = ({ route }) => {
         idSelecionado: number,
         ehSubcategoria: boolean
     ) => {
+        setMostrarModalCarregando(true);
+
         console.log('📝 Guardando alterações:');
         console.log('➡️ ID:', idSelecionado);
         console.log('📌 Tipo:', ehSubcategoria ? 'Subcategoria' : 'Categoria')
@@ -535,6 +538,7 @@ const DetalhesFatura: React.FC<Props> = ({ route }) => {
             ehSubcategoria ? null : idSelecionado,
             ehSubcategoria ? idSelecionado : null
         );
+        setMostrarModalCarregando(false);
 
         if (sucesso) {
             console.log('✅ Movimento atualizado com sucesso!');
@@ -559,25 +563,34 @@ const DetalhesFatura: React.FC<Props> = ({ route }) => {
 
     useEffect(() => {
         async function carregarFatura() {
-          setLoadingFatura(true);
-          fadeAnim.setValue(0);
-          const dados = await consultarFatura(id);
-          setFatura(dados);
-          await atualizarInfoCategoriaVisual(dados.movimento_id);
-          setLoadingFatura(false);
-      
-          // Inicia a animação de fade
-          Animated.timing(fadeAnim, {
-            toValue: 1,
-            duration: 500,
-            useNativeDriver: true,
-          }).start();
-        }
-      
-        carregarFatura();
-      }, [id]);
-      
+            setLoadingFatura(true);
+            fadeAnim.setValue(0);
+            const dados = await consultarFatura(id);
+            setFatura(dados);
+            await atualizarInfoCategoriaVisual(dados.movimento_id);
+            setLoadingFatura(false);
 
+            // Inicia a animação de fade
+            Animated.timing(fadeAnim, {
+                toValue: 1,
+                duration: 500,
+                useNativeDriver: true,
+            }).start();
+        }
+
+        carregarFatura();
+    }, [id]);
+
+    useEffect(() => {
+        Animated.loop(
+            Animated.timing(rotateAnimModal, {
+                toValue: 1,
+                duration: 1000,
+                easing: Easing.linear,
+                useNativeDriver: true,
+            })
+        ).start();
+    }, []);
     useEffect(() => {
         Animated.loop(
             Animated.timing(rotateAnim, {
@@ -921,6 +934,40 @@ const DetalhesFatura: React.FC<Props> = ({ route }) => {
                     </TouchableOpacity>
                 </View>
             </Modal>
+            <Modal isVisible={mostrarModalCarregando}
+                animationIn="zoomIn"
+                animationOut="zoomOut">
+                <View
+                    style={{
+                        backgroundColor: 'white',
+                        padding: 30,
+                        borderRadius: 20,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                    }}
+                >
+                    <Animated.View
+                        style={{
+                            transform: [{
+                                rotate: rotateAnimModal.interpolate({
+                                    inputRange: [0, 1],
+                                    outputRange: ['0deg', '360deg'],
+                                }),
+                            }],
+                            marginBottom: 20,
+                        }}
+                    >
+                        <IconRotativo width={50} height={50} fill="#2565A3" />
+                    </Animated.View>
+
+
+
+                    <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#2565A3' }}>
+                        A atualizar fatura...
+                    </Text>
+                </View>
+            </Modal>
+
 
             <Modal
                 isVisible={mostrarModalDownload}

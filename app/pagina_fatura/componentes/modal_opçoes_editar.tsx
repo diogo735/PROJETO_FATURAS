@@ -103,7 +103,10 @@ const ModalEditarFatura: React.FC<Props> = ({
         nome_cat: string;
         cor_cat: string;
         img_cat: string;
+        ehSub: boolean;
     } | null>(null);
+
+
 
     const [despesas, setDespesas] = useState<any[]>([]);
     const [receitas, setReceitas] = useState<any[]>([]);
@@ -114,25 +117,25 @@ const ModalEditarFatura: React.FC<Props> = ({
 
     useEffect(() => {
         const carregar = async () => {
-          setLoadingModal(true); // começa carregamento
-      
-          const lista: { tipo_nome: string }[] = await listarCategoriasComTipo();
-          const subs = await listarSubCategorias();
-          
-          if (lista) {
-            setDespesas(lista.filter(c => c.tipo_nome === 'Despesa'));
-            setReceitas(lista.filter(c => c.tipo_nome === 'Receita'));
-          }
-          if (subs) {
-            setSubcategorias(subs);
-          }
-      
-          setLoadingModal(false); // fim do carregamento
+            setLoadingModal(true); // começa carregamento
+
+            const lista: { tipo_nome: string }[] = await listarCategoriasComTipo();
+            const subs = await listarSubCategorias();
+
+            if (lista) {
+                setDespesas(lista.filter(c => c.tipo_nome === 'Despesa'));
+                setReceitas(lista.filter(c => c.tipo_nome === 'Receita'));
+            }
+            if (subs) {
+                setSubcategorias(subs);
+            }
+
+            setLoadingModal(false); // fim do carregamento
         };
-      
+
         if (visivel) carregar();
-      }, [visivel]);
-      
+    }, [visivel]);
+
     function getSubcategoriasDaCategoria(categoriaId: number) {
         return subcategorias.filter(sub => sub.categoria_id === categoriaId);
     }
@@ -144,11 +147,20 @@ const ModalEditarFatura: React.FC<Props> = ({
                 setDescricao(descricaoInicial || '');
             }
 
-            if (categoriaInicial !== undefined) {
-                setCategoriaSelecionada(categoriaInicial);
+            if (categoriaInicial != null && categoriaInicial.id && categoriaInicial.nome_cat && categoriaInicial.cor_cat && categoriaInicial.img_cat) {
+                const ehSub = subcategorias.some(sub => sub.id === categoriaInicial.id);
+                setCategoriaSelecionada({
+                    id: categoriaInicial.id,
+                    nome_cat: categoriaInicial.nome_cat,
+                    cor_cat: categoriaInicial.cor_cat,
+                    img_cat: categoriaInicial.img_cat,
+                    ehSub: ehSub,
+                });
             }
+
         }
     }, [visivel, descricaoInicial, categoriaInicial]);
+
 
     const guardarAtivo = () => {
         const descricaoMudou = descricao.trim() !== (descricaoInicial?.trim() || '');
@@ -276,7 +288,8 @@ const ModalEditarFatura: React.FC<Props> = ({
                                                 />
                                             </View>
                                             <Text style={styles.nomeCategoria}>{cat.nome_cat}</Text>
-                                            {categoriaSelecionada?.id === cat.id && !subcategorias.some(sub => sub.id === categoriaSelecionada?.id) ? (
+                                            {categoriaSelecionada?.id === cat.id && !categoriaSelecionada?.ehSub ? (
+
 
                                                 <View style={styles.radioSelecionado}>
                                                     <MaterialIcons name="check" size={15} color="#fff" />
@@ -298,6 +311,7 @@ const ModalEditarFatura: React.FC<Props> = ({
                                                             nome_cat: sub.nome_subcat,
                                                             cor_cat: sub.cor_subcat,
                                                             img_cat: sub.icone_nome,
+                                                            ehSub: true,
                                                         });
                                                         Animated.timing(alturaAnimada, {
                                                             toValue: 0,
@@ -321,7 +335,8 @@ const ModalEditarFatura: React.FC<Props> = ({
                                                         )}
                                                     </View>
                                                     <Text style={styles.subNome}>{sub.nome_subcat}</Text>
-                                                    {categoriaSelecionada?.id === sub.id ? (
+                                                    {categoriaSelecionada?.id === sub.id && categoriaSelecionada?.ehSub ? (
+
                                                         <View style={styles.radioSelecionado}>
                                                             <MaterialIcons name="check" size={15} color="#fff" />
                                                         </View>
@@ -361,7 +376,8 @@ const ModalEditarFatura: React.FC<Props> = ({
                                                 />
                                             </View>
                                             <Text style={styles.nomeCategoria}>{cat.nome_cat}</Text>
-                                            {categoriaSelecionada?.id === cat.id && !subcategorias.some(sub => sub.id === categoriaSelecionada?.id) ? (
+                                            {categoriaSelecionada?.id === cat.id && !categoriaSelecionada?.ehSub ? (
+
 
                                                 <View style={styles.radioSelecionado}>
                                                     <MaterialIcons name="check" size={15} color="#fff" />
@@ -383,6 +399,7 @@ const ModalEditarFatura: React.FC<Props> = ({
                                                             nome_cat: sub.nome_subcat,
                                                             cor_cat: sub.cor_subcat,
                                                             img_cat: sub.icone_nome,
+                                                            ehSub: false,
                                                         });
                                                         Animated.timing(alturaAnimada, {
                                                             toValue: 0,
@@ -406,7 +423,8 @@ const ModalEditarFatura: React.FC<Props> = ({
                                                         )}
                                                     </View>
                                                     <Text style={styles.subNome}>{sub.nome_subcat}</Text>
-                                                    {categoriaSelecionada?.id === sub.id ? (
+                                                    {categoriaSelecionada?.id === sub.id && categoriaSelecionada?.ehSub ? (
+
                                                         <View style={styles.radioSelecionado}>
                                                             <MaterialIcons name="check" size={15} color="#fff" />
                                                         </View>
@@ -473,11 +491,10 @@ const ModalEditarFatura: React.FC<Props> = ({
                             }]}
                             onPress={() => {
                                 if (categoriaSelecionada) {
-                                    const ehSub = subcategorias.some(sub => sub.id === categoriaSelecionada.id);
-                                    onGuardar(descricao, idFatura, categoriaSelecionada.id, ehSub);
-
+                                    onGuardar(descricao, idFatura, categoriaSelecionada.id, categoriaSelecionada.ehSub);
                                 }
                             }}
+
                             disabled={!guardarAtivo()}
                         >
                             <Ionicons name="checkmark" size={20} color="#fff" style={{ marginRight: 6 }} />

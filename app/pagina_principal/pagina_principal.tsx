@@ -60,7 +60,7 @@ const Pagina_principal: React.FC = () => {
   const opacidadeTela = useSharedValue(0);
   const opacidadeGrafico = useSharedValue(1);
   const [refreshing, setRefreshing] = useState(false);
-const [primeiraVez, setPrimeiraVez] = useState(true);
+  const [primeiraVez, setPrimeiraVez] = useState(true);
 
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 
@@ -132,64 +132,64 @@ const [primeiraVez, setPrimeiraVez] = useState(true);
   };
 
   useFocusEffect(
-  useCallback(() => {
-    if (primeiraVez) return;
+    useCallback(() => {
+      if (primeiraVez) return;
 
-    const carregarDados = async () => {
-      setDadosProntos(false);
+      const carregarDados = async () => {
+        setDadosProntos(false);
 
-      try {
-        let dados: DadosGrafico[] = [];
-        if (tipoSelecionado === 'despesas') {
-          dados = await obterSomaMovimentosPorCategoriaDespesa() || [];
-        } else {
-          dados = await obterSomaMovimentosPorCategoriaReceita() || [];
+        try {
+          let dados: DadosGrafico[] = [];
+          if (tipoSelecionado === 'despesas') {
+            dados = await obterSomaMovimentosPorCategoriaDespesa() || [];
+          } else {
+            dados = await obterSomaMovimentosPorCategoriaReceita() || [];
+          }
+
+          setDadosGrafico(dados);
+          const receitas = await obterTotalReceitas();
+          const despesas = await obterTotalDespesas();
+          setTotalReceitas(receitas);
+          setTotalDespesas(despesas);
+
+          const movimentos = await listarMovimentosUltimos30Dias();
+          setMovimentosRecentes(movimentos || []);
+          const saldo = await obterSaldoMensalAtual();
+          setSaldoMensal(saldo);
+        } catch (err) {
+          console.error("Erro ao carregar dados:", err);
+        } finally {
+          setDadosProntos(true);
         }
+      };
 
-        setDadosGrafico(dados);
-        const receitas = await obterTotalReceitas();
-        const despesas = await obterTotalDespesas();
-        setTotalReceitas(receitas);
-        setTotalDespesas(despesas);
+      carregarDados();
+    }, [tipoSelecionado, primeiraVez])
+  );
 
-        const movimentos = await listarMovimentosUltimos30Dias();
-        setMovimentosRecentes(movimentos || []);
-        const saldo = await obterSaldoMensalAtual();
-        setSaldoMensal(saldo);
-      } catch (err) {
-        console.error("Erro ao carregar dados:", err);
-      } finally {
+
+
+
+  useEffect(() => {
+    if (route?.params) {
+      setSaldoMensal(route.params.saldoMensal || 0);
+      setTotalReceitas(route.params.totalReceitas || 0);
+      setTotalDespesas(route.params.totalDespesas || 0);
+      setMovimentosRecentes(route.params.movimentosRecentes || []);
+
+      setDadosGrafico(
+        tipoSelecionado === 'despesas'
+          ? route.params.dadosGraficoDespesas || []
+          : route.params.dadosGraficoReceitas || []
+      );
+
+      setTimeout(() => {
+        opacidadeGrafico.value = withTiming(1, { duration: 400 });
         setDadosProntos(true);
-      }
-    };
-
-    carregarDados();
-  }, [tipoSelecionado, primeiraVez])
-);
-
-
-
-
-useEffect(() => {
-  if (route?.params) {
-    setSaldoMensal(route.params.saldoMensal || 0);
-    setTotalReceitas(route.params.totalReceitas || 0);
-    setTotalDespesas(route.params.totalDespesas || 0);
-    setMovimentosRecentes(route.params.movimentosRecentes || []);
-
-    setDadosGrafico(
-      tipoSelecionado === 'despesas'
-        ? route.params.dadosGraficoDespesas || []
-        : route.params.dadosGraficoReceitas || []
-    );
-
-    setTimeout(() => {
-      opacidadeGrafico.value = withTiming(1, { duration: 400 });
-      setDadosProntos(true);
-      setPrimeiraVez(false); 
-    }, 50);
-  }
-}, [route.params]);
+        setPrimeiraVez(false);
+      }, 50);
+    }
+  }, [route.params]);
 
 
 
@@ -238,6 +238,9 @@ useEffect(() => {
   return (
     <Animated.View style={[styles.corpo, estiloAnimado]}>
       <NavbarPaginaPrincipal
+        onPressConfig={() => {
+    navigation.navigate('ListaSincronizacoes');
+  }}
         nome={nomeUsuario}
         foto={
           fotoUsuario
@@ -246,6 +249,7 @@ useEffect(() => {
         }
         onPressNotificacao={handleNotificacaoPress}
         hasNotificacoesNovas={hasNotificacoesNovas}
+        conteudo="5"
       />
 
 
@@ -257,8 +261,8 @@ useEffect(() => {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={['#2565A3']} 
-            tintColor="#2565A3"   
+            colors={['#2565A3']}
+            tintColor="#2565A3"
           />
         }
       >

@@ -2,13 +2,13 @@ import * as SQLite from 'expo-sqlite';
 import { CRIARBD } from './databaseInstance';
 import { verificar_se_envia_notificacao } from './metas';
 import NetInfo from '@react-native-community/netinfo';
-import { criarMovimentoAPI ,atualizarMovimentoAPI} from '../APIs/movimentos';
+import { criarMovimentoAPI, atualizarMovimentoAPI } from '../APIs/movimentos';
 import { adicionarNaFila } from './sincronizacao';
 
 
 async function criarTabelaMovimentos() {
 
-  
+
   try {
     const db = await CRIARBD();
     await db.execAsync(`
@@ -54,8 +54,12 @@ async function inserirMovimento(valor, data_movimento, categoria_id, sub_categor
     if (estado.isConnected && estado.isInternetReachable) {
       try {
         // Envia para API
-        const response = await criarMovimentoAPI(movimentoLocal);
-        const remoteId = response.id;
+        const movimentoRemoto = await criarMovimentoAPI(movimentoLocal);
+        const remoteId = movimentoRemoto?.id;
+
+        if (!remoteId) {
+          throw new Error('❌ A API não retornou um ID válido do movimento');
+        }
 
         // Salva localmente como sincronizado
         const result = await db.runAsync(
@@ -100,6 +104,7 @@ async function salvarMovimentoLocalEPendencia(movimento, db) {
 
 async function atualizarMovimento(id, { nota, categoria_id, sub_categoria_id }) {
   try {
+
     const db = await CRIARBD();
     const updated_at = new Date().toISOString();
 
@@ -118,9 +123,8 @@ async function atualizarMovimento(id, { nota, categoria_id, sub_categoria_id }) 
 
     // 2. Busca remote_id para saber se já foi sincronizado antes
     const movimento = await db.getFirstAsync(`SELECT remote_id FROM movimentos WHERE id = ?`, [id]);
-
+    console.log('🎯 Movimento carregado do banco:', movimento);
     if (!movimento?.remote_id) {
-      // Não foi sincronizado ainda, só deixa como pending (a criação cuidará disso)
       return true;
     }
 
@@ -129,15 +133,32 @@ async function atualizarMovimento(id, { nota, categoria_id, sub_categoria_id }) 
 
     if (estado.isConnected && estado.isInternetReachable) {
       try {
-        // 4. Tenta atualizar a API diretamente
-        await atualizarMovimentoAPI(movimento.remote_id, {
+        let subCategoriaRemoteId = null;
+
+        if (sub_categoria_id) {
+          const sub = await db.getFirstAsync(
+            `SELECT remote_id FROM sub_categorias WHERE id = ?`,
+            [sub_categoria_id]
+          );
+          if (!sub?.remote_id) {
+            throw new Error('Subcategoria ainda não foi sincronizada com a API.');
+          }
+          subCategoriaRemoteId = sub.remote_id;
+        }
+
+        const result = await atualizarMovimentoAPI(movimento.remote_id, {
           nota,
           categoria_id,
-          sub_categoria_id,
+          sub_categoria_id: subCategoriaRemoteId,
           updated_at
         });
 
-        // 5. Se sucesso, marca como sincronizado localmente
+
+        if (!result?.id) {
+          throw new Error('❌ API não retornou o movimento atualizado corretamente');
+        }
+
+        // 5. Marca como sincronizado
         await db.runAsync(
           `UPDATE movimentos SET sync_status = ? WHERE id = ?`,
           ['synced', id]
@@ -146,7 +167,6 @@ async function atualizarMovimento(id, { nota, categoria_id, sub_categoria_id }) 
       } catch (err) {
         console.warn('⚠️ Falha ao atualizar movimento na API. Adicionando à fila:', err.message);
 
-        // 6. Adiciona à fila de sincronização
         await adicionarNaFila('movimentos', 'update', {
           nota,
           categoria_id,
@@ -154,6 +174,7 @@ async function atualizarMovimento(id, { nota, categoria_id, sub_categoria_id }) 
           updated_at
         }, movimento.remote_id);
       }
+
 
     } else {
       // 7. Está offline, adiciona à fila

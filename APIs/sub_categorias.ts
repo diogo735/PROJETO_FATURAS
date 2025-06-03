@@ -46,7 +46,8 @@ export const criarSubCategoriaAPI = async (dados: any) => {
     throw new Error(json.message || 'Erro ao criar subcategoria');
   }
 
-  return json;
+  return json.subcategoria;
+
 };
 
 // PUT: Atualizar subcategoria existente
@@ -66,21 +67,16 @@ export const atualizarSubCategoriaAPI = async (remoteId: number, dados: any) => 
     body: JSON.stringify(dados),
   });
 
-if (!response.ok) {
-  let errorData: any = {};
-  try {
-    errorData = await response.json();
-  } catch {}
+  const json = await response.json();
 
-  const mensagemErro = errorData?.erro || errorData?.message || 'Erro ao atualizar subcategoria';
-  throw new Error(mensagemErro);
-}
+  if (!response.ok) {
+    const mensagemErro = json?.erro || json?.message || 'Erro ao atualizar subcategoria';
+    throw new Error(mensagemErro);
+  }
 
-
-
-
-  return await response.json();
+  return json.subcategoria; // <- retorna os dados atualizados
 };
+
 
 // DELETE: Eliminar subcategoria
 export const deletarSubCategoriaAPI = async (remoteId: number) => {
@@ -97,9 +93,19 @@ export const deletarSubCategoriaAPI = async (remoteId: number) => {
     },
   });
 
-  if (!response.ok) {
-    throw new Error('Erro ao apagar subcategoria');
+  let json = null;
+  try {
+    json = await response.json();
+  } catch {
+    json = {};
   }
 
+  if (!response.ok) {
+    const msg = json?.erro || json?.message || 'Erro ao apagar subcategoria';
+    throw new Error(msg);
+  }
+
+  console.log('✅ Subcategoria apagada na API:', json?.mensagem || '(sem mensagem)');
   return true;
 };
+

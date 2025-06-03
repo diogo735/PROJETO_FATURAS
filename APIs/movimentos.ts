@@ -39,7 +39,7 @@ export const criarMovimentoAPI = async (dados: any) => {
   const json = await response.json();
   if (!response.ok) throw new Error(json.message || 'Erro ao criar movimento');
 
-  return json;
+  return json.movimento; 
 };
 
 // PUT: Atualizar movimento
@@ -58,9 +58,19 @@ export const atualizarMovimentoAPI = async (remoteId: number, dados: any) => {
     body: JSON.stringify(dados),
   });
 
-  if (!response.ok) throw new Error('Erro ao atualizar movimento');
-  return await response.json();
+  const json = await response.json();
+
+  // 📦 Mostrar a resposta no console
+  console.log('📦 Resposta da API (atualizarMovimento):', json);
+
+  if (!response.ok) {
+    const mensagem = json?.mensagem || json?.erro || 'Erro ao atualizar movimento';
+    throw new Error(mensagem);
+  }
+
+  return json.movimento;
 };
+
 
 // DELETE: Apagar movimento
 export const deletarMovimentoAPI = async (remoteId: number) => {

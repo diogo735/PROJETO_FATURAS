@@ -1,7 +1,7 @@
 import { CRIARBD } from './databaseInstance';
 
- async function criarTabelaSincronizacoes() {
-  const db = await CRIARBD(); 
+async function criarTabelaSincronizacoes() {
+  const db = await CRIARBD();
   await db.execAsync(`
     CREATE TABLE IF NOT EXISTS sincronizacoes (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -13,8 +13,18 @@ import { CRIARBD } from './databaseInstance';
     );
   `);
 }
+async function listarSincronizacoes() {
+  try {
+    const db = await CRIARBD();
+    const resultado = await db.getAllAsync('SELECT * FROM sincronizacoes ORDER BY created_at DESC');
+    return resultado;
+  } catch (error) {
+    console.error('Erro ao listar sincronizações:', error);
+    return [];
+  }
+}
 
- async function adicionarNaFila(tipo, operacao, dados, remoteId = null) {
+async function adicionarNaFila(tipo, operacao, dados, remoteId = null) {
   const db = await CRIARBD();
   const payload = JSON.stringify(dados);
   const createdAt = new Date().toISOString();
@@ -23,9 +33,16 @@ import { CRIARBD } from './databaseInstance';
     INSERT INTO sincronizacoes (tipo, operacao, payload, remote_id, created_at)
     VALUES (?, ?, ?, ?, ?)
   `, [tipo, operacao, payload, remoteId, createdAt]);
+  console.log('📥 Adicionado à fila de sincronizações:', {
+    tipo,
+    operacao,
+    remoteId,
+    created_at: createdAt,
+    payload: dados
+  });
 }
 
- async function processarFilaDeSincronizacao() {
+async function processarFilaDeSincronizacao() {
   const db = await CRIARBD();
   const fila = await db.runAsync('SELECT * FROM sincronizacoes ORDER BY created_at ASC');
 
@@ -77,8 +94,9 @@ import { CRIARBD } from './databaseInstance';
 
 
 export {
- criarTabelaSincronizacoes,
- adicionarNaFila,
- processarFilaDeSincronizacao
+  criarTabelaSincronizacoes,
+  adicionarNaFila,
+  processarFilaDeSincronizacao,
+  listarSincronizacoes
 
 };

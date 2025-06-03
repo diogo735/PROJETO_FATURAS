@@ -6,16 +6,22 @@ const { height, width } = Dimensions.get('window');
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import IconNova from '../../../assets/icons/pagina_notificacoa/ativas.svg';
 import Iconnao from '../../../assets/icons/pagina_notificacoa/naoativo.svg';
+import IconConfig from '../../../assets/icons/Sync.svg';
+
 const NavbarPaginaPrincipal = ({
   nome,
   foto,
   onPressNotificacao,
   hasNotificacoesNovas,
+  onPressConfig,
+  conteudo 
 }: {
   nome: string;
   foto: string | number;
   onPressNotificacao: () => void;
   hasNotificacoesNovas: boolean;
+  onPressConfig: () => void;
+  conteudo: string; 
 }) => {
   const izonnotificao_size = width * 0.06;
   const [saudacao, setSaudacao] = useState('');
@@ -37,7 +43,7 @@ const NavbarPaginaPrincipal = ({
 
     const intervalo = setInterval(() => {
       atualizarSaudacao();
-    }, 60 * 1000); 
+    }, 60 * 1000);
 
     return () => clearInterval(intervalo);
   }, []);
@@ -59,13 +65,35 @@ const NavbarPaginaPrincipal = ({
         </View>
 
         {/* Botão de Notificação */}
-        <TouchableOpacity style={styles.notificationButton} onPress={onPressNotificacao}>
-          {hasNotificacoesNovas ? (
-            <IconNova width={izonnotificao_size} height={izonnotificao_size} />
-          ) : (
-             <Iconnao width={izonnotificao_size} height={izonnotificao_size} />
-          )}
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: 20 }}>
+          {/* Botão de Configurações */}
+          <TouchableOpacity style={styles.notificationButton} onPress={onPressConfig}>
+            <View style={{ position: 'relative', }}>
+              <IconConfig width={26} height={26} />
+
+              <Text
+                style={[
+                  styles.exclamacao,
+                  conteudo === '!' ? styles.exclamacaoAlinhamentoExclamacao : styles.exclamacaoAlinhamentoNumero
+                ]}
+              >
+                {conteudo}
+              </Text>
+
+            </View>
+          </TouchableOpacity>
+
+
+
+          {/* Botão de Notificação */}
+          <TouchableOpacity style={styles.notificationButton} onPress={onPressNotificacao}>
+            {hasNotificacoesNovas ? (
+              <IconNova width={izonnotificao_size} height={izonnotificao_size} />
+            ) : (
+              <Iconnao width={izonnotificao_size} height={izonnotificao_size} />
+            )}
+          </TouchableOpacity>
+        </View>
 
 
       </View>
@@ -123,6 +151,23 @@ const styles = StyleSheet.create({
     borderRadius: 99,
     backgroundColor: '#164878',
   },
+  exclamacao: {
+  position: 'absolute',
+  top: '38%',
+  transform: [{ translateX: -10 }, { translateY: -5 }],
+  color: 'red',
+  fontSize: 12,
+  fontWeight: '900',
+  zIndex: 10,
+},
+exclamacaoAlinhamentoNumero: {
+  left: '46%',
+},
+exclamacaoAlinhamentoExclamacao: {
+  left: '51%',
+},
+
+
 
 });
 

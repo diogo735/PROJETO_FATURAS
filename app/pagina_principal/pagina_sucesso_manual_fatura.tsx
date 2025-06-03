@@ -162,7 +162,7 @@ export default function PaginaSucessoManual() {
       };
 
 
-      console.log('📦 Dados que vão ser enviados para o BD:', dadosParaSalvar);
+      ///console.log('📦 Dados que vão ser enviados para o BD:', dadosParaSalvar);
 
       const faturaIdCriada = await registarFatura_BDLOCAL(dadosParaSalvar);
       if (!faturaIdCriada) {

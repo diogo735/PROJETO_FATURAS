@@ -47,8 +47,6 @@ async function listarSubCategoriasPorCategoriaId(categoriaId) {
   }
 }
 
-NAO ESTA A RETORNAR O ID DA SUBCATEGORIA AO CRIAR LA
-
 async function inserirSubCategoria(nome_subcat, icone_nome, cor_subcat, categoria_id) {
   try {
     const db = await CRIARBD();
@@ -74,7 +72,7 @@ async function inserirSubCategoria(nome_subcat, icone_nome, cor_subcat, categori
     if (estado.isConnected && estado.isInternetReachable) {
       try {
         // Tenta enviar direto para a API
-        const response = await criarSubCategoriaAPI({
+        const subcat = await criarSubCategoriaAPI({
           nome_subcat,
           icone_nome,
           cor_subcat,
@@ -82,7 +80,7 @@ async function inserirSubCategoria(nome_subcat, icone_nome, cor_subcat, categori
           updated_at
         });
 
-        const remoteId = response.subcategoria?.id;
+        const remoteId = subcat?.id;
         if (!remoteId) {
           console.warn('⚠️ Nenhum remote_id retornado pela API.');
           return 'erro';
@@ -211,24 +209,49 @@ async function atualizarSubCategoriaComVerificacao(id, nome_subcat, icone_nome, 
 
     // Atualiza movimentos se a categoria mudou
     if (subcatAtual.categoria_id !== categoria_id) {
-      await db.runAsync(
-        `UPDATE movimentos SET categoria_id = ? WHERE sub_categoria_id = ?`,
-        [categoria_id, id]
-      );///////////////////////////////////FALTA ATUALIZAR OS MOVIMENTOS QUANDO A SUB CATEGORIA É ALTERADA
+      const movimentosAfetados = await db.getAllAsync(
+        `SELECT * FROM movimentos WHERE sub_categoria_id = ?`,
+        [id]
+      );
+
+      for (const mov of movimentosAfetados) {
+        const novoUpdatedAt = new Date().toISOString();
+
+        // Atualiza localmente
+        await db.runAsync(
+          `UPDATE movimentos SET categoria_id = ?, updated_at = ?, sync_status = ? WHERE id = ?`,
+          [categoria_id, novoUpdatedAt, 'pending', mov.id]
+        );
+
+        // Se tiver remote_id, adiciona à fila
+        if (mov.remote_id) {
+          await adicionarNaFila('movimentos', 'update', {
+            valor: mov.valor,
+            data_movimento: mov.data_movimento,
+            categoria_id: categoria_id,
+            sub_categoria_id: mov.sub_categoria_id,
+            nota: mov.nota,
+            updated_at: novoUpdatedAt
+          }, mov.remote_id);
+        }
+      }
     }
+
 
     const estado = await NetInfo.fetch();
 
     if (estado.isConnected && estado.isInternetReachable) {
       try {
         // Envia PUT para a API
-        await atualizarSubCategoriaAPI(subcatAtual.remote_id, {
+        const subcatAtualizada = await atualizarSubCategoriaAPI(subcatAtual.remote_id, {
           nome_subcat,
           icone_nome,
           cor_subcat,
           categoria_id,
           updated_at
         });
+
+        console.log('🔄 Subcategoria sincronizada na API:', subcatAtualizada);
 
         // Marca como sincronizado
         await db.runAsync(
@@ -334,10 +357,42 @@ async function eliminarSubCategoriaEAtualizarMovimentos(idSubcategoria) {
     if (!subcat) return 'erro';
 
     // Atualizar movimentos relacionados
-    await db.runAsync(
-      `UPDATE movimentos SET sub_categoria_id = NULL WHERE sub_categoria_id = ?`,
+    // 1. Buscar movimentos que estavam ligados à subcategoria
+    const movimentosAfetados = await db.getAllAsync(
+      `SELECT * FROM movimentos WHERE sub_categoria_id = ?`,
       [idSubcategoria]
-    );//////////////ATUALIZAR ONLINE
+    );
+
+    // 2. Atualizar localmente e adicionar à fila
+    for (const mov of movimentosAfetados) {
+      const novoUpdatedAt = new Date().toISOString();
+
+      await db.runAsync(
+        `UPDATE movimentos SET sub_categoria_id = NULL, updated_at = ?, sync_status = ? WHERE id = ?`,
+        [novoUpdatedAt, 'pending', mov.id]
+      );
+
+      if (mov.remote_id) {
+        await adicionarNaFila('movimentos', 'update', {
+          valor: mov.valor,
+          data_movimento: mov.data_movimento,
+          categoria_id: mov.categoria_id,
+          sub_categoria_id: null,
+          nota: mov.nota,
+          updated_at: novoUpdatedAt
+        }, mov.remote_id);
+      }
+    }
+    // 3. Buscar e apagar metas associadas à subcategoria
+    const metasAssociadas = await db.getAllAsync(
+      `SELECT id_meta FROM metas WHERE sub_categoria_id = ?`,
+      [idSubcategoria]
+    );
+
+    for (const meta of metasAssociadas) {
+      await apagarMeta(meta.id_meta);
+    }
+
 
     const estado = await NetInfo.fetch();
 

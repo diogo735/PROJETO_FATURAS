@@ -53,6 +53,9 @@ import PaginaSeguranca from './app/pagina_perfil/pagina_seguranca/pagiona_segura
 import TelaCodigo from './app/pagina_perfil/pagina_seguranca/tela_codgio';
 import PaginaCodigo from './app/PAGINA_CODIGO';
 import Pagina_Permissoes from './app/paginas_de_intruducao/pagina_premissoes';
+import ListaSincronizacoes from './app/pagina_principal/lista_sincronizacoes';
+
+
 
 Notify.setNotificationHandler({
   handleNotification: async () => ({
@@ -142,8 +145,8 @@ export type RootStackParamList = {
   Pagina_Login: undefined;
   Pagina_Login_Email: undefined;
   Pagina_Esqueceu_Pass: undefined;
-Pagina_Verificar_Email: { email: string };
-
+  Pagina_Verificar_Email: { email: string };
+  ListaSincronizacoes: undefined;
 
 
 
@@ -694,6 +697,11 @@ const App: React.FC = () => {
               headerShown: false,
               animation: 'slide_from_right',
             }}
+          />
+          <Stack.Screen
+            name="ListaSincronizacoes"
+            component={ListaSincronizacoes}
+            options={{ headerShown: false }}
           />
 
         </Stack.Navigator>

@@ -40,10 +40,16 @@ export const criarFaturaAPI = async (dados: any) => {
   });
 
   const json = await response.json();
-  if (!response.ok) throw new Error(json.message || 'Erro ao criar fatura');
+  // 📦 Exibe toda a resposta JSON recebida
+  console.log('📦 Resposta completa da API (criarFatura):', json);
+  if (!response.ok) {
+    const msg = json?.erro || json?.message || 'Erro ao criar fatura';
+    throw new Error(msg);
+  }
 
-  return json;
+  return json.fatura;
 };
+
 
 //  3. PUT – Atualizar fatura existente
 export const atualizarFaturaAPI = async (remoteId: number, dados: any) => {
@@ -62,8 +68,16 @@ export const atualizarFaturaAPI = async (remoteId: number, dados: any) => {
     body: JSON.stringify(dados),
   });
 
-  if (!response.ok) throw new Error('Erro ao atualizar fatura');
-  return await response.json();
+  const json = await response.json();
+
+  console.log('📦 Resposta da API (atualizarFatura):', json);
+
+  if (!response.ok) {
+    const msg = json?.erro || json?.message || 'Erro ao atualizar fatura';
+    throw new Error(msg);
+  }
+
+  return json;
 };
 
 // DELETE – Apagar fatura (opcional)

@@ -1,6 +1,6 @@
 import { CRIARBD } from './databaseInstance';
 
-import { inserirMovimento } from './movimentos';
+import { inserirMovimento, atualizarMovimento } from './movimentos';
 import NetInfo from '@react-native-community/netinfo';
 import { criarFaturaAPI, atualizarFaturaAPI } from '../APIs/faturas';
 import { adicionarNaFila } from './sincronizacao';
@@ -75,8 +75,30 @@ async function inserirFatura({
     const updated_at = new Date().toISOString();
     nomeEmpresa = nomeEmpresa?.trim() || 'Empresa';
 
+    // 🟡 Busca o remote_id do movimento antes de enviar à API
+    const movimento = await db.getFirstAsync(`SELECT remote_id FROM movimentos WHERE id = ?`, [movimentoId]);
+
+    if (!movimento?.remote_id) {
+      console.warn('⚠️ Movimento ainda não sincronizado. Salvando fatura localmente.');
+      return await salvarFaturaLocalEPendencia({
+        movimento_id: movimentoId,
+        tipo_documento: tipoDocumento,
+        numero_fatura: numeroFatura,
+        codigo_ATCUD: codigoATCUD,
+        data_fatura: dataFatura,
+        nif_emitente: nifEmitente,
+        nome_empresa: nomeEmpresa,
+        nif_cliente: nifCliente,
+        descricao,
+        total_iva: totalIva,
+        total_final: totalFinal,
+        imagem_fatura: imagemFatura,
+        updated_at
+      }, db);
+    }
+
     const fatura = {
-      movimento_id: movimentoId,
+      movimento_id: movimento.remote_id, // ✅ usa o ID da API
       tipo_documento: tipoDocumento,
       numero_fatura: numeroFatura,
       codigo_ATCUD: codigoATCUD,
@@ -95,8 +117,14 @@ async function inserirFatura({
 
     if (estado.isConnected && estado.isInternetReachable) {
       try {
-        const response = await criarFaturaAPI(fatura);
-        const remoteId = response.id;
+        const faturaRemota = await criarFaturaAPI(fatura);
+        const remoteId = faturaRemota?.id;
+
+        if (!remoteId) {
+          throw new Error('❌ API não retornou ID da fatura');
+        }
+
+        console.log('✅ Fatura criada na API com sucesso! ID remoto:', remoteId);
 
         const result = await db.runAsync(
           `INSERT INTO faturas (
@@ -129,6 +157,7 @@ async function inserirFatura({
     return null;
   }
 }
+
 
 async function salvarFaturaLocalEPendencia(fatura, db) {
   const {
@@ -179,6 +208,7 @@ async function atualizarFatura(id, novaDescricao) {
           descricao: novaDescricao,
           updated_at
         });
+        
 
         await db.runAsync(
           `UPDATE faturas SET sync_status = ? WHERE id = ?`,
@@ -264,7 +294,7 @@ async function registarFatura_BDLOCAL({
       return;
     }
 
-    // 🧾 3. Inserir fatura
+    // 🧾 3. Inserir fatura ///NAO ESTA A FUNCIONAR O INSERIR FATURA
     const faturaId = await inserirFatura({
       movimentoId,
       tipoDocumento,
