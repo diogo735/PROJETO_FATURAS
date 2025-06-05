@@ -254,6 +254,16 @@ async function atualizarPayloadCreateNaFila(tipo, idLocal, novoPayload) {
   console.log('✅ Payload atualizado para:', payloadAtualizado);
 }
 
+async function listarSincronizacoesPendentes() {
+  try {
+    const db = await CRIARBD();
+    const resultado = await db.getAllAsync('SELECT * FROM sincronizacoes');
+    return resultado; // retorna todas as pendentes
+  } catch (error) {
+    console.error('Erro ao listar sincronizações pendentes:', error);
+    return [];
+  }
+}
 
 
 export {
@@ -262,6 +272,7 @@ export {
   processarItemDeSincronizacao,
   listarSincronizacoes,
   limparFilaDeSincronizacao,
-  atualizarPayloadCreateNaFila
+  atualizarPayloadCreateNaFila,
+  listarSincronizacoesPendentes
 
 };

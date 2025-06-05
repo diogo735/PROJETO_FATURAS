@@ -7,6 +7,14 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import IconNova from '../../../assets/icons/pagina_notificacoa/ativas.svg';
 import Iconnao from '../../../assets/icons/pagina_notificacoa/naoativo.svg';
 import IconConfig from '../../../assets/icons/Sync.svg';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withSequence,
+  Easing,
+} from 'react-native-reanimated';
+import Svg, { G } from 'react-native-svg'; // se usar SVG direto
 
 const NavbarPaginaPrincipal = ({
   nome,
@@ -14,17 +22,19 @@ const NavbarPaginaPrincipal = ({
   onPressNotificacao,
   hasNotificacoesNovas,
   onPressConfig,
-  conteudo 
+  conteudo
 }: {
   nome: string;
   foto: string | number;
   onPressNotificacao: () => void;
   hasNotificacoesNovas: boolean;
   onPressConfig: () => void;
-  conteudo: string; 
+  conteudo: string;
 }) => {
   const izonnotificao_size = width * 0.06;
   const [saudacao, setSaudacao] = useState('');
+  const opacidade = useSharedValue(0);
+  const escala = useSharedValue(0.8);
 
 
   const atualizarSaudacao = () => {
@@ -49,6 +59,40 @@ const NavbarPaginaPrincipal = ({
   }, []);
 
 
+
+  const rotacao = useSharedValue(0);
+
+  useEffect(() => {
+    if (conteudo !== '') {
+      // Entrada suave
+      opacidade.value = withTiming(1, { duration: 300 });
+      escala.value = withTiming(1, { duration: 300 });
+
+      // Gira 2 voltas
+      rotacao.value = withSequence(
+        withTiming(720, {
+          duration: 1000,
+          easing: Easing.out(Easing.exp),
+        }),
+        withTiming(0, { duration: 0 })
+      );
+    } else {
+      // Esconde suavemente
+      opacidade.value = withTiming(0, { duration: 200 });
+      escala.value = withTiming(0.8, { duration: 200 });
+    }
+  }, [conteudo]);
+
+  const estiloAnimado = useAnimatedStyle(() => ({
+    opacity: opacidade.value,
+    transform: [
+      { scale: escala.value },
+      { rotate: `${rotacao.value}deg` }
+    ],
+  }));
+
+
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -67,21 +111,25 @@ const NavbarPaginaPrincipal = ({
         {/* Botão de Notificação */}
         <View style={{ flexDirection: 'row', gap: 20 }}>
           {/* Botão de Configurações */}
-          <TouchableOpacity style={styles.notificationButton} onPress={onPressConfig}>
-            <View style={{ position: 'relative', }}>
-              <IconConfig width={26} height={26} />
+          {conteudo !== '' && (
+            <TouchableOpacity style={styles.notificationButton} onPress={onPressConfig}>
+              <View style={{ position: 'relative' }}>
+                <Animated.View style={estiloAnimado}>
+                  <IconConfig width={26} height={26} />
+                </Animated.View>
 
-              <Text
-                style={[
-                  styles.exclamacao,
-                  conteudo === '!' ? styles.exclamacaoAlinhamentoExclamacao : styles.exclamacaoAlinhamentoNumero
-                ]}
-              >
-                {conteudo}
-              </Text>
+                <Text
+                  style={[
+                    styles.exclamacao,
+                    conteudo === '!' ? styles.exclamacaoAlinhamentoExclamacao : styles.exclamacaoAlinhamentoNumero
+                  ]}
+                >
+                  {conteudo}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          )}
 
-            </View>
-          </TouchableOpacity>
 
 
 
@@ -152,20 +200,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#164878',
   },
   exclamacao: {
-  position: 'absolute',
-  top: '38%',
-  transform: [{ translateX: -10 }, { translateY: -5 }],
-  color: 'red',
-  fontSize: 12,
-  fontWeight: '900',
-  zIndex: 10,
-},
-exclamacaoAlinhamentoNumero: {
-  left: '46%',
-},
-exclamacaoAlinhamentoExclamacao: {
-  left: '51%',
-},
+    position: 'absolute',
+    top: '38%',
+    transform: [{ translateX: -10 }, { translateY: -5 }],
+    color: 'red',
+    fontSize: 12,
+    fontWeight: '900',
+    zIndex: 10,
+  },
+  exclamacaoAlinhamentoNumero: {
+    left: '46%',
+  },
+  exclamacaoAlinhamentoExclamacao: {
+    left: '51%',
+  },
 
 
 

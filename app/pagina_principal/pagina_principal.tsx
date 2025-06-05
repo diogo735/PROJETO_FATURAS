@@ -8,6 +8,8 @@ import Animated, { useSharedValue, useAnimatedStyle, withTiming, runOnJS } from 
 import UltimosMovimentos from './componentes/ultimos_moviemtos/ultimos_moviemntos';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useCallback } from 'react';
+import ModalSincronizacao from './componentes/modal_sincronizar_alteracoes';
+import { BackHandler } from 'react-native';
 
 import { ScrollView } from 'react-native';
 const { width, height } = Dimensions.get('window');
@@ -43,6 +45,7 @@ interface Movimento {
 
 import { RouteProp, useRoute } from '@react-navigation/native';
 import { buscarUsuarioAtual } from '../../BASEDEDADOS/user';
+import { listarSincronizacoesPendentes } from '../../BASEDEDADOS/sincronizacao';
 
 
 
@@ -61,6 +64,7 @@ const Pagina_principal: React.FC = () => {
   const opacidadeGrafico = useSharedValue(1);
   const [refreshing, setRefreshing] = useState(false);
   const [primeiraVez, setPrimeiraVez] = useState(true);
+  const [mostrarModalSync, setMostrarModalSync] = useState(false);
 
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 
@@ -81,6 +85,24 @@ const Pagina_principal: React.FC = () => {
 
   const [nomeUsuario, setNomeUsuario] = useState('');
   const [fotoUsuario, setFotoUsuario] = useState<string | null>(null);
+
+
+
+  const [sincronizacoesPendentes, setSincronizacoesPendentes] = useState<number>(0);
+
+  const verificarSincronizacoes = async () => {
+    try {
+      const lista = await listarSincronizacoesPendentes();
+      setSincronizacoesPendentes(lista.length);
+    } catch (err) {
+      console.error("Erro ao verificar sincronizações:", err);
+    }
+  };
+  useFocusEffect(
+    useCallback(() => {
+      verificarSincronizacoes();
+    }, [])
+  );
 
 
   useEffect(() => {
@@ -232,15 +254,11 @@ const Pagina_principal: React.FC = () => {
 
 
 
-
-
-
-  return (
+return (
+  <>
     <Animated.View style={[styles.corpo, estiloAnimado]}>
       <NavbarPaginaPrincipal
-        onPressConfig={() => {
-    navigation.navigate('ListaSincronizacoes');
-  }}
+        onPressConfig={() => setMostrarModalSync(true)}
         nome={nomeUsuario}
         foto={
           fotoUsuario
@@ -249,9 +267,8 @@ const Pagina_principal: React.FC = () => {
         }
         onPressNotificacao={handleNotificacaoPress}
         hasNotificacoesNovas={hasNotificacoesNovas}
-        conteudo="5"
+        conteudo={sincronizacoesPendentes > 9 ? '!' : sincronizacoesPendentes > 0 ? String(sincronizacoesPendentes) : ''}
       />
-
 
       <ScrollView
         style={styles.scrollView}
@@ -266,11 +283,8 @@ const Pagina_principal: React.FC = () => {
           />
         }
       >
-
         <SaldoWidget saldoTotal={saldoMensal} mesAtual={nomeMes} />
 
-
-        {/**/}
         <View style={styles.containerGrafico}>
           {dadosGrafico.length > 0 ? (
             <Grafico_Circular
@@ -278,16 +292,9 @@ const Pagina_principal: React.FC = () => {
               tipoSelecionado={tipoSelecionado}
             />
           ) : (
-            <Grafico_CircularVazio
-              tipoSelecionado={tipoSelecionado}
-            />
+            <Grafico_CircularVazio tipoSelecionado={tipoSelecionado} />
           )}
         </View>
-
-
-
-
-
 
         <Botoes
           tipoSelecionado={tipoSelecionado}
@@ -297,14 +304,25 @@ const Pagina_principal: React.FC = () => {
         />
 
         <UltimosMovimentos movimentos={movimentosRecentes} />
-
-
-
       </ScrollView>
-
     </Animated.View>
-  );
+<ModalSincronizacao
+  visivel={mostrarModalSync}
+  aoCancelar={() => setMostrarModalSync(false)}
+  aoConfirmar={() => {
+    setMostrarModalSync(false);
+    console.log('Sincronizar agora...');
+  }}
+  quantidade={sincronizacoesPendentes}
+  style={{ justifyContent: 'center', alignItems: 'center' }} // agora funciona!
+/>
+
+    {/* Modal FORA do bloco principal */}
+    
+  </>
+);
 };
+
 
 const styles = StyleSheet.create({
   corpo: {
@@ -330,6 +348,9 @@ const styles = StyleSheet.create({
   },
 
 });
+
+ 
+
 
 /////////////////////////////////////////////////////////////////////////////////
 
