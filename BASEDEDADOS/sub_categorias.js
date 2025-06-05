@@ -125,21 +125,25 @@ async function salvarLocalEPendencia(nome_subcat, icone_nome, cor_subcat, catego
   const db = await CRIARBD();
 
   // Salva localmente como pendente
-  await db.runAsync(
+  const result = await db.runAsync(
     `INSERT INTO sub_categorias 
-      (nome_subcat, icone_nome, cor_subcat, categoria_id, updated_at, sync_status)
-     VALUES (?, ?, ?, ?, ?, ?)`,
+    (nome_subcat, icone_nome, cor_subcat, categoria_id, updated_at, sync_status)
+   VALUES (?, ?, ?, ?, ?, ?)`,
     [nome_subcat.trim(), icone_nome, cor_subcat, categoria_id, updated_at, 'pending']
   );
 
+  const idLocal = result.lastInsertRowId;
+
   // Adiciona à fila de sincronização
   await adicionarNaFila('sub_categorias', 'create', {
+    id: idLocal, // 🔥 IMPORTANTE
     nome_subcat,
     icone_nome,
     cor_subcat,
     categoria_id,
     updated_at
   });
+
 
   return 'sucesso';
 }
@@ -225,17 +229,31 @@ async function atualizarSubCategoriaComVerificacao(id, nome_subcat, icone_nome, 
 
         // Se tiver remote_id, adiciona à fila
         if (mov.remote_id) {
+          // 🔍 Buscar o remote_id da subcategoria
+          const subcat = await db.getFirstAsync(
+            `SELECT remote_id FROM sub_categorias WHERE id = ?`,
+            [mov.sub_categoria_id]
+          );
+
+          const remoteSubcatId = subcat?.remote_id;
+
+          if (!remoteSubcatId) {
+            console.warn(`⚠️ Subcategoria local ID ${mov.sub_categoria_id} não tem remote_id — movimento ID ${mov.id} ignorado`);
+            continue; // pula este movimento
+          }
+
           await adicionarNaFila('movimentos', 'update', {
             valor: mov.valor,
             data_movimento: mov.data_movimento,
-            categoria_id: categoria_id,
-            sub_categoria_id: mov.sub_categoria_id,
+            categoria_id: categoria_id, // já é o remoto
+            sub_categoria_id: remoteSubcatId, // ✅ agora correto
             nota: mov.nota,
             updated_at: novoUpdatedAt
           }, mov.remote_id);
         }
       }
     }
+
 
 
     const estado = await NetInfo.fetch();
@@ -265,6 +283,7 @@ async function atualizarSubCategoriaComVerificacao(id, nome_subcat, icone_nome, 
         console.warn('⚠️ Erro ao sincronizar atualização com API, adicionando na fila:', err.message);
         console.log('🔍 Detalhes do erro:', err);
         await adicionarNaFila('sub_categorias', 'update', {
+          id,
           nome_subcat,
           icone_nome,
           cor_subcat,
@@ -278,6 +297,7 @@ async function atualizarSubCategoriaComVerificacao(id, nome_subcat, icone_nome, 
     } else {
       // Offline → adiciona à fila
       await adicionarNaFila('sub_categorias', 'update', {
+        id,
         nome_subcat,
         icone_nome,
         cor_subcat,
@@ -352,18 +372,22 @@ async function eliminarSubCategoriaEAtualizarMovimentos(idSubcategoria) {
   try {
     const db = await CRIARBD();
 
-    // Buscar remote_id para sincronizar com a API
-    const subcat = await db.getFirstAsync(`SELECT remote_id FROM sub_categorias WHERE id = ?`, [idSubcategoria]);
+    // 1. Buscar o remote_id da subcategoria
+    const subcat = await db.getFirstAsync(
+      `SELECT remote_id, nome_subcat FROM sub_categorias WHERE id = ?`,
+      [idSubcategoria]
+    );
+    console.log('🔍 Subcategoria carregada antes de apagar:', subcat);
     if (!subcat) return 'erro';
 
-    // Atualizar movimentos relacionados
-    // 1. Buscar movimentos que estavam ligados à subcategoria
+    const { remote_id, nome_subcat } = subcat;
+
+    // 2. Atualizar movimentos relacionados à subcategoria
     const movimentosAfetados = await db.getAllAsync(
       `SELECT * FROM movimentos WHERE sub_categoria_id = ?`,
       [idSubcategoria]
     );
 
-    // 2. Atualizar localmente e adicionar à fila
     for (const mov of movimentosAfetados) {
       const novoUpdatedAt = new Date().toISOString();
 
@@ -383,36 +407,43 @@ async function eliminarSubCategoriaEAtualizarMovimentos(idSubcategoria) {
         }, mov.remote_id);
       }
     }
-    // 3. Buscar e apagar metas associadas à subcategoria
+
+    // 3. Apagar metas associadas
     const metasAssociadas = await db.getAllAsync(
       `SELECT id_meta FROM metas WHERE sub_categoria_id = ?`,
       [idSubcategoria]
     );
-
     for (const meta of metasAssociadas) {
       await apagarMeta(meta.id_meta);
     }
 
-
+    // 4. Verifica se está online
     const estado = await NetInfo.fetch();
 
     if (estado.isConnected && estado.isInternetReachable) {
       try {
-        if (subcat.remote_id) {
-          await deletarSubCategoriaAPI(subcat.remote_id);
+        if (remote_id) {
+          // ✅ Se já foi sincronizada, deletar da API
+          await deletarSubCategoriaAPI(remote_id);
+        } else {
+          // 🔁 Se ainda não foi sincronizada, remover da fila de criação
+          await db.runAsync(`
+  DELETE FROM sincronizacoes
+  WHERE tipo = 'sub_categorias'
+    AND operacao IN ('create', 'update')
+    AND json_extract(payload, '$.nome_subcat') = ?
+`, [nome_subcat]);
         }
 
-        // Remover do banco local
+        // Remover localmente
         await db.runAsync(`DELETE FROM sub_categorias WHERE id = ?`, [idSubcategoria]);
-
         return 'sucesso';
 
       } catch (err) {
         console.warn('❌ Erro ao apagar na API, adicionando à fila:', err.message);
 
-        // Marca para deletar mais tarde
-        if (subcat.remote_id) {
-          await adicionarNaFila('sub_categorias', 'delete', {}, subcat.remote_id);
+        if (remote_id) {
+          await adicionarNaFila('sub_categorias', 'delete', {}, remote_id);
         }
 
         await db.runAsync(`DELETE FROM sub_categorias WHERE id = ?`, [idSubcategoria]);
@@ -420,11 +451,22 @@ async function eliminarSubCategoriaEAtualizarMovimentos(idSubcategoria) {
       }
 
     } else {
-      // Está offline → marcar para deletar depois
-      if (subcat.remote_id) {
-        await adicionarNaFila('sub_categorias', 'delete', {}, subcat.remote_id);
+      // 5. Se estiver offline
+
+      if (remote_id) {
+        // ✅ Subcategoria já sincronizada → agendar delete
+        await adicionarNaFila('sub_categorias', 'delete', {}, remote_id);
+      } else {
+        // 🔁 Criada offline → remover da fila de criação
+        await db.runAsync(`
+  DELETE FROM sincronizacoes
+  WHERE tipo = 'sub_categorias'
+    AND operacao IN ('create', 'update')
+    AND json_extract(payload, '$.nome_subcat') = ?
+`, [nome_subcat]);
       }
 
+      // Sempre apagar localmente
       await db.runAsync(`DELETE FROM sub_categorias WHERE id = ?`, [idSubcategoria]);
       return 'sucesso';
     }
@@ -434,6 +476,7 @@ async function eliminarSubCategoriaEAtualizarMovimentos(idSubcategoria) {
     return 'erro';
   }
 }
+
 
 export {
   criarTabelaSubCategorias,

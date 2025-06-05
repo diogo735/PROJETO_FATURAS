@@ -127,12 +127,15 @@ async function deletarTabelaUsers() {
 }
 
 async function obter_imagem_user(uri) {
+  if (!uri) return;
+
   const db = await CRIARBD();
   await db.runAsync(
     `UPDATE user SET imagem = ? WHERE id = (SELECT id FROM user LIMIT 1)`,
     uri
   );
 }
+
 
 export {
   criarTabelaUsers,

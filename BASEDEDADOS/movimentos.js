@@ -4,7 +4,7 @@ import { verificar_se_envia_notificacao } from './metas';
 import NetInfo from '@react-native-community/netinfo';
 import { criarMovimentoAPI, atualizarMovimentoAPI } from '../APIs/movimentos';
 import { adicionarNaFila } from './sincronizacao';
-
+import { atualizarPayloadCreateNaFila } from './sincronizacao';
 
 async function criarTabelaMovimentos() {
 
@@ -95,7 +95,8 @@ async function salvarMovimentoLocalEPendencia(movimento, db) {
     [valor, data_movimento, categoria_id, sub_categoria_id, nota, updated_at, 'pending']
   );
 
-  await adicionarNaFila('movimentos', 'create', movimento);
+ await adicionarNaFila('movimentos', 'create', { ...movimento, id: result.lastInsertRowId });
+
 
   await atualizarMeta(valor, categoria_id, data_movimento, db);
 
@@ -124,9 +125,18 @@ async function atualizarMovimento(id, { nota, categoria_id, sub_categoria_id }) 
     // 2. Busca remote_id para saber se já foi sincronizado antes
     const movimento = await db.getFirstAsync(`SELECT remote_id FROM movimentos WHERE id = ?`, [id]);
     console.log('🎯 Movimento carregado do banco:', movimento);
+
     if (!movimento?.remote_id) {
+      await atualizarPayloadCreateNaFila('movimentos', id, {
+        nota,
+        categoria_id,
+        sub_categoria_id,
+        updated_at
+      });
       return true;
     }
+
+
 
     // 3. Verifica se está online
     const estado = await NetInfo.fetch();

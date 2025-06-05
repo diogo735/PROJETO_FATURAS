@@ -143,7 +143,7 @@ const Modal_Info_Fatura: React.FC<Props> = ({ visivel, uri, aoFechar, aoEliminar
 
     function formatarData(dataStr: string): string {
         if (!dataStr) return '---';
-    
+
         // Se vier no formato YYYYMMDD
         if (dataStr.length === 8) {
             const ano = dataStr.slice(0, 4);
@@ -151,25 +151,48 @@ const Modal_Info_Fatura: React.FC<Props> = ({ visivel, uri, aoFechar, aoEliminar
             const dia = dataStr.slice(6, 8);
             return `${dia}/${mes}/${ano}`;
         }
-    
+
         // Se vier no formato YYYY-MM-DD
         if (dataStr.length === 10 && dataStr.includes('-')) {
             const [ano, mes, dia] = dataStr.split('-');
             return `${dia}/${mes}/${ano}`;
         }
-    
-        return '---'; 
+
+        return '---';
     }
-    
+
+    function timeoutPromise(ms: number): Promise<never> {
+        return new Promise((_, reject) =>
+            setTimeout(() => reject(new Error(`Tempo limite (${ms}ms) excedido.`)), ms)
+        );
+    }
+
 
     async function interpretarQr(qr: string) {
         const dados = Object.fromEntries(qr.split('*').map(parte => {
             const [chave, valor] = parte.split(':');
             return [chave, valor];
         }));
+
         console.log('🧾 QR bruto:', qr);
 
-        const nomeEmpresaInfo = await obterInfoEmpresaPorNif(dados.A);
+        function timeoutPromise(ms: number) {
+            return new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Tempo limite excedido')), ms)
+            );
+        }
+
+        let nomeEmpresaInfo = null;
+          try {
+              nomeEmpresaInfo = await Promise.race([
+                  obterInfoEmpresaPorNif(dados.A),
+                  timeoutPromise(10000) 
+              ]);
+          } catch (err) {
+              console.warn('⏱ Timeout ou erro ao buscar empresa, usando apenas NIF.');
+              nomeEmpresaInfo = null;
+          }
+  
 
         const resultado = {
             emissor: nomeEmpresaInfo || `${dados.A}`,
@@ -184,10 +207,9 @@ const Modal_Info_Fatura: React.FC<Props> = ({ visivel, uri, aoFechar, aoEliminar
             certificado: dados.R,
         };
 
-       //console.log('📦 Dados interpretados do QR:', resultado);
-
         return resultado;
     }
+
 
     useEffect(() => {
         if (visivel) {
@@ -198,7 +220,7 @@ const Modal_Info_Fatura: React.FC<Props> = ({ visivel, uri, aoFechar, aoEliminar
             setSubcategoriaSelecionadaId(null);
             setDadosInterpretados(null);
             setQrInvalido(false);
-           // setEmissorEditado(null);
+            // setEmissorEditado(null);
 
         }
     }, [visivel]);
@@ -596,7 +618,7 @@ const Modal_Info_Fatura: React.FC<Props> = ({ visivel, uri, aoFechar, aoEliminar
                                                     nota: nota || null,
                                                     nomeEmpresa: dadosInterpretados?.emissor ?? null,
                                                     imagemUri: uri ?? null,
-                                                    codigoAtcud: dadosInterpretados?.atcud ?? null, 
+                                                    codigoAtcud: dadosInterpretados?.atcud ?? null,
                                                 });
 
                                             }, 300);

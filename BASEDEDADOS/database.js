@@ -38,10 +38,12 @@ async function inicializarBaseDeDados() {
     //await inserirNotificacoesTeste();
 
     //TIPOS_MOVIMENTOS
-    await criarTabelaTipoMovimento(); await inserirVariosTiposMovimento();
+    await criarTabelaTipoMovimento(); 
+    await inserirVariosTiposMovimento();
 
     //CATEGORIAS
-    await criarTabelaCategorias(); /*await resetarCategorias();*/  await verificarEInserirCategorias();
+    await criarTabelaCategorias(); /*await resetarCategorias();*/ 
+     await verificarEInserirCategorias();
 
     //sub_categorias
     await criarTabelaSubCategorias();

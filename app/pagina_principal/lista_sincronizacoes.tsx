@@ -2,6 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { listarSincronizacoes } from '../../BASEDEDADOS/sincronizacao';
 import Modal from 'react-native-modal';
+import { limparFilaDeSincronizacao } from '../../BASEDEDADOS/sincronizacao';
+import { Alert } from 'react-native';
+import { processarItemDeSincronizacao } from '../../BASEDEDADOS/sincronizacao';
 
 
 const ListaSincronizacoes = () => {
@@ -25,9 +28,59 @@ const ListaSincronizacoes = () => {
         setModalVisivel(true);
     };
 
+    const confirmarLimpeza = () => {
+        Alert.alert(
+            'Limpar Fila',
+            'Tem certeza que deseja limpar todas as sincronizações pendentes?',
+            [
+                { text: 'Cancelar', style: 'cancel' },
+                {
+                    text: 'Limpar',
+                    style: 'destructive',
+                    onPress: async () => {
+                        await limparFilaDeSincronizacao();
+                        setSincronizacoes([]); // limpa a lista exibida
+                    },
+                },
+            ]
+        );
+    };
+    const sincronizarAgora = async () => {
+        if (!itemSelecionado) return;
+
+        const sucesso = await processarItemDeSincronizacao(itemSelecionado);
+
+        Alert.alert(
+            sucesso ? '✅ Sincronização concluída' : '❌ Falha na sincronização',
+            sucesso ? 'O item foi sincronizado com sucesso.' : 'Ocorreu um erro ao sincronizar este item.'
+        );
+
+        if (sucesso) {
+            const novaFila = await listarSincronizacoes();
+            setSincronizacoes(novaFila);
+            setModalVisivel(false);
+        }
+    };
+
+
+
+
+
     return (
         <View style={styles.container}>
             <Text style={styles.titulo}>Lista de Sincronizações</Text>
+            <TouchableOpacity
+                onPress={confirmarLimpeza}
+                style={{
+                    backgroundColor: '#E63946',
+                    paddingHorizontal: 20,
+                    paddingVertical: 10,
+                    borderRadius: 8,
+                    marginTop: 10,
+                }}
+            >
+                <Text style={{ color: 'white', fontWeight: 'bold' }}>🗑 Limpar Fila</Text>
+            </TouchableOpacity>
 
             <FlatList
                 data={sincronizacoes}
@@ -71,6 +124,18 @@ const ListaSincronizacoes = () => {
                                     {JSON.stringify(JSON.parse(itemSelecionado.payload), null, 2)}
                                 </Text>
                             </View>
+                            <TouchableOpacity
+                                onPress={sincronizarAgora}
+                                style={{
+                                    marginTop: 10,
+                                    backgroundColor: '#50AF4A',
+                                    paddingVertical: 10,
+                                    borderRadius: 8,
+                                    alignItems: 'center',
+                                }}
+                            >
+                                <Text style={{ color: 'white', fontWeight: 'bold' }}>🔄 Sincronizar Agora</Text>
+                            </TouchableOpacity>
 
                             <TouchableOpacity
                                 onPress={() => setModalVisivel(false)}

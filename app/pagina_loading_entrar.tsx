@@ -32,10 +32,13 @@ const PagLoadingEntrar = () => {
     try {
       const caminhoLocal = `${FileSystem.documentDirectory}${nomeArquivo}`;
       const download = await FileSystem.downloadAsync(url, caminhoLocal);
-      return download.uri;
+
+      console.log('✅ Imagem baixada com sucesso:', download.uri);
+
+      return { sucesso: true, uri: download.uri };
     } catch (error) {
-      console.error('Erro ao baixar imagem:', error);
-      return null;
+      console.error('❌ Erro ao baixar imagem:', error);
+      return { sucesso: false, uri: null };
     }
   };
 
@@ -52,27 +55,6 @@ const PagLoadingEntrar = () => {
         await verificarNotificacoesDeTodasMetas();
 
 
-        // 👉 Buscar dados atualizados da API e salvar localmente
-        const userRemoto = await buscarDadosDoUsuarioAPI();
-        if (userRemoto) {
-          const imagemUrl = userRemoto.imagem;
-          const caminhoLocalImagem = await baixarImagemParaLocal(imagemUrl, 'foto_usuario.jpg');
-
-          if (caminhoLocalImagem) {
-            await obter_imagem_user(caminhoLocalImagem);
-          }
-        }
-
-
-
-
-
-
-
-
-
-
-
 
         // Carrega dados locais
         const dadosMovimentos = await listarMovimentosUltimos30Dias();
@@ -81,6 +63,16 @@ const PagLoadingEntrar = () => {
         const despesas = await obterTotalDespesas();
         const dadosDespesas = await obterSomaMovimentosPorCategoriaDespesa();
         const dadosReceitas = await obterSomaMovimentosPorCategoriaReceita();
+
+
+        setTimeout(async () => {
+          const userRemoto = await buscarDadosDoUsuarioAPI();
+          const resultado = await baixarImagemParaLocal(userRemoto.imagem, 'foto_usuario.jpg');
+         if (resultado.sucesso) {
+           await obter_imagem_user(resultado.uri);
+          }
+        }, 800);
+        
         const user = await buscarUsuarioAtual();
         const nome = user?.nome || 'Usuário';
         const foto = user?.imagem || null;
@@ -110,7 +102,7 @@ const PagLoadingEntrar = () => {
         }, 900);
 
       } catch (error) {
-        console.error('Erro ao carregar o banco de dados:', error);
+        console.error('Erro ao carregar o banco de dados :', error);
       }
     };
 

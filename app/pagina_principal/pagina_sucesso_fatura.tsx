@@ -20,6 +20,8 @@ import { useRef } from 'react'; // já deve ter
 import IconeRotativo from '../../assets/imagens/wallpaper.svg';
 import * as FileSystem from 'expo-file-system';
 import { verificarFaturaPorATCUD } from '../../BASEDEDADOS/faturas';
+import NetInfo from '@react-native-community/netinfo';
+import { uploadImagemParaImgBB, uploadImagemParaImgur } from '../../APIs/upload_imgbb';
 
 type PaginaSucessoRouteProp = RouteProp<RootStackParamList, 'PaginaSucesso'>;
 
@@ -124,12 +126,21 @@ export default function PaginaSucesso() {
         setCarregando(false);
         return;
       }
-
+      const estaOnline = (await NetInfo.fetch()).isConnected;
+      
       let imagemSalva = null;
       if (imagemUri) {
-        imagemSalva = await salvarImagemPermanentemente(imagemUri);
+        if (estaOnline) { 
+          //imagemSalva = await uploadImagemParaImgBB(imagemUri);
+          imagemSalva = await uploadImagemParaImgur(imagemUri);
+           //imagemSalva = await salvarImagemPermanentemente(imagemUri);
+        } else {
+          imagemSalva = await salvarImagemPermanentemente(imagemUri); // opcionalmente salve local
+        }
         setImagemSalva(imagemSalva);
       }
+
+
       const dadosParaSalvar = {
         dataMovimento: obterDataHoraAtual(),
         categoriaId,
@@ -147,7 +158,7 @@ export default function PaginaSucesso() {
         imagemFatura: imagemSalva
       };
 
-      //console.log('📦 Dados que vão ser enviados para o BD:', dadosParaSalvar);
+      console.log('📦 Dados que vão ser enviados para o BD:', dadosParaSalvar);
 
       const faturaIdCriada = await registarFatura_BDLOCAL(dadosParaSalvar);
 
@@ -215,7 +226,7 @@ export default function PaginaSucesso() {
         return `${dia}/${mes}/${ano}`;
       }
 
-      if (dataStr.length === 10 && dataStr.includes('-')) { 
+      if (dataStr.length === 10 && dataStr.includes('-')) {
         const [ano, mes, dia] = dataStr.split('-');
         return `${dia}/${mes}/${ano}`;
       }
@@ -464,3 +475,5 @@ const styles = StyleSheet.create({
   },
 
 });
+
+

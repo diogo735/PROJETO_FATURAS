@@ -20,6 +20,11 @@ import * as FileSystem from 'expo-file-system';
 import { verificarFaturaPorATCUD } from '../../BASEDEDADOS/faturas';
 import ErroIcon from '../../assets/icons/pagina_camera/erro_guardar.svg';
 import FaturaRepetida from '../../assets/icons/pagina_camera/fatura_repetida.svg';
+import { uploadImagemParaImgBB, uploadImagemParaImgur } from '../../APIs/upload_imgbb';
+import NetInfo from '@react-native-community/netinfo';
+
+
+
 type PaginaSucessoManualRouteProp = RouteProp<RootStackParamList, 'PaginaSucessoManual'>;
 
 
@@ -139,9 +144,16 @@ export default function PaginaSucessoManual() {
         return;
       }
 
+      const estaOnline = (await NetInfo.fetch()).isConnected;
+
       let imagemSalva = null;
       if (imagemUri) {
-        imagemSalva = await salvarImagemPermanentemente(imagemUri);
+        if (estaOnline) { 
+          //imagemSalva = await uploadImagemParaImgBB(imagemUri);
+          imagemSalva = await uploadImagemParaImgur(imagemUri);
+        } else {
+          imagemSalva = await salvarImagemPermanentemente(imagemUri); // opcionalmente salve local
+        }
         setImagemSalva(imagemSalva);
       }
       const dadosParaSalvar = {

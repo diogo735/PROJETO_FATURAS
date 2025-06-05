@@ -4,7 +4,7 @@ import { inserirMovimento, atualizarMovimento } from './movimentos';
 import NetInfo from '@react-native-community/netinfo';
 import { criarFaturaAPI, atualizarFaturaAPI } from '../APIs/faturas';
 import { adicionarNaFila } from './sincronizacao';
-
+import { atualizarPayloadCreateNaFila } from './sincronizacao';
 
 async function criarTabelaFaturas() {
   try {
@@ -181,7 +181,7 @@ async function salvarFaturaLocalEPendencia(fatura, db) {
     ]
   );
 
-  await adicionarNaFila('faturas', 'create', fatura);
+await adicionarNaFila('faturas', 'create', { ...fatura, id: result.lastInsertRowId });
   return result.lastInsertRowId;
 }
 async function atualizarFatura(id, novaDescricao) {
@@ -197,7 +197,16 @@ async function atualizarFatura(id, novaDescricao) {
 
     // Pega remote_id para sincronizar se possível
     const fatura = await db.getFirstAsync(`SELECT remote_id FROM faturas WHERE id = ?`, [id]);
-    if (!fatura?.remote_id) return true; // será sincronizada depois como 'create'
+
+    if (!fatura?.remote_id) {
+      await atualizarPayloadCreateNaFila('faturas', id, {
+        descricao: novaDescricao,
+        updated_at
+      });
+      return true;
+    }
+
+    // será sincronizada depois como 'create'
 
     const estado = await NetInfo.fetch();
 
@@ -208,7 +217,7 @@ async function atualizarFatura(id, novaDescricao) {
           descricao: novaDescricao,
           updated_at
         });
-        
+
 
         await db.runAsync(
           `UPDATE faturas SET sync_status = ? WHERE id = ?`,
