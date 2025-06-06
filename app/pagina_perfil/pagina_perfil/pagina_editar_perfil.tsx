@@ -288,7 +288,7 @@ const PaginaDetalhePerfil = () => {
 
 
                         {/* Palavra-passe */}
-                        {senha ? (
+                        {email && (
                             <>
                                 <View style={styles.labelContainer}>
                                     <Iconpass width={22} height={22} style={{ marginTop: '2%' }} />
@@ -311,7 +311,8 @@ const PaginaDetalhePerfil = () => {
                                     </TouchableOpacity>
                                 </View>
                             </>
-                        ) : null}
+                        )}
+
 
 
                     </ScrollView>

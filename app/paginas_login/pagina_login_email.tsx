@@ -102,7 +102,8 @@ const PaginaLoginEmail: React.FC = () => {
                 user.email,
                 senha,
                 token,
-                user.primeiro_login ? 1 : 0
+                user.primeiro_login ? 1 : 0,
+                user.updated_at
             );
 
             setMensagemErro('');

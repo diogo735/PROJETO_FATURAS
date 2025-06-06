@@ -156,7 +156,7 @@ const PaginaCategorias = () => {
                     <TouchableOpacity onPress={() => navigation.goBack()}>
                         <MaterialIcons name="arrow-back" size={scale(24)} color="#fff" />
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Minhas Categorias</Text>
+                    <Text style={styles.headerTitle}>As Minhas Categorias</Text>
                 </View>
 
                 <TouchableOpacity style={styles.botaoRedondo} onPress={girarSeta}>

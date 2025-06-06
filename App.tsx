@@ -54,6 +54,10 @@ import TelaCodigo from './app/pagina_perfil/pagina_seguranca/tela_codgio';
 import PaginaCodigo from './app/PAGINA_CODIGO';
 import Pagina_Permissoes from './app/paginas_de_intruducao/pagina_premissoes';
 import ListaSincronizacoes from './app/pagina_principal/lista_sincronizacoes';
+import PaginaSincronizacao from './app/pagina_perfil/pagina_sincronizacao/pagina_sincronizacao';
+import { iniciarTarefaSincronizacao } from './app/backgorund/tarefa_sincronizacao';
+import PaginaBasededados from './app/pagina_perfil/pagina_basededados/pagina_basededados';
+import PaginaSobre from './app/pagina_perfil/pagina_sobre/pagina_sobre';
 
 
 
@@ -83,6 +87,7 @@ interface Movimento {
 }
 
 export type RootStackParamList = {
+
   Pagina_Permissoes: undefined;
   PaginaCodigo: undefined;
   TelaCodigo: { modo?: 'criar' | 'alterar' };
@@ -146,10 +151,10 @@ export type RootStackParamList = {
   Pagina_Login_Email: undefined;
   Pagina_Esqueceu_Pass: undefined;
   Pagina_Verificar_Email: { email: string };
-  ListaSincronizacoes: undefined;
-
-
-
+  ListaSincronizacoes: { quantidade: number };
+  PaginaSincronizacao: undefined;
+  PaginaBasededados:undefined;
+  PaginaSobre:undefined;
 };
 
 
@@ -397,6 +402,27 @@ const PaginaPermissoesScreen = (props: any) => (
   </View>
 );
 
+
+const PaginaSincronizacaoScreen = (props: any) => (
+  <View style={styles.defaultContainer}>
+    <StatusBar translucent backgroundColor="transparent" style="dark" />
+    <PaginaSincronizacao {...props} />
+  </View>
+);
+
+const PaginaBasededadosScreen = (props: any) => (
+  <View style={styles.defaultContainer}>
+    <StatusBar translucent backgroundColor="transparent" style="dark" />
+    <PaginaBasededados {...props} />
+  </View>
+);
+
+const PaginaSobreScreen = (props: any) => (
+  <View style={styles.defaultContainer}>
+    <StatusBar translucent backgroundColor="transparent" style="dark" />
+    <PaginaSobre {...props} />
+  </View>
+);
 //////////////////////////////////////////////////////////////////
 const App: React.FC = () => {
   const [telaInicial, setTelaInicial] = useState<string | null>(null);
@@ -405,7 +431,8 @@ const App: React.FC = () => {
 
   useEffect(() => {
     async function iniciarApp() {
-      iniciarTarefaBackground();
+      iniciarTarefaBackground();       // 🔔 notificações personalizadas
+      iniciarTarefaSincronizacao();    // 🔄 sincronização automática
       await SplashScreen.preventAutoHideAsync();
 
       try {
@@ -701,7 +728,48 @@ const App: React.FC = () => {
           <Stack.Screen
             name="ListaSincronizacoes"
             component={ListaSincronizacoes}
-            options={{ headerShown: false }}
+            options={{
+              presentation: 'transparentModal', 
+              animation: 'fade',
+              headerShown: false,
+              cardStyle: { backgroundColor: 'rgba(0,0,0,0.4)' }, 
+            }}
+          />
+
+          <Stack.Screen
+            name="PaginaSincronizacao"
+            component={PaginaSincronizacaoScreen}
+            options={{
+              animation: 'fade',
+              transitionSpec: {
+                open: { animation: 'timing', config: { duration: 350 } },
+                close: { animation: 'timing', config: { duration: 250 } },
+              },
+            }}
+          />
+          
+          <Stack.Screen
+            name="PaginaBasededados"
+            component={PaginaBasededadosScreen}
+            options={{
+              animation: 'fade',
+              transitionSpec: {
+                open: { animation: 'timing', config: { duration: 350 } },
+                close: { animation: 'timing', config: { duration: 250 } },
+              },
+            }}
+          />
+
+           <Stack.Screen
+            name="PaginaSobre"
+            component={PaginaSobreScreen}
+            options={{
+              animation: 'fade',
+              transitionSpec: {
+                open: { animation: 'timing', config: { duration: 350 } },
+                close: { animation: 'timing', config: { duration: 250 } },
+              },
+            }}
           />
 
         </Stack.Navigator>

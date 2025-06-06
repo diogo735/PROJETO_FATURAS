@@ -10,13 +10,14 @@ import {
   atualizarMovimentoAPI,
   deletarMovimentoAPI
 } from '../APIs/movimentos';
-
+import NetInfo from '@react-native-community/netinfo';
+import { buscarUsuarioAtual } from './user';
 import {
   criarSubCategoriaAPI,
   atualizarSubCategoriaAPI,
   deletarSubCategoriaAPI
 } from '../APIs/sub_categorias';
-
+import { baixarImagemParaLocal } from '../APIs/upload_imgbb';
 async function criarTabelaSincronizacoes() {
   const db = await CRIARBD();
   await db.execAsync(`
@@ -195,6 +196,59 @@ async function processarItemDeSincronizacao(item) {
         await deletarSubCategoriaAPI(remote_id);
       }
     }
+    else if (tipo === 'user') {
+      if (operacao === 'update') {
+        const userAtual = await buscarUsuarioAtual();
+        const token = userAtual?.token;
+
+        if (!token) {
+          throw new Error('Token não encontrado para sincronizar o usuário.');
+        }
+
+        let imagemUrl = dados.imagem;
+
+        // 📤 Se a imagem for local (não for link), faz upload para Imgur
+        if (imagemUrl && !imagemUrl.startsWith('http')) {
+          const urlUpload = await uploadImagemParaImgur(imagemUrl);
+          if (urlUpload) {
+            imagemUrl = urlUpload;
+          } else {
+            console.warn('⚠️ Falha no upload da imagem. Sincronização cancelada.');
+            return false; // ou jogar erro, conforme sua lógica
+          }
+        }
+
+        // Prepara payload final
+        const payload = {
+          nome: dados.nome,
+          ...(imagemUrl && { imagem: imagemUrl }),
+          ...(dados.password && {
+            password: dados.password,
+            password_confirmation: dados.password
+          })
+        };
+
+        const resposta = await fetch(`${API_BASE_URL}/perfil`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/json',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!resposta.ok) {
+          const texto = await resposta.text();
+          throw new Error(`Erro da API ao atualizar perfil: ${texto}`);
+        }
+
+        console.log('✅ Perfil do usuário sincronizado com sucesso.');
+      }
+
+    }
+
+
 
     // ✅ Remove da fila após sucesso
     await db.runAsync('DELETE FROM sincronizacoes WHERE id = ?', [id]);
@@ -266,6 +320,335 @@ async function listarSincronizacoesPendentes() {
 }
 
 
+const API_BASE_URL = 'https://faturas-backend.onrender.com/api';
+
+async function sincronizar_api_app_subcategorias() {
+  const estado = await NetInfo.fetch();
+  if (!estado.isConnected || !estado.isInternetReachable) {
+    console.warn('⚠️ Sem internet. Não é possível sincronizar com a API.');
+    return;
+  }
+
+  try {
+    const db = await CRIARBD();
+    const user = await buscarUsuarioAtual();
+
+    const resposta = await fetch(`${API_BASE_URL}/listar_categorias_user?updated_since=2020-01-01T00:00:00Z`, {
+      headers: {
+        'Authorization': `Bearer ${user.token}`,
+        'Accept': 'application/json'
+      }
+    });
+
+    const subcategoriasApi = await resposta.json();
+    if (!Array.isArray(subcategoriasApi)) {
+      console.log('ℹ️ Nenhuma subcategoria nova na API.');
+      return;
+    }
+    for (const sub of subcategoriasApi) {
+      const existente = await db.getFirstAsync(
+        `SELECT * FROM sub_categorias WHERE remote_id = ?`,
+        [sub.id]
+      );
+
+      const updatedApi = new Date(sub.updated_at);
+      const updatedLocal = existente ? new Date(existente.updated_at) : null;
+
+      if (!existente) {
+        // Inserir nova subcategoria
+        await db.runAsync(
+          `INSERT INTO sub_categorias 
+            (remote_id, nome_subcat, icone_nome, cor_subcat, categoria_id, updated_at, sync_status)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [sub.id, sub.nome_subcat, sub.icone_nome, sub.cor_subcat, sub.categoria_id, sub.updated_at, 'synced']
+        );
+        console.log('🆕 Subcategoria inserida da API → app:', sub.nome_subcat);
+      } else if (updatedApi > updatedLocal) {
+        // Atualizar subcategoria existente
+        await db.runAsync(
+          `UPDATE sub_categorias SET 
+            nome_subcat = ?, icone_nome = ?, cor_subcat = ?, categoria_id = ?, updated_at = ?, sync_status = ?
+           WHERE remote_id = ?`,
+          [sub.nome_subcat, sub.icone_nome, sub.cor_subcat, sub.categoria_id, sub.updated_at, 'synced', sub.id]
+        );
+        console.log('🔄 Subcategoria atualizada da API → app:', sub.nome_subcat);
+      } else {
+        console.log('✅ Subcategoria local já atualizada:', sub.nome_subcat);
+      }
+    }
+
+  } catch (error) {
+    console.error('❌ Erro ao sincronizar subcategorias da API → app:', error);
+    throw error;
+  }
+}
+async function sincronizar_api_app_movimentos() {
+  const estado = await NetInfo.fetch();
+  if (!estado.isConnected || !estado.isInternetReachable) {
+    console.warn('⚠️ Sem internet. Não é possível sincronizar com a API.');
+    return;
+  }
+
+  try {
+    const db = await CRIARBD();
+    const user = await buscarUsuarioAtual();
+
+    const resposta = await fetch(`${API_BASE_URL}/listar_movimentos_user?updated_since=2020-01-01T00:00:00Z`, {
+      headers: {
+        Authorization: `Bearer ${user.token}`,
+        Accept: 'application/json'
+      }
+    });
+
+    const conteudo = await resposta.json();
+    if (!Array.isArray(conteudo)) {
+      console.log('ℹ️ Nenhum movimento novo encontrado na API.');
+      return;
+    }
+
+    for (const mov of conteudo) {
+      const existente = await db.getFirstAsync(
+        `SELECT * FROM movimentos WHERE remote_id = ?`,
+        [mov.id]
+      );
+
+      const updatedApi = new Date(mov.updated_at);
+      const updatedLocal = existente ? new Date(existente.updated_at) : null;
+
+      if (!existente) {
+        await db.runAsync(
+          `INSERT INTO movimentos 
+            (remote_id, valor, data_movimento, categoria_id, sub_categoria_id, nota, updated_at, sync_status)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            mov.id,
+            parseFloat(mov.valor),
+            mov.data_movimento,
+            mov.categoria_id,
+            mov.sub_categoria_id,
+            mov.nota ?? null,
+            mov.updated_at,
+            'synced'
+          ]
+        );
+        console.log('🆕 Movimento inserido da API → app (ID remoto):', mov.id);
+      } else if (updatedApi > updatedLocal) {
+        await db.runAsync(
+          `UPDATE movimentos SET 
+            valor = ?, data_movimento = ?, categoria_id = ?, sub_categoria_id = ?, nota = ?, updated_at = ?, sync_status = ?
+           WHERE remote_id = ?`,
+          [
+            parseFloat(mov.valor),
+            mov.data_movimento,
+            mov.categoria_id,
+            mov.sub_categoria_id,
+            mov.nota ?? null,
+            mov.updated_at,
+            'synced',
+            mov.id
+          ]
+        );
+        console.log('🔄 Movimento atualizado da API → app (ID remoto):', mov.id);
+      } else {
+        console.log('✅ Movimento local já está atualizado:', mov.id);
+      }
+    }
+
+  } catch (error) {
+    console.error('❌ Erro ao sincronizar movimentos da API → app:', error);
+    throw error;
+  }
+}
+
+async function sincronizar_api_app_faturas() {
+  const estado = await NetInfo.fetch();
+  if (!estado.isConnected || !estado.isInternetReachable) {
+    console.warn('⚠️ Sem internet. Não é possível sincronizar com a API.');
+    return;
+  }
+
+  try {
+    const db = await CRIARBD();
+    const user = await buscarUsuarioAtual();
+
+    const resposta = await fetch(`${API_BASE_URL}/listar_faturas_user?updated_since=2020-01-01T00:00:00Z`, {
+      headers: {
+        Authorization: `Bearer ${user.token}`,
+        Accept: 'application/json'
+      }
+    });
+
+    const conteudo = await resposta.json();
+    if (!Array.isArray(conteudo)) {
+      console.log('ℹ️ Nenhuma fatura nova encontrada na API.');
+      return;
+    }
+
+    for (const fat of conteudo) {
+      // 📥 Baixa a imagem da fatura
+      const imagemLocal = fat.imagem_fatura
+        ? await baixarImagemParaLocal(fat.imagem_fatura)
+        : null;
+
+      const existente = await db.getFirstAsync(
+        `SELECT * FROM faturas WHERE remote_id = ?`,
+        [fat.id]
+      );
+
+      const updatedApi = new Date(fat.updated_at);
+      const updatedLocal = existente ? new Date(existente.updated_at) : null;
+
+      if (!existente) {
+        await db.runAsync(
+          `INSERT INTO faturas (
+            remote_id, movimento_id, tipo_documento, numero_fatura, codigo_ATCUD, data_fatura,
+            nif_emitente, nome_empresa, nif_cliente, descricao,
+            total_iva, total_final, imagem_fatura,
+            updated_at, sync_status
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            fat.id,
+            fat.movimento_id,
+            fat.tipo_documento,
+            fat.numero_fatura,
+            fat.codigo_ATCUD,
+            fat.data_fatura,
+            fat.nif_emitente,
+            fat.nome_empresa ?? 'Empresa',
+            fat.nif_cliente,
+            fat.descricao,
+            parseFloat(fat.total_iva),
+            parseFloat(fat.total_final),
+            imagemLocal,
+            fat.updated_at,
+            'synced'
+          ]
+        );
+        console.log('🆕 Fatura inserida da API → app (ID remoto):', fat.id);
+      } else if (updatedApi > updatedLocal) {
+        await db.runAsync(
+          `UPDATE faturas SET 
+            tipo_documento = ?, numero_fatura = ?, codigo_ATCUD = ?, data_fatura = ?,
+            nif_emitente = ?, nome_empresa = ?, nif_cliente = ?, descricao = ?,
+            total_iva = ?, total_final = ?, imagem_fatura = ?, updated_at = ?, sync_status = ?
+           WHERE remote_id = ?`,
+          [
+            fat.tipo_documento,
+            fat.numero_fatura,
+            fat.codigo_ATCUD,
+            fat.data_fatura,
+            fat.nif_emitente,
+            fat.nome_empresa ?? 'Empresa',
+            fat.nif_cliente,
+            fat.descricao,
+            parseFloat(fat.total_iva),
+            parseFloat(fat.total_final),
+            imagemLocal,
+            fat.updated_at,
+            'synced',
+            fat.id
+          ]
+        );
+        console.log('🔄 Fatura atualizada da API → app (ID remoto):', fat.id);
+      } else {
+        console.log('✅ Fatura local já está atualizada:', fat.id);
+      }
+    }
+
+  } catch (error) {
+    console.error('❌ Erro ao sincronizar faturas da API → app:', error);
+    throw error;
+  }
+}
+async function sincronizar_api_app_user() {
+  const estado = await NetInfo.fetch();
+  if (!estado.isConnected || !estado.isInternetReachable) {
+    console.warn('⚠️ Sem internet. Não é possível sincronizar o perfil.');
+    return;
+  }
+
+  try {
+    const db = await CRIARBD();
+    const user = await buscarUsuarioAtual();
+    const token = user?.token;
+
+    if (!token) throw new Error('Token do usuário não encontrado.');
+
+    const ultimaSync = user?.ultima_sincronizacao || new Date().toISOString();
+
+    const resposta = await fetch(`${API_BASE_URL}/perfil?updated_since=${encodeURIComponent(ultimaSync)}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+      }
+    });
+
+    const dados = await resposta.json();
+
+    if (dados?.mensagem) {
+      console.log('ℹ️ Nenhuma atualização de perfil.');
+      return;
+    }
+
+    const { nome, email, imagem, updated_at } = dados;
+    // 📥 Baixa a imagem para armazenamento local
+    const imagemLocal = imagem ? await baixarImagemParaLocal(imagem) : null;
+
+    await db.runAsync(`
+  UPDATE user SET 
+    nome = ?, email = ?, imagem = ?, ultima_sincronizacao = ?
+  WHERE id = ?
+`, [nome, email, imagemLocal, new Date().toISOString(), user.id]);
+
+
+    console.log('🔄 Perfil sincronizado com sucesso.');
+
+    console.log('✅ Perfil atualizado da API → app com imagem local:', imagemLocal);
+
+  } catch (error) {
+    console.error('❌ Erro ao sincronizar perfil do usuário:', error);
+    throw error;
+  }
+}
+
+
+async function sincronizarTudoApiParaApp() {
+  console.log('🔄 Iniciando sincronização API → App...');
+
+  try {
+    await sincronizar_api_app_user();
+    await sincronizar_api_app_subcategorias();
+    await sincronizar_api_app_movimentos();
+    await sincronizar_api_app_faturas();
+
+    console.log('✅ Sincronização completa da API → App.');
+  } catch (error) {
+    console.error('❌ Falha durante sincronização API → App:', error);
+    throw error; // ⬅️ importante para que o botão principal capte
+  }
+}
+
+
+async function sincronizarTudoAppParaApi() {
+  console.log('🚀 Iniciando sincronização App → API...');
+  const pendentes = await listarSincronizacoesPendentes();
+
+  if (pendentes.length === 0) {
+    console.log('✅ Nenhuma sincronização pendente.');
+    return;
+  }
+
+  for (const item of pendentes) {
+    const sucesso = await processarItemDeSincronizacao(item);
+    if (!sucesso) {
+      console.warn(`⛔ Falha ao processar item da fila (ID ${item.id})`);
+      // opcional: parar ou continuar com os próximos
+    }
+  }
+
+  console.log('✅ Sincronização App → API concluída.');
+}
+
 export {
   criarTabelaSincronizacoes,
   adicionarNaFila,
@@ -273,6 +656,7 @@ export {
   listarSincronizacoes,
   limparFilaDeSincronizacao,
   atualizarPayloadCreateNaFila,
-  listarSincronizacoesPendentes
-
+  listarSincronizacoesPendentes,
+  sincronizarTudoApiParaApp,
+  sincronizarTudoAppParaApi
 };

@@ -1,5 +1,6 @@
 import axios from 'axios';
 import RNFS from 'react-native-fs';
+import * as FileSystem from 'expo-file-system';
 
 const API_KEY_IMGBB = '8c4f7e3077638667f7472db63018a6e1';
 export async function uploadImagemParaImgBB(uri: string): Promise<string | null> {
@@ -43,7 +44,7 @@ export async function uploadImagemParaImgur(uri: string): Promise<string | null>
     } as any);
     formData.append('type', 'file');
 
-    
+
 
     const response = await axios.post('https://api.imgur.com/3/image', formData, {
       headers: {
@@ -62,6 +63,22 @@ export async function uploadImagemParaImgur(uri: string): Promise<string | null>
     }
   } catch (err: any) {
     console.error('🚨 Erro no upload:', err.message, err.response?.data);
+    return null;
+  }
+}
+export async function baixarImagemParaLocal(urlImagemRemota: string): Promise<string | null> {
+  try {
+    const nomeArquivo = urlImagemRemota.split('/').pop();
+    const caminhoLocal = `${FileSystem.documentDirectory}${nomeArquivo}`;
+
+    const existe = await FileSystem.getInfoAsync(caminhoLocal);
+    if (!existe.exists) {
+      const download = await FileSystem.downloadAsync(urlImagemRemota, caminhoLocal);
+      return download.uri;
+    }
+    return caminhoLocal;
+  } catch (error) {
+    console.error('❌ Erro ao baixar imagem da fatura:', error);
     return null;
   }
 }

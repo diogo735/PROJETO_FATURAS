@@ -5,6 +5,7 @@ import NetInfo from '@react-native-community/netinfo';
 import { criarMovimentoAPI, atualizarMovimentoAPI } from '../APIs/movimentos';
 import { adicionarNaFila } from './sincronizacao';
 import { atualizarPayloadCreateNaFila } from './sincronizacao';
+import { buscarUsuarioAtual } from './user';
 
 async function criarTabelaMovimentos() {
 
@@ -49,9 +50,18 @@ async function inserirMovimento(valor, data_movimento, categoria_id, sub_categor
   };
 
   try {
-    const estado = await NetInfo.fetch();
+    // 🎯 Preferências do usuário
+    const user = await buscarUsuarioAtual();
+    const syncAuto = user?.sincronizacao_automatica === 1;
+    const wifiOnly = user?.sincronizacao_wifi === 1;
 
-    if (estado.isConnected && estado.isInternetReachable) {
+    const estado = await NetInfo.fetch();
+    const estaOnline = estado.isConnected && estado.isInternetReachable;
+    const usandoWifi = estado.type === 'wifi';
+
+    const podeSincronizarAgora = syncAuto && estaOnline && (!wifiOnly || usandoWifi);
+
+    if (podeSincronizarAgora) {
       try {
         // Envia para API
         const movimentoRemoto = await criarMovimentoAPI(movimentoLocal);
@@ -138,10 +148,18 @@ async function atualizarMovimento(id, { nota, categoria_id, sub_categoria_id }) 
 
 
 
-    // 3. Verifica se está online
-    const estado = await NetInfo.fetch();
+     // 4. Verifica preferências do usuário
+    const user = await buscarUsuarioAtual();
+    const syncAuto = user?.sincronizacao_automatica === 1;
+    const wifiOnly = user?.sincronizacao_wifi === 1;
 
-    if (estado.isConnected && estado.isInternetReachable) {
+    const estado = await NetInfo.fetch();
+    const estaOnline = estado.isConnected && estado.isInternetReachable;
+    const usandoWifi = estado.type === 'wifi';
+
+    const podeSincronizarAgora = syncAuto && estaOnline && (!wifiOnly || usandoWifi);
+
+    if (podeSincronizarAgora) {
       try {
         let subCategoriaRemoteId = null;
 
@@ -658,6 +676,17 @@ async function listarMovimentosPorCategoriaMesAno(categoriaId, mes, ano) {
   }
 }
 
+async function buscarMovimentosEntreDatas(dataInicio, dataFim) {
+  const db = await CRIARBD();
+  const movimentos = await db.getAllAsync(`
+    SELECT * FROM movimentos 
+    WHERE date(data_movimento) BETWEEN date(?) AND date(?) 
+  `, [dataInicio, dataFim]);
+  return movimentos;
+}
+
+
+
 export {
   criarTabelaMovimentos,
   inserirMovimento,
@@ -678,7 +707,8 @@ export {
   obterSomaMovimentosPorIntervaloFormatado,
   obterSomaMovimentosPorSubCategoriaEMes,
   listarMovimentosPorCategoriaMesAno,
-  atualizarMovimento
+  atualizarMovimento,
+  buscarMovimentosEntreDatas
 
 
 

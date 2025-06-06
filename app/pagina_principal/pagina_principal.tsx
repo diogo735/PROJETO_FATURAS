@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Image, StyleSheet, Alert } from 'react-native';
+import { View, Text, Image, StyleSheet, Alert, TouchableOpacity } from 'react-native';
 import NavbarPaginaPrincipal from './componentes/navbar_pagprincipal';
 import SaldoWidget from '../pagina_principal/componentes/saldo_widget';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -8,8 +8,9 @@ import Animated, { useSharedValue, useAnimatedStyle, withTiming, runOnJS } from 
 import UltimosMovimentos from './componentes/ultimos_moviemtos/ultimos_moviemntos';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useCallback } from 'react';
-import ModalSincronizacao from './componentes/modal_sincronizar_alteracoes';
+
 import { BackHandler } from 'react-native';
+import Modal from 'react-native-modal';
 
 import { ScrollView } from 'react-native';
 const { width, height } = Dimensions.get('window');
@@ -46,6 +47,7 @@ interface Movimento {
 import { RouteProp, useRoute } from '@react-navigation/native';
 import { buscarUsuarioAtual } from '../../BASEDEDADOS/user';
 import { listarSincronizacoesPendentes } from '../../BASEDEDADOS/sincronizacao';
+
 
 
 
@@ -247,18 +249,12 @@ const Pagina_principal: React.FC = () => {
 
 
 
-
-
-
-
-
-
-
-return (
-  <>
+  return (
     <Animated.View style={[styles.corpo, estiloAnimado]}>
       <NavbarPaginaPrincipal
-        onPressConfig={() => setMostrarModalSync(true)}
+        onPressConfig={() => {
+          navigation.navigate('ListaSincronizacoes', { quantidade: sincronizacoesPendentes });
+        }}
         nome={nomeUsuario}
         foto={
           fotoUsuario
@@ -269,6 +265,7 @@ return (
         hasNotificacoesNovas={hasNotificacoesNovas}
         conteudo={sincronizacoesPendentes > 9 ? '!' : sincronizacoesPendentes > 0 ? String(sincronizacoesPendentes) : ''}
       />
+
 
       <ScrollView
         style={styles.scrollView}
@@ -283,8 +280,11 @@ return (
           />
         }
       >
+
         <SaldoWidget saldoTotal={saldoMensal} mesAtual={nomeMes} />
 
+
+        {/**/}
         <View style={styles.containerGrafico}>
           {dadosGrafico.length > 0 ? (
             <Grafico_Circular
@@ -292,9 +292,16 @@ return (
               tipoSelecionado={tipoSelecionado}
             />
           ) : (
-            <Grafico_CircularVazio tipoSelecionado={tipoSelecionado} />
+            <Grafico_CircularVazio
+              tipoSelecionado={tipoSelecionado}
+            />
           )}
         </View>
+
+
+
+
+
 
         <Botoes
           tipoSelecionado={tipoSelecionado}
@@ -304,25 +311,14 @@ return (
         />
 
         <UltimosMovimentos movimentos={movimentosRecentes} />
+
+
+
       </ScrollView>
+
     </Animated.View>
-<ModalSincronizacao
-  visivel={mostrarModalSync}
-  aoCancelar={() => setMostrarModalSync(false)}
-  aoConfirmar={() => {
-    setMostrarModalSync(false);
-    console.log('Sincronizar agora...');
-  }}
-  quantidade={sincronizacoesPendentes}
-  style={{ justifyContent: 'center', alignItems: 'center' }} // agora funciona!
-/>
-
-    {/* Modal FORA do bloco principal */}
-    
-  </>
-);
+  );
 };
-
 
 const styles = StyleSheet.create({
   corpo: {
@@ -335,6 +331,7 @@ const styles = StyleSheet.create({
   scrollContainer: {
     alignItems: 'center',
     paddingBottom: height * 0.16,
+
   },
   conteudo: {
     justifyContent: 'center',
@@ -344,12 +341,14 @@ const styles = StyleSheet.create({
     width: '95%', // Ocupa toda a largura da tela
     alignItems: 'center', // Centraliza o conteúdo horizontalmente
     justifyContent: 'flex-start',
-    //backgroundColor: '#ADD8E6', // Azul claro como fundo
+
   },
+
+
 
 });
 
- 
+
 
 
 /////////////////////////////////////////////////////////////////////////////////

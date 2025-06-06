@@ -5,6 +5,7 @@ import NetInfo from '@react-native-community/netinfo';
 import { criarFaturaAPI, atualizarFaturaAPI } from '../APIs/faturas';
 import { adicionarNaFila } from './sincronizacao';
 import { atualizarPayloadCreateNaFila } from './sincronizacao';
+import { buscarUsuarioAtual } from './user';
 
 async function criarTabelaFaturas() {
   try {
@@ -113,9 +114,18 @@ async function inserirFatura({
       updated_at
     };
 
-    const estado = await NetInfo.fetch();
+     // 🎯 Preferências do usuário
+    const user = await buscarUsuarioAtual();
+    const syncAuto = user?.sincronizacao_automatica === 1;
+    const wifiOnly = user?.sincronizacao_wifi === 1;
 
-    if (estado.isConnected && estado.isInternetReachable) {
+    const estado = await NetInfo.fetch();
+    const estaOnline = estado.isConnected && estado.isInternetReachable;
+    const usandoWifi = estado.type === 'wifi';
+
+    const podeSincronizarAgora = syncAuto && estaOnline && (!wifiOnly || usandoWifi);
+
+    if (podeSincronizarAgora) {
       try {
         const faturaRemota = await criarFaturaAPI(fatura);
         const remoteId = faturaRemota?.id;
@@ -206,11 +216,18 @@ async function atualizarFatura(id, novaDescricao) {
       return true;
     }
 
-    // será sincronizada depois como 'create'
+    // 🎯 Verifica preferências do usuário
+    const user = await buscarUsuarioAtual();
+    const syncAuto = user?.sincronizacao_automatica === 1;
+    const wifiOnly = user?.sincronizacao_wifi === 1;
 
     const estado = await NetInfo.fetch();
+    const estaOnline = estado.isConnected && estado.isInternetReachable;
+    const usandoWifi = estado.type === 'wifi';
 
-    if (estado.isConnected && estado.isInternetReachable) {
+    const podeSincronizarAgora = syncAuto && estaOnline && (!wifiOnly || usandoWifi);
+
+    if (podeSincronizarAgora) {
       try {
         // Envia update para a API
         await atualizarFaturaAPI(fatura.remote_id, {
@@ -427,6 +444,20 @@ async function atualizarMovimentoPorFatura(faturaId, novaDescricao, categoriaId 
   }
 }
 
+async function buscarFaturasPorMovimentos(movimentoIds) {
+  const db = await CRIARBD();
+
+  if (movimentoIds.length === 0) return [];
+
+  const placeholders = movimentoIds.map(() => '?').join(', ');
+  const faturas = await db.getAllAsync(`
+    SELECT * FROM faturas 
+    WHERE movimento_id IN (${placeholders})
+  `, movimentoIds);
+  return faturas;
+}
+
+
 
 
 export {
@@ -436,6 +467,5 @@ export {
   consultarFatura,
   atualizarMovimentoPorFatura,
   verificarFaturaPorATCUD,
-
-
+  buscarFaturasPorMovimentos
 };

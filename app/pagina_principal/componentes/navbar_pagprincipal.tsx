@@ -15,6 +15,7 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import Svg, { G } from 'react-native-svg'; // se usar SVG direto
+import { buscarUsuarioAtual } from '../../../BASEDEDADOS/user';
 
 const NavbarPaginaPrincipal = ({
   nome,
@@ -35,7 +36,16 @@ const NavbarPaginaPrincipal = ({
   const [saudacao, setSaudacao] = useState('');
   const opacidade = useSharedValue(0);
   const escala = useSharedValue(0.8);
+const [syncAutoDesativada, setSyncAutoDesativada] = useState(false);
 
+useEffect(() => {
+  const verificarPreferencias = async () => {
+    const user = await buscarUsuarioAtual();
+    setSyncAutoDesativada(user?.sincronizacao_automatica === 0);
+  };
+
+  verificarPreferencias();
+}, []);
 
   const atualizarSaudacao = () => {
     const hora = new Date().getHours();
@@ -111,7 +121,7 @@ const NavbarPaginaPrincipal = ({
         {/* Botão de Notificação */}
         <View style={{ flexDirection: 'row', gap: 20 }}>
           {/* Botão de Configurações */}
-          {conteudo !== '' && (
+          {syncAutoDesativada && conteudo !== '' && (
             <TouchableOpacity style={styles.notificationButton} onPress={onPressConfig}>
               <View style={{ position: 'relative' }}>
                 <Animated.View style={estiloAnimado}>
@@ -157,7 +167,7 @@ const styles = StyleSheet.create({
     height: height * 0.09,
     width: width,
     paddingHorizontal: width * 0.025,
-
+    zIndex: 0,
   },
   header: {
     flexDirection: 'row',

@@ -38,7 +38,7 @@ TaskManager.defineTask(TASK_NAME, async () => {
     }
 
     return BackgroundFetch.BackgroundFetchResult.NewData;
-;
+    ;
   } catch (error) {
     console.error('Erro no background:', error);
     return BackgroundFetch.BackgroundFetchResult.Failed;

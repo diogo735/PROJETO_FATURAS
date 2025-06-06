@@ -1,7 +1,7 @@
 import { CRIARBD } from './databaseInstance';
 import NetInfo from '@react-native-community/netinfo';
 import { adicionarNaFila } from './sincronizacao';
-
+import { buscarUsuarioAtual } from './user';
 import { criarSubCategoriaAPI } from '../APIs/sub_categorias';
 import { atualizarSubCategoriaAPI, deletarSubCategoriaAPI } from '../APIs/sub_categorias';
 
@@ -67,9 +67,22 @@ async function inserirSubCategoria(nome_subcat, icone_nome, cor_subcat, categori
     );
     if (catExistente) return 'duplicada_categoria';
 
-    const estado = await NetInfo.fetch();
+    // Preferências do usuário
+    const user = await buscarUsuarioAtual();
+    const syncAuto = user?.sincronizacao_automatica === 1;
+    const wifiOnly = user?.sincronizacao_wifi === 1;
 
-    if (estado.isConnected && estado.isInternetReachable) {
+    // Estado de conexão
+    const estado = await NetInfo.fetch();
+    const estaOnline = estado.isConnected && estado.isInternetReachable;
+    const usandoWifi = estado.type === 'wifi';
+
+    const podeSincronizarAgora = syncAuto && estaOnline && (!wifiOnly || usandoWifi);
+
+
+
+
+    if (podeSincronizarAgora) {
       try {
         // Tenta enviar direto para a API
         const subcat = await criarSubCategoriaAPI({
@@ -256,9 +269,18 @@ async function atualizarSubCategoriaComVerificacao(id, nome_subcat, icone_nome, 
 
 
 
-    const estado = await NetInfo.fetch();
+    // 🎯 Preferências do usuário
+    const user = await buscarUsuarioAtual();
+    const syncAuto = user?.sincronizacao_automatica === 1;
+    const wifiOnly = user?.sincronizacao_wifi === 1;
 
-    if (estado.isConnected && estado.isInternetReachable) {
+    const estado = await NetInfo.fetch();
+    const estaOnline = estado.isConnected && estado.isInternetReachable;
+    const usandoWifi = estado.type === 'wifi';
+
+    const podeSincronizarAgora = syncAuto && estaOnline && (!wifiOnly || usandoWifi);
+
+    if (podeSincronizarAgora) {
       try {
         // Envia PUT para a API
         const subcatAtualizada = await atualizarSubCategoriaAPI(subcatAtual.remote_id, {
@@ -417,10 +439,20 @@ async function eliminarSubCategoriaEAtualizarMovimentos(idSubcategoria) {
       await apagarMeta(meta.id_meta);
     }
 
-    // 4. Verifica se está online
-    const estado = await NetInfo.fetch();
+    // 3. Verificar preferências do usuário
+    const user = await buscarUsuarioAtual();
+    const syncAuto = user?.sincronizacao_automatica === 1;
+    const wifiOnly = user?.sincronizacao_wifi === 1;
 
-    if (estado.isConnected && estado.isInternetReachable) {
+    const estado = await NetInfo.fetch();
+    const estaOnline = estado.isConnected && estado.isInternetReachable;
+    const usandoWifi = estado.type === 'wifi';
+
+    const podeSincronizarAgora = syncAuto && estaOnline && (!wifiOnly || usandoWifi);
+
+    // 4. Processamento baseado nas condições
+
+    if (podeSincronizarAgora) {
       try {
         if (remote_id) {
           // ✅ Se já foi sincronizada, deletar da API

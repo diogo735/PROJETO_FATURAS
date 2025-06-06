@@ -119,7 +119,7 @@ const handleLogout = async () => {
                 source={IconApplication}
                 style={styles.iconePNG}
               />
-              <Text style={styles.textoItem}>Minhas Categorias</Text>
+              <Text style={styles.textoItem}>As Minhas Categorias</Text>
             </View>
             <SetaDireita width={16} height={16} />
           </TouchableOpacity>
@@ -130,7 +130,7 @@ const handleLogout = async () => {
                 source={IconBell}
                 style={styles.iconePNG}
               />
-              <Text style={styles.textoItem}>Minhas Notificações</Text>
+              <Text style={styles.textoItem}>As Minhas Notificações</Text>
             </View>
             <SetaDireita width={16} height={16} />
           </TouchableOpacity>
@@ -147,7 +147,7 @@ const handleLogout = async () => {
             <SetaDireita width={16} height={16} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.botaoItem} onPress={() => Alert.alert("Editar perfil")}>
+          <TouchableOpacity style={styles.botaoItem} onPress={() => navigation.navigate('PaginaSincronizacao')}>
             <View style={styles.itemEsquerda}>
               <Image
                 source={IconCloud}
@@ -158,24 +158,13 @@ const handleLogout = async () => {
             <SetaDireita width={16} height={16} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.botaoItem} onPress={() => Alert.alert("Editar perfil")}>
+          <TouchableOpacity style={styles.botaoItem} onPress={() => navigation.navigate('PaginaBasededados')}>
             <View style={styles.itemEsquerda}>
               <Image
                 source={IconServer}
                 style={styles.iconePNG}
               />
               <Text style={styles.textoItem}>Base de dados</Text>
-            </View>
-            <SetaDireita width={16} height={16} />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.botaoItem} onPress={() => Alert.alert("Editar perfil")}>
-            <View style={styles.itemEsquerda}>
-              <Image
-                source={IconDrive}
-                style={styles.iconePNG}
-              />
-              <Text style={styles.textoItem}>Google Drive(sais)</Text>
             </View>
             <SetaDireita width={16} height={16} />
           </TouchableOpacity>
@@ -203,7 +192,7 @@ const handleLogout = async () => {
             <SetaDireita width={16} height={16} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.botaoItem} onPress={() => Alert.alert("Editar perfil")}>
+          <TouchableOpacity style={styles.botaoItem} onPress={() => navigation.navigate('PaginaSobre')}>
             <View style={styles.itemEsquerda}>
               <Image
                 source={IconAbout}

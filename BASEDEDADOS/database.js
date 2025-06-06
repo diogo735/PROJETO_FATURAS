@@ -71,5 +71,34 @@ async function inicializarBaseDeDados() {
   }
 }
 
+export async function contarCategorias() {
+  const db = await CRIARBD();
+  const result = await db.getFirstAsync(`SELECT COUNT(*) as total FROM categorias`);
+  return result?.total || 0;
+}
+
+export async function contarSubCategorias() {
+  const db = await CRIARBD();
+  const result = await db.getFirstAsync(`SELECT COUNT(*) as total FROM sub_categorias`);
+  return result?.total || 0;
+}
+
+export async function contarMetas() {
+  const db = await CRIARBD();
+  const result = await db.getFirstAsync(`SELECT COUNT(*) as total FROM metas`);
+  return result?.total || 0;
+}
+
+export async function contarMovimentos() {
+  const db = await CRIARBD();
+  const result = await db.getFirstAsync(`SELECT COUNT(*) as total FROM movimentos`);
+  return result?.total || 0;
+}
+
+export async function contarFaturas() {
+  const db = await CRIARBD();
+  const result = await db.getFirstAsync(`SELECT COUNT(*) as total FROM faturas`);
+  return result?.total || 0;
+}
 
 export { inicializarBaseDeDados };

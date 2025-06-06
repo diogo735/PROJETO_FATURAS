@@ -63,7 +63,7 @@ const PaginaNotificacoesMinhas = () => {
                         <MaterialIcons name="arrow-back" size={scale(24)} color="#fff" />
                     </TouchableOpacity>
 
-                    <Text style={styles.headerTitle}>Minhas Notificações</Text>
+                    <Text style={styles.headerTitle}>As Minhas Notificações</Text>
                 </View>
                 <TouchableOpacity onPress={() => navigation.navigate('CriarNotificacao')}
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
