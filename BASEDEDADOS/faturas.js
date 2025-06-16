@@ -6,6 +6,7 @@ import { criarFaturaAPI, atualizarFaturaAPI } from '../APIs/faturas';
 import { adicionarNaFila } from './sincronizacao';
 import { atualizarPayloadCreateNaFila } from './sincronizacao';
 import { buscarUsuarioAtual } from './user';
+import { obterFaturasAtualizadas } from '../APIs/faturas';
 
 async function criarTabelaFaturas() {
   try {
@@ -114,7 +115,7 @@ async function inserirFatura({
       updated_at
     };
 
-     // 🎯 Preferências do usuário
+    // 🎯 Preferências do usuário
     const user = await buscarUsuarioAtual();
     const syncAuto = user?.sincronizacao_automatica === 1;
     const wifiOnly = user?.sincronizacao_wifi === 1;
@@ -191,7 +192,7 @@ async function salvarFaturaLocalEPendencia(fatura, db) {
     ]
   );
 
-await adicionarNaFila('faturas', 'create', { ...fatura, id: result.lastInsertRowId });
+  await adicionarNaFila('faturas', 'create', { ...fatura, id: result.lastInsertRowId });
   return result.lastInsertRowId;
 }
 async function atualizarFatura(id, novaDescricao) {
@@ -457,6 +458,93 @@ async function buscarFaturasPorMovimentos(movimentoIds) {
   return faturas;
 }
 
+async function sincronizarFaturasAPI() {
+  try {
+    const db = await CRIARBD();
+
+    const maisRecente = await db.getFirstAsync(`
+      SELECT updated_at FROM faturas
+      ORDER BY datetime(updated_at) DESC
+      LIMIT 1
+    `);
+    const updated_since = maisRecente?.updated_at || '2025-01-01T00:00:00Z';
+
+    const faturasRemotas = await obterFaturasAtualizadas(updated_since);
+    if (!Array.isArray(faturasRemotas)) {
+      console.warn('⚠️ faturasRemotas não é um array:', faturasRemotas);
+      return;
+    }
+
+    for (const fat of faturasRemotas) {
+      // 🔍 Buscar o movimento local correspondente ao remote_id da API
+      const movLocal = await db.getFirstAsync(`SELECT id FROM movimentos WHERE remote_id = ?`, [fat.movimento_id]);
+      if (!movLocal) {
+        console.warn(`⚠️ Movimento com remote_id=${fat.movimento_id} não encontrado localmente. Ignorando fatura id=${fat.id}`);
+        continue; // ignora esta fatura se o movimento não existir localmente
+      }
+      const movimentoIdLocal = movLocal.id;
+
+      const local = await db.getFirstAsync(`SELECT * FROM faturas WHERE remote_id = ?`, [fat.id]);
+
+      if (local) {
+        const remotoMaisNovo = new Date(fat.updated_at) > new Date(local.updated_at);
+        if (remotoMaisNovo) {
+          await db.runAsync(`
+            UPDATE faturas
+            SET tipo_documento = ?, numero_fatura = ?, codigo_ATCUD = ?, data_fatura = ?, nif_emitente = ?,
+                nome_empresa = ?, nif_cliente = ?, descricao = ?, total_iva = ?, total_final = ?, imagem_fatura = ?,
+                updated_at = ?, sync_status = ?, movimento_id = ?
+            WHERE remote_id = ?
+          `, [
+            fat.tipo_documento,
+            fat.numero_fatura,
+            fat.codigo_ATCUD,
+            fat.data_fatura,
+            fat.nif_emitente,
+            fat.nome_empresa,
+            fat.nif_cliente,
+            fat.descricao,
+            fat.total_iva,
+            fat.total_final,
+            fat.imagem_fatura,
+            fat.updated_at,
+            'synced',
+            movimentoIdLocal, // atualiza também o movimento_id
+            fat.id
+          ]);
+        }
+      } else {
+        await db.runAsync(`
+          INSERT INTO faturas (
+            remote_id, movimento_id, tipo_documento, numero_fatura, codigo_ATCUD, data_fatura,
+            nif_emitente, nome_empresa, nif_cliente, descricao,
+            total_iva, total_final, imagem_fatura, updated_at, sync_status
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [
+          fat.id,
+          movimentoIdLocal,
+          fat.tipo_documento,
+          fat.numero_fatura,
+          fat.codigo_ATCUD,
+          fat.data_fatura,
+          fat.nif_emitente,
+          fat.nome_empresa,
+          fat.nif_cliente,
+          fat.descricao,
+          fat.total_iva,
+          fat.total_final,
+          fat.imagem_fatura,
+          fat.updated_at,
+          'synced'
+        ]);
+      }
+    }
+
+    console.log(`🔄 Sincronização de faturas concluída: ${faturasRemotas.length} registros.`);
+  } catch (error) {
+    console.error('❌ Erro ao sincronizar faturas:', error.message);
+  }
+}
 
 
 
@@ -467,5 +555,6 @@ export {
   consultarFatura,
   atualizarMovimentoPorFatura,
   verificarFaturaPorATCUD,
-  buscarFaturasPorMovimentos
+  buscarFaturasPorMovimentos,
+  sincronizarFaturasAPI
 };

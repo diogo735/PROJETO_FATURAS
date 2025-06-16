@@ -4,6 +4,7 @@ import { adicionarNaFila } from './sincronizacao';
 import { buscarUsuarioAtual } from './user';
 import { criarSubCategoriaAPI } from '../APIs/sub_categorias';
 import { atualizarSubCategoriaAPI, deletarSubCategoriaAPI } from '../APIs/sub_categorias';
+import { obterSubCategoriasAtualizadas } from '../APIs/sub_categorias';
 
 async function criarTabelaSubCategorias() {
   try {
@@ -509,6 +510,65 @@ async function eliminarSubCategoriaEAtualizarMovimentos(idSubcategoria) {
   }
 }
 
+async function sincronizarSubcategoriasAPI() {
+  try {
+    const db = await CRIARBD();
+
+    const maisRecente = await db.getFirstAsync(`
+      SELECT updated_at FROM sub_categorias
+      ORDER BY datetime(updated_at) DESC
+      LIMIT 1
+    `);
+    const updated_since = maisRecente?.updated_at || '2025-01-01T00:00:00Z';
+
+    const subcatsRemotas = await obterSubCategoriasAtualizadas(updated_since);
+    if (!Array.isArray(subcatsRemotas)) {
+      console.warn('⚠️ subcatsRemotas não é um array:', subcatsRemotas);
+      return;
+    }
+
+    for (const sub of subcatsRemotas) {
+      const local = await db.getFirstAsync(`SELECT * FROM sub_categorias WHERE remote_id = ?`, [sub.id]);
+
+      if (local) {
+        const remotoMaisNovo = new Date(sub.updated_at) > new Date(local.updated_at);
+        if (remotoMaisNovo) {
+          await db.runAsync(`
+            UPDATE sub_categorias
+            SET nome_subcat = ?, icone_nome = ?, cor_subcat = ?, categoria_id = ?, updated_at = ?, sync_status = ?
+            WHERE remote_id = ?
+          `, [
+            sub.nome_subcat,
+            sub.icone_nome,
+            sub.cor_subcat,
+            sub.categoria_id,
+            sub.updated_at,
+            'synced',
+            sub.id
+          ]);
+        }
+      } else {
+        await db.runAsync(`
+          INSERT INTO sub_categorias (
+            remote_id, nome_subcat, icone_nome, cor_subcat, categoria_id, updated_at, sync_status
+          ) VALUES (?, ?, ?, ?, ?, ?, ?)
+        `, [
+          sub.id,
+          sub.nome_subcat,
+          sub.icone_nome,
+          sub.cor_subcat,
+          sub.categoria_id,
+          sub.updated_at,
+          'synced'
+        ]);
+      }
+    }
+
+    console.log(`🔄 Sincronização de subcategorias concluída: ${subcatsRemotas.length} registros.`);
+  } catch (error) {
+    console.error('❌ Erro ao sincronizar subcategorias:', error.message);
+  }
+}
 
 export {
   criarTabelaSubCategorias,
@@ -521,5 +581,6 @@ export {
   criarSubCategoriasDeTeste,
   eliminarSubCategoriaEAtualizarMovimentos,
   listarSubCategoriasPorCategoriaId,
-  salvarLocalEPendencia
+  salvarLocalEPendencia,
+  sincronizarSubcategoriasAPI
 };

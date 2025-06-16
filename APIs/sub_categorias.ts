@@ -16,11 +16,19 @@ export const obterSubCategoriasAtualizadas = async (updated_since: string) => {
     },
   });
 
-  if (!response.ok) {
-    throw new Error('Erro ao buscar subcategorias');
+  if (!response.ok) throw new Error('Erro ao buscar subcategorias');
+
+  const json = await response.json();
+
+  if (Array.isArray(json)) {
+    return json;
   }
 
-  return await response.json();
+  if (Array.isArray(json.data)) {
+    return json.data;
+  }
+
+  return [];
 };
 
 // POST: Criar nova subcategoria

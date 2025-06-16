@@ -6,7 +6,10 @@ import { criarMovimentoAPI, atualizarMovimentoAPI } from '../APIs/movimentos';
 import { adicionarNaFila } from './sincronizacao';
 import { atualizarPayloadCreateNaFila } from './sincronizacao';
 import { buscarUsuarioAtual } from './user';
+import {
+  obterMovimentosAtualizados
 
+} from '../APIs/movimentos';
 async function criarTabelaMovimentos() {
 
 
@@ -105,7 +108,7 @@ async function salvarMovimentoLocalEPendencia(movimento, db) {
     [valor, data_movimento, categoria_id, sub_categoria_id, nota, updated_at, 'pending']
   );
 
- await adicionarNaFila('movimentos', 'create', { ...movimento, id: result.lastInsertRowId });
+  await adicionarNaFila('movimentos', 'create', { ...movimento, id: result.lastInsertRowId });
 
 
   await atualizarMeta(valor, categoria_id, data_movimento, db);
@@ -148,7 +151,7 @@ async function atualizarMovimento(id, { nota, categoria_id, sub_categoria_id }) 
 
 
 
-     // 4. Verifica preferências do usuário
+    // 4. Verifica preferências do usuário
     const user = await buscarUsuarioAtual();
     const syncAuto = user?.sincronizacao_automatica === 1;
     const wifiOnly = user?.sincronizacao_wifi === 1;
@@ -684,7 +687,72 @@ async function buscarMovimentosEntreDatas(dataInicio, dataFim) {
   `, [dataInicio, dataFim]);
   return movimentos;
 }
+async function sincronizarMovimentosAPI() {
+  try {
+    const db = await CRIARBD();
 
+    // 1. Buscar o movimento local mais recente
+    const maisRecente = await db.getFirstAsync(`
+      SELECT updated_at FROM movimentos
+      ORDER BY datetime(updated_at) DESC
+      LIMIT 1
+    `);
+    const updated_since = maisRecente?.updated_at || '2025-01-01T00:00:00Z';
+
+    // 2. Buscar movimentos atualizados da API desde essa data
+    const movimentosRemotos = await obterMovimentosAtualizados(updated_since);
+
+    if (!Array.isArray(movimentosRemotos)) {
+      console.warn('⚠️ movimentosRemotos NÃO é um array. Abortando sincronização.');
+      return;
+    }
+    for (const mov of movimentosRemotos) {
+      const movimentoLocal = await db.getFirstAsync(`SELECT * FROM movimentos WHERE remote_id = ?`, [mov.id]);
+
+      if (movimentoLocal) {
+        // 🟡 Já existe localmente → comparar e atualizar se o remoto for mais novo
+        const remotoMaisNovo = new Date(mov.updated_at) > new Date(movimentoLocal.updated_at);
+        if (remotoMaisNovo) {
+          await db.runAsync(`
+            UPDATE movimentos
+            SET valor = ?, data_movimento = ?, categoria_id = ?, sub_categoria_id = ?, nota = ?, updated_at = ?, sync_status = ?
+            WHERE remote_id = ?
+          `, [
+            mov.valor,
+            mov.data_movimento,
+            mov.categoria_id,
+            mov.sub_categoria_id,
+            mov.nota,
+            mov.updated_at,
+            'synced',
+            mov.id
+          ]);
+        }
+      } else {
+        // 🟢 Não existe localmente → inserir
+        await db.runAsync(`
+          INSERT INTO movimentos (
+            remote_id, valor, data_movimento, categoria_id, sub_categoria_id, nota, updated_at, sync_status
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `, [
+          mov.id,
+          mov.valor,
+          mov.data_movimento,
+          mov.categoria_id,
+          mov.sub_categoria_id,
+          mov.nota,
+          mov.updated_at,
+          'synced'
+        ]);
+      }
+    }
+
+    console.log(`🔄 Sincronização de movimentos concluída: ${movimentosRemotos.length} registros processados.`);
+
+  } catch (error) {
+    console.error('❌ Erro ao sincronizar movimentos:', error.message);
+  }
+}
 
 
 export {
@@ -708,7 +776,8 @@ export {
   obterSomaMovimentosPorSubCategoriaEMes,
   listarMovimentosPorCategoriaMesAno,
   atualizarMovimento,
-  buscarMovimentosEntreDatas
+  buscarMovimentosEntreDatas,
+  sincronizarMovimentosAPI
 
 
 

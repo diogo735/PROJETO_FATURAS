@@ -17,7 +17,18 @@ export const obterMovimentosAtualizados = async (updated_since: string) => {
 
   if (!response.ok) throw new Error('Erro ao buscar movimentos');
 
-  return await response.json();
+  const json = await response.json();
+
+
+  if (Array.isArray(json)) {
+    return json;
+  }
+
+  if (Array.isArray(json.data)) {
+    return json.data;
+  }
+
+  return []; 
 };
 
 // POST: Criar movimento

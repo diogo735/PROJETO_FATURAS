@@ -88,6 +88,26 @@ const Pagina_principal: React.FC = () => {
   const [nomeUsuario, setNomeUsuario] = useState('');
   const [fotoUsuario, setFotoUsuario] = useState<string | null>(null);
 
+const carregarDadosLocais = async () => {
+  try {
+    setDadosProntos(false);
+
+    const dados =
+      tipoSelecionado === 'despesas'
+        ? await obterSomaMovimentosPorCategoriaDespesa()
+        : await obterSomaMovimentosPorCategoriaReceita();
+
+    setDadosGrafico(dados || []);
+    setTotalReceitas(await obterTotalReceitas());
+    setTotalDespesas(await obterTotalDespesas());
+    setMovimentosRecentes(await listarMovimentosUltimos30Dias());
+    setSaldoMensal(await obterSaldoMensalAtual());
+  } catch (err) {
+    console.error("❌ Erro ao carregar dados locais:", err);
+  } finally {
+    setDadosProntos(true);
+  }
+};
 
 
   const [sincronizacoesPendentes, setSincronizacoesPendentes] = useState<number>(0);
@@ -155,41 +175,12 @@ const Pagina_principal: React.FC = () => {
     navigation.navigate('Notificacoes');
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      if (primeiraVez) return;
+useFocusEffect(
+  useCallback(() => {
+    carregarDadosLocais();
+  }, [tipoSelecionado])
+);
 
-      const carregarDados = async () => {
-        setDadosProntos(false);
-
-        try {
-          let dados: DadosGrafico[] = [];
-          if (tipoSelecionado === 'despesas') {
-            dados = await obterSomaMovimentosPorCategoriaDespesa() || [];
-          } else {
-            dados = await obterSomaMovimentosPorCategoriaReceita() || [];
-          }
-
-          setDadosGrafico(dados);
-          const receitas = await obterTotalReceitas();
-          const despesas = await obterTotalDespesas();
-          setTotalReceitas(receitas);
-          setTotalDespesas(despesas);
-
-          const movimentos = await listarMovimentosUltimos30Dias();
-          setMovimentosRecentes(movimentos || []);
-          const saldo = await obterSaldoMensalAtual();
-          setSaldoMensal(saldo);
-        } catch (err) {
-          console.error("Erro ao carregar dados:", err);
-        } finally {
-          setDadosProntos(true);
-        }
-      };
-
-      carregarDados();
-    }, [tipoSelecionado, primeiraVez])
-  );
 
 
 
@@ -215,37 +206,20 @@ const Pagina_principal: React.FC = () => {
     }
   }, [route.params]);
 
+useEffect(() => {
+  if (route?.params?.updated) {
+    carregarDadosLocais();
+    navigation.setParams({ updated: undefined });
+  }
+}, [route?.params?.updated]);
 
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    try {
-      let dados: DadosGrafico[] = [];
-      if (tipoSelecionado === 'despesas') {
-        dados = await obterSomaMovimentosPorCategoriaDespesa() || [];
-      } else {
-        dados = await obterSomaMovimentosPorCategoriaReceita() || [];
-      }
+ const onRefresh = async () => {
+  setRefreshing(true);
+  await carregarDadosLocais();
+  setRefreshing(false);
+};
 
-      setDadosGrafico(dados);
-
-      const receitas = await obterTotalReceitas();
-      const despesas = await obterTotalDespesas();
-      setTotalReceitas(receitas);
-      setTotalDespesas(despesas);
-
-      const dadosMovimentos = await listarMovimentosUltimos30Dias();
-      setMovimentosRecentes(dadosMovimentos || []);
-
-      const saldo = await obterSaldoMensalAtual();
-      setSaldoMensal(saldo);
-
-    } catch (err) {
-      console.error('Erro ao atualizar:', err);
-    } finally {
-      setRefreshing(false);
-    }
-  };
 
 
 

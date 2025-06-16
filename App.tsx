@@ -108,6 +108,7 @@ export type RootStackParamList = {
     movimentosRecentes: Movimento[];
     nomeUsuario: string;
     fotoUsuario: string | null;
+    updated?: boolean;
   };
 
   Movimentos: undefined;

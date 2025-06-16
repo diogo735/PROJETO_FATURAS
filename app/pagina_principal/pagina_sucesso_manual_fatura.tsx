@@ -148,7 +148,7 @@ export default function PaginaSucessoManual() {
 
       let imagemSalva = null;
       if (imagemUri) {
-        if (estaOnline) { 
+        if (estaOnline) {
           //imagemSalva = await uploadImagemParaImgBB(imagemUri);
           imagemSalva = await uploadImagemParaImgur(imagemUri);
         } else {
@@ -174,7 +174,7 @@ export default function PaginaSucessoManual() {
       };
 
 
-      ///console.log('📦 Dados que vão ser enviados para o BD:', dadosParaSalvar);
+
 
       const faturaIdCriada = await registarFatura_BDLOCAL(dadosParaSalvar);
       if (!faturaIdCriada) {
@@ -218,9 +218,10 @@ export default function PaginaSucessoManual() {
     navigation.dispatch(
       CommonActions.reset({
         index: 0,
-        routes: [{ name: 'MainApp' }],
+        routes: [{ name: 'MainApp', params: { updated: true } }],
       })
     );
+
   };
 
 

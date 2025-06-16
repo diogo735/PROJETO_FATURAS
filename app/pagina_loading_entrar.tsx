@@ -13,10 +13,13 @@ import EnovoSVG from '../assets/imagens/by_enovo.svg';
 import * as SplashScreen from 'expo-splash-screen';
 import { verificarNotificacoesDeTodasMetas } from '../BASEDEDADOS/metas';
 const { width, height } = Dimensions.get('window');
-import { obterTotalReceitas, obterTotalDespesas, listarMovimentosUltimos30Dias, obterSaldoMensalAtual, obterSomaMovimentosPorCategoriaDespesa, obterSomaMovimentosPorCategoriaReceita } from '../BASEDEDADOS/movimentos';
+import { obterTotalReceitas, obterTotalDespesas, listarMovimentosUltimos30Dias, obterSaldoMensalAtual, obterSomaMovimentosPorCategoriaDespesa, obterSomaMovimentosPorCategoriaReceita, sincronizarMovimentosAPI } from '../BASEDEDADOS/movimentos';
 import { buscarUsuarioAtual, obter_imagem_user } from '../BASEDEDADOS/user';
 import { buscarDadosDoUsuarioAPI } from '../APIs/login';
 import * as FileSystem from 'expo-file-system';
+import { sincronizarFaturasAPI } from '../BASEDEDADOS/faturas';
+import { sincronizarSubcategoriasAPI } from '../BASEDEDADOS/sub_categorias';
+import NetInfo from '@react-native-community/netinfo';
 
 type RootStackParamList = {
   MainApp: undefined;
@@ -54,9 +57,36 @@ const PagLoadingEntrar = () => {
         await inicializarBaseDeDados();
         await verificarNotificacoesDeTodasMetas();
 
+        const user = await buscarUsuarioAtual();
+        const temEmail = !!user?.email;
 
+        const estado = await NetInfo.fetch();
+        const estaOnline = estado.isConnected && estado.isInternetReachable;
 
-        // Carrega dados locais
+        // 🔄 Se o usuário tiver email e estiver online → sincroniza
+        // 🔄 Tenta sincronizar, mas se falhar continua
+        if (temEmail && estaOnline) {
+          try {
+            await sincronizarSubcategoriasAPI();
+            await sincronizarMovimentosAPI();
+            await sincronizarFaturasAPI();
+
+            const userRemoto = await buscarDadosDoUsuarioAPI();
+            const resultado = await baixarImagemParaLocal(userRemoto.imagem, 'foto_usuario.jpg');
+            if (resultado.sucesso) {
+              await obter_imagem_user(resultado.uri); // atualiza imagem local
+            }
+          } catch (erroSync) {
+            console.warn('⚠️ Erro durante sincronização (seguindo com dados locais):', (erroSync as Error).message);
+          }
+
+        }
+        
+        const userAtualizado = await buscarUsuarioAtual();
+        const nome = userAtualizado?.nome || 'Usuário';
+        const foto = userAtualizado?.imagem || null;
+
+        // 📥 Carrega dados locais (sempre)
         const dadosMovimentos = await listarMovimentosUltimos30Dias();
         const saldo = await obterSaldoMensalAtual();
         const receitas = await obterTotalReceitas();
@@ -64,24 +94,9 @@ const PagLoadingEntrar = () => {
         const dadosDespesas = await obterSomaMovimentosPorCategoriaDespesa();
         const dadosReceitas = await obterSomaMovimentosPorCategoriaReceita();
 
-
-        setTimeout(async () => {
-          const userRemoto = await buscarDadosDoUsuarioAPI();
-          const resultado = await baixarImagemParaLocal(userRemoto.imagem, 'foto_usuario.jpg');
-         if (resultado.sucesso) {
-           await obter_imagem_user(resultado.uri);
-          }
-        }, 800);
-        
-        const user = await buscarUsuarioAtual();
-        const nome = user?.nome || 'Usuário';
-        const foto = user?.imagem || null;
-
         await SplashScreen.hideAsync();
 
         setTimeout(() => {
-
-
           navigation.reset({
             index: 0,
             routes: [{
@@ -96,19 +111,18 @@ const PagLoadingEntrar = () => {
                 nomeUsuario: nome,
                 fotoUsuario: foto,
               }
-
             }]
           });
         }, 900);
 
       } catch (error) {
-        console.error('Erro ao carregar o banco de dados :', error);
+        console.error('❌ Erro ao carregar o banco de dados:', error);
       }
     };
 
-
     carregarBD();
   }, []);
+
 
 
   const rotateValues = [
