@@ -54,6 +54,8 @@ export const buscarDadosDoUsuarioAPI = async () => {
   }
 };
 
+
+
 export const resetar_pass_email = async (email: string) => {
   try {
     const response = await fetch(`${API_BASE_URL}/recuperar_pass`, {

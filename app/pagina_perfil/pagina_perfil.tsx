@@ -8,6 +8,7 @@ import { ScrollView } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../App'; // Ajuste o caminho se necessário
+import { Linking } from 'react-native';
 
 import IconEditar from '../../assets/pagina_perfil/perfil.png';
 import MoedaIcon from '../../assets/pagina_perfil/change.png';
@@ -21,11 +22,14 @@ import IconHelp from '../../assets/pagina_perfil/help-web-button.png';
 import IconLike from '../../assets/pagina_perfil/like.png';
 import IconLogout from '../../assets/pagina_perfil/logout.png';
 import IconPadlock from '../../assets/pagina_perfil/padlock.png';
+import { listarSincronizacoesPendentes } from '../../BASEDEDADOS/sincronizacao';
 
 import IconServer from '../../assets/pagina_perfil/server.png';
 import IconSupport from '../../assets/pagina_perfil/support.png';
 import { buscarUsuarioAtual } from '../../BASEDEDADOS/user';
 import { limparTabelaMovimentos as limparMovimentosBD } from '../../BASEDEDADOS/movimentos';
+import ModalLogout from './modal_logout';
+import { executarLogoutCompleto } from '../../BASEDEDADOS/logout';
 
 
 const { height, width } = Dimensions.get('window');
@@ -33,36 +37,47 @@ const { height, width } = Dimensions.get('window');
 const Pagina_perfil: React.FC = () => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const [nome, setNome] = useState('');
+  const [mostrarModalLogout, setMostrarModalLogout] = useState(false);
+  const [loadingLogout, setLoadingLogout] = useState(false);
+  const [acoesPendentes, setAcoesPendentes] = useState(0);
+  const abrirModalLogout = async () => {
+    const pendentes = await listarSincronizacoesPendentes();
+    setAcoesPendentes(pendentes.length);
+    setMostrarModalLogout(true);
+  };
+  const handleLogout = async () => {
+    try {
+      setLoadingLogout(true);
+      await executarLogoutCompleto();
+      setLoadingLogout(false);
+      setMostrarModalLogout(false); // fecha o modal após concluir
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Pagina_Login' }],
+      });
+    } catch (e) {
+      setLoadingLogout(false);
+      Alert.alert('Erro', 'Não foi possível terminar a sessão.');
+    }
+  };
   const [email, setEmail] = useState('');
   const [imagem, setImagem] = useState(null);
-const handleLogout = async () => {
-  try {
-   await limparMovimentosBD();
-    console.log('Movimentos limpos.');
 
-    // Se tiver outras coisas para limpar, adicione aqui
 
-   
-  } catch (error) {
-    console.error('Erro ao fazer logout:', error);
-    Alert.alert('Erro', 'Não foi possível fazer logout.');
-  }
-};
+  useFocusEffect(
+    React.useCallback(() => {
+      const carregarUsuario = async () => {
+        const user = await buscarUsuarioAtual();
+        if (user) {
+          setNome(user.nome);
+          setEmail(user.email);
+          setImagem(user.imagem);
+        }
+      };
 
- useFocusEffect(
-  React.useCallback(() => {
-    const carregarUsuario = async () => {
-      const user = await buscarUsuarioAtual();
-      if (user) {
-        setNome(user.nome);
-        setEmail(user.email);
-        setImagem(user.imagem);
-      }
-    };
-
-    carregarUsuario();
-  }, [])
-);
+      carregarUsuario();
+    }, [])
+  );
 
   return (
     <View style={styles.container}>
@@ -147,16 +162,19 @@ const handleLogout = async () => {
             <SetaDireita width={16} height={16} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.botaoItem} onPress={() => navigation.navigate('PaginaSincronizacao')}>
-            <View style={styles.itemEsquerda}>
-              <Image
-                source={IconCloud}
-                style={styles.iconePNG}
-              />
-              <Text style={styles.textoItem}>Sincronização</Text>
-            </View>
-            <SetaDireita width={16} height={16} />
-          </TouchableOpacity>
+          {email && (
+            <TouchableOpacity style={styles.botaoItem} onPress={() => navigation.navigate('PaginaSincronizacao')}>
+              <View style={styles.itemEsquerda}>
+                <Image
+                  source={IconCloud}
+                  style={styles.iconePNG}
+                />
+                <Text style={styles.textoItem}>Sincronização</Text>
+              </View>
+              <SetaDireita width={16} height={16} />
+            </TouchableOpacity>
+          )}
+
 
           <TouchableOpacity style={styles.botaoItem} onPress={() => navigation.navigate('PaginaBasededados')}>
             <View style={styles.itemEsquerda}>
@@ -170,16 +188,17 @@ const handleLogout = async () => {
           </TouchableOpacity>
 
           <Text style={styles.labelSecao}>Outros</Text>
-          <TouchableOpacity style={styles.botaoItem} onPress={() => Alert.alert("Editar perfil")}>
+          <TouchableOpacity
+            style={styles.botaoItem}
+            onPress={() => Linking.openURL('mailto:suporte.piggywallet@gmail.com?subject=Pedido de Ajuda&body=Olá, preciso de ajuda com...')}
+          >
             <View style={styles.itemEsquerda}>
-              <Image
-                source={IconSupport}
-                style={styles.iconePNG}
-              />
+              <Image source={IconSupport} style={styles.iconePNG} />
               <Text style={styles.textoItem}>Contacto</Text>
             </View>
             <SetaDireita width={16} height={16} />
           </TouchableOpacity>
+
 
           <TouchableOpacity style={styles.botaoItem} onPress={() => Alert.alert("Editar perfil")}>
             <View style={styles.itemEsquerda}>
@@ -187,7 +206,7 @@ const handleLogout = async () => {
                 source={IconLike}
                 style={styles.iconePNG}
               />
-              <Text style={styles.textoItem}>Avalie-nos</Text>
+              <Text style={styles.textoItem}>Passo a passo</Text>
             </View>
             <SetaDireita width={16} height={16} />
           </TouchableOpacity>
@@ -203,27 +222,31 @@ const handleLogout = async () => {
             <SetaDireita width={16} height={16} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.botaoItem} onPress={() => Alert.alert("Editar perfil")}>
-            <View style={styles.itemEsquerda}>
-              <Image
-                source={IconHelp}
-                style={styles.iconePNG}
-              />
-              <Text style={styles.textoItem}>Ajuda</Text>
-            </View>
-            <SetaDireita width={16} height={16} />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.botaoLogout} onPress={handleLogout}>
+          <TouchableOpacity
+            style={styles.botaoLogout}
+            onPress={abrirModalLogout}
+          >
             <View style={styles.logoutContent}>
               <Image source={IconLogout} style={styles.iconeLogout} />
-              <Text style={styles.textoLogout}>Fazer Logout</Text>
+              <Text style={styles.textoLogout}>Terminar Sessão</Text>
             </View>
           </TouchableOpacity>
+
 
 
         </View>
       </ScrollView>
+
+      <ModalLogout
+        visible={mostrarModalLogout}
+        email={email}
+        pendentes={acoesPendentes}
+        loading={loadingLogout}
+        onCancel={() => setMostrarModalLogout(false)}
+        onConfirm={handleLogout}
+      />
+
+
     </View>
 
   );

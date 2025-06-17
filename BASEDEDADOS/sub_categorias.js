@@ -70,6 +70,12 @@ async function inserirSubCategoria(nome_subcat, icone_nome, cor_subcat, categori
 
     // Preferências do usuário
     const user = await buscarUsuarioAtual();
+    const naoTemEmail = !user?.email || user.email.trim() === '';
+    if (naoTemEmail) {
+      console.warn('⚠️ Usuário sem email. Salvando subcategoria localmente (modo offline).');
+      return await salvarSubCategoriaOffline(nome_subcat, icone_nome, cor_subcat, categoria_id, updated_at);
+    }
+
     const syncAuto = user?.sincronizacao_automatica === 1;
     const wifiOnly = user?.sincronizacao_wifi === 1;
 
@@ -161,6 +167,18 @@ async function salvarLocalEPendencia(nome_subcat, icone_nome, cor_subcat, catego
 
   return 'sucesso';
 }
+async function salvarSubCategoriaOffline(nome_subcat, icone_nome, cor_subcat, categoria_id, updated_at) {
+  const db = await CRIARBD();
+
+  const result = await db.runAsync(
+    `INSERT INTO sub_categorias 
+    (nome_subcat, icone_nome, cor_subcat, categoria_id, updated_at, sync_status)
+   VALUES (?, ?, ?, ?, ?, ?)`,
+    [nome_subcat.trim(), icone_nome, cor_subcat, categoria_id, updated_at, 'local']
+  );
+
+  return 'sucesso';
+}
 
 
 
@@ -217,6 +235,38 @@ async function atualizarSubCategoriaComVerificacao(id, nome_subcat, icone_nome, 
 
     if (!subcatAtual) return 'erro';
 
+    const user = await buscarUsuarioAtual();
+    const naoTemEmail = !user?.email || user.email.trim() === '';
+
+    if (naoTemEmail) {
+      console.warn('⚠️ Usuário sem email. Atualizando subcategoria apenas localmente (modo offline).');
+
+      await db.runAsync(
+        `UPDATE sub_categorias 
+     SET nome_subcat = ?, icone_nome = ?, cor_subcat = ?, categoria_id = ?, updated_at = ?, sync_status = ? 
+     WHERE id = ?`,
+        [nome_subcat.trim(), icone_nome, cor_subcat, categoria_id, updated_at, 'local', id]
+      );
+
+      if (subcatAtual.categoria_id !== categoria_id) {
+        const movimentosAfetados = await db.getAllAsync(
+          `SELECT * FROM movimentos WHERE sub_categoria_id = ?`,
+          [id]
+        );
+
+        for (const mov of movimentosAfetados) {
+          const novoUpdatedAt = new Date().toISOString();
+
+          await db.runAsync(
+            `UPDATE movimentos SET categoria_id = ?, updated_at = ?, sync_status = ? WHERE id = ?`,
+            [categoria_id, novoUpdatedAt, 'local', mov.id]
+          );
+        }
+      }
+
+      return 'sucesso';
+    }
+
     // Atualiza localmente com sync_status = 'pending' até confirmar
     await db.runAsync(
       `UPDATE sub_categorias 
@@ -271,7 +321,7 @@ async function atualizarSubCategoriaComVerificacao(id, nome_subcat, icone_nome, 
 
 
     // 🎯 Preferências do usuário
-    const user = await buscarUsuarioAtual();
+    
     const syncAuto = user?.sincronizacao_automatica === 1;
     const wifiOnly = user?.sincronizacao_wifi === 1;
 
@@ -405,11 +455,43 @@ async function eliminarSubCategoriaEAtualizarMovimentos(idSubcategoria) {
 
     const { remote_id, nome_subcat } = subcat;
 
-    // 2. Atualizar movimentos relacionados à subcategoria
+    // 2. Buscar movimentos relacionados
     const movimentosAfetados = await db.getAllAsync(
       `SELECT * FROM movimentos WHERE sub_categoria_id = ?`,
       [idSubcategoria]
     );
+
+    // 3. Buscar metas associadas
+    const metasAssociadas = await db.getAllAsync(
+      `SELECT id_meta FROM metas WHERE sub_categoria_id = ?`,
+      [idSubcategoria]
+    );
+
+    // 4. Verificar se é modo offline
+    const user = await buscarUsuarioAtual();
+    const naoTemEmail = !user?.email || user.email.trim() === '';
+
+    if (naoTemEmail) {
+      console.warn('⚠️ Usuário sem email. Apagando subcategoria e atualizando movimentos apenas localmente.');
+
+      for (const mov of movimentosAfetados) {
+        const novoUpdatedAt = new Date().toISOString();
+
+        await db.runAsync(
+          `UPDATE movimentos SET sub_categoria_id = NULL, updated_at = ?, sync_status = ? WHERE id = ?`,
+          [novoUpdatedAt, 'local', mov.id]
+        );
+      }
+
+      for (const meta of metasAssociadas) {
+        await apagarMeta(meta.id_meta);
+      }
+
+      await db.runAsync(`DELETE FROM sub_categorias WHERE id = ?`, [idSubcategoria]);
+      return 'sucesso';
+    }
+
+    // 🟢 Se tem e-mail → segue fluxo original
 
     for (const mov of movimentosAfetados) {
       const novoUpdatedAt = new Date().toISOString();
@@ -431,17 +513,10 @@ async function eliminarSubCategoriaEAtualizarMovimentos(idSubcategoria) {
       }
     }
 
-    // 3. Apagar metas associadas
-    const metasAssociadas = await db.getAllAsync(
-      `SELECT id_meta FROM metas WHERE sub_categoria_id = ?`,
-      [idSubcategoria]
-    );
     for (const meta of metasAssociadas) {
       await apagarMeta(meta.id_meta);
     }
 
-    // 3. Verificar preferências do usuário
-    const user = await buscarUsuarioAtual();
     const syncAuto = user?.sincronizacao_automatica === 1;
     const wifiOnly = user?.sincronizacao_wifi === 1;
 
@@ -451,24 +526,19 @@ async function eliminarSubCategoriaEAtualizarMovimentos(idSubcategoria) {
 
     const podeSincronizarAgora = syncAuto && estaOnline && (!wifiOnly || usandoWifi);
 
-    // 4. Processamento baseado nas condições
-
     if (podeSincronizarAgora) {
       try {
         if (remote_id) {
-          // ✅ Se já foi sincronizada, deletar da API
           await deletarSubCategoriaAPI(remote_id);
         } else {
-          // 🔁 Se ainda não foi sincronizada, remover da fila de criação
           await db.runAsync(`
-  DELETE FROM sincronizacoes
-  WHERE tipo = 'sub_categorias'
-    AND operacao IN ('create', 'update')
-    AND json_extract(payload, '$.nome_subcat') = ?
-`, [nome_subcat]);
+            DELETE FROM sincronizacoes
+            WHERE tipo = 'sub_categorias'
+              AND operacao IN ('create', 'update')
+              AND json_extract(payload, '$.nome_subcat') = ?
+          `, [nome_subcat]);
         }
 
-        // Remover localmente
         await db.runAsync(`DELETE FROM sub_categorias WHERE id = ?`, [idSubcategoria]);
         return 'sucesso';
 
@@ -484,22 +554,17 @@ async function eliminarSubCategoriaEAtualizarMovimentos(idSubcategoria) {
       }
 
     } else {
-      // 5. Se estiver offline
-
       if (remote_id) {
-        // ✅ Subcategoria já sincronizada → agendar delete
         await adicionarNaFila('sub_categorias', 'delete', {}, remote_id);
       } else {
-        // 🔁 Criada offline → remover da fila de criação
         await db.runAsync(`
-  DELETE FROM sincronizacoes
-  WHERE tipo = 'sub_categorias'
-    AND operacao IN ('create', 'update')
-    AND json_extract(payload, '$.nome_subcat') = ?
-`, [nome_subcat]);
+          DELETE FROM sincronizacoes
+          WHERE tipo = 'sub_categorias'
+            AND operacao IN ('create', 'update')
+            AND json_extract(payload, '$.nome_subcat') = ?
+        `, [nome_subcat]);
       }
 
-      // Sempre apagar localmente
       await db.runAsync(`DELETE FROM sub_categorias WHERE id = ?`, [idSubcategoria]);
       return 'sucesso';
     }
@@ -509,6 +574,7 @@ async function eliminarSubCategoriaEAtualizarMovimentos(idSubcategoria) {
     return 'erro';
   }
 }
+
 
 async function sincronizarSubcategoriasAPI() {
   try {

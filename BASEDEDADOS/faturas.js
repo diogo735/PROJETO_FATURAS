@@ -77,30 +77,12 @@ async function inserirFatura({
     const updated_at = new Date().toISOString();
     nomeEmpresa = nomeEmpresa?.trim() || 'Empresa';
 
-    // 🟡 Busca o remote_id do movimento antes de enviar à API
-    const movimento = await db.getFirstAsync(`SELECT remote_id FROM movimentos WHERE id = ?`, [movimentoId]);
+    // 🎯 Buscar preferências do usuário
+    const user = await buscarUsuarioAtual();
+    const naoTemEmail = !user?.email || user.email.trim() === '';
 
-    if (!movimento?.remote_id) {
-      console.warn('⚠️ Movimento ainda não sincronizado. Salvando fatura localmente.');
-      return await salvarFaturaLocalEPendencia({
-        movimento_id: movimentoId,
-        tipo_documento: tipoDocumento,
-        numero_fatura: numeroFatura,
-        codigo_ATCUD: codigoATCUD,
-        data_fatura: dataFatura,
-        nif_emitente: nifEmitente,
-        nome_empresa: nomeEmpresa,
-        nif_cliente: nifCliente,
-        descricao,
-        total_iva: totalIva,
-        total_final: totalFinal,
-        imagem_fatura: imagemFatura,
-        updated_at
-      }, db);
-    }
-
-    const fatura = {
-      movimento_id: movimento.remote_id, // ✅ usa o ID da API
+    const faturaLocal = {
+      movimento_id: movimentoId,
       tipo_documento: tipoDocumento,
       numero_fatura: numeroFatura,
       codigo_ATCUD: codigoATCUD,
@@ -115,8 +97,27 @@ async function inserirFatura({
       updated_at
     };
 
-    // 🎯 Preferências do usuário
-    const user = await buscarUsuarioAtual();
+    // ✅ Se for usuário local/offline, salva direto como "local"
+    if (naoTemEmail) {
+      console.warn('⚠️ Usuário sem email. Salvando fatura localmente (modo offline).');
+      return await salvarFaturaOffline(faturaLocal, db);
+    }
+
+    // 🟡 Buscar remote_id do movimento
+    const movimento = await db.getFirstAsync(`SELECT remote_id FROM movimentos WHERE id = ?`, [movimentoId]);
+
+    if (!movimento?.remote_id) {
+      console.warn('⚠️ Movimento ainda não sincronizado. Salvando fatura localmente com pendência.');
+      return await salvarFaturaLocalEPendencia(faturaLocal, db);
+    }
+
+    // ✅ Prepara fatura com ID remoto
+    const fatura = {
+      ...faturaLocal,
+      movimento_id: movimento.remote_id // usa o remote_id da API
+    };
+
+    // 🌐 Verifica conectividade e preferências de sincronização
     const syncAuto = user?.sincronizacao_automatica === 1;
     const wifiOnly = user?.sincronizacao_wifi === 1;
 
@@ -170,6 +171,7 @@ async function inserirFatura({
 }
 
 
+
 async function salvarFaturaLocalEPendencia(fatura, db) {
   const {
     movimento_id, tipo_documento, numero_fatura, codigo_ATCUD, data_fatura,
@@ -195,10 +197,54 @@ async function salvarFaturaLocalEPendencia(fatura, db) {
   await adicionarNaFila('faturas', 'create', { ...fatura, id: result.lastInsertRowId });
   return result.lastInsertRowId;
 }
+
+async function salvarFaturaOffline(fatura, db) {
+  const {
+    movimento_id, tipo_documento, numero_fatura, codigo_ATCUD, data_fatura,
+    nif_emitente, nome_empresa, nif_cliente, descricao,
+    total_iva, total_final, imagem_fatura, updated_at
+  } = fatura;
+
+  const result = await db.runAsync(
+    `INSERT INTO faturas (
+      movimento_id, tipo_documento, numero_fatura, codigo_ATCUD, data_fatura,
+      nif_emitente, nome_empresa, nif_cliente, descricao,
+      total_iva, total_final, imagem_fatura,
+      updated_at, sync_status
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      movimento_id, tipo_documento, numero_fatura, codigo_ATCUD, data_fatura,
+      nif_emitente, nome_empresa, nif_cliente, descricao,
+      total_iva, total_final, imagem_fatura,
+      updated_at, 'local'
+    ]
+  );
+
+  return result.lastInsertRowId;
+}
+
+
+
+
 async function atualizarFatura(id, novaDescricao) {
   try {
     const db = await CRIARBD();
     const updated_at = new Date().toISOString();
+
+    // 🎯 Verifica se é modo offline (sem email)
+    const user = await buscarUsuarioAtual();
+    const naoTemEmail = !user?.email || user.email.trim() === '';
+
+    if (naoTemEmail) {
+      console.warn('⚠️ Usuário sem email. Atualizando fatura apenas localmente.');
+
+      await db.runAsync(
+        `UPDATE faturas SET descricao = ?, updated_at = ?, sync_status = ? WHERE id = ?`,
+        [novaDescricao, updated_at, 'local', id]
+      );
+
+      return true;
+    }
 
     // Atualiza localmente e marca como 'pending'
     await db.runAsync(
@@ -218,7 +264,6 @@ async function atualizarFatura(id, novaDescricao) {
     }
 
     // 🎯 Verifica preferências do usuário
-    const user = await buscarUsuarioAtual();
     const syncAuto = user?.sincronizacao_automatica === 1;
     const wifiOnly = user?.sincronizacao_wifi === 1;
 
@@ -235,7 +280,6 @@ async function atualizarFatura(id, novaDescricao) {
           descricao: novaDescricao,
           updated_at
         });
-
 
         await db.runAsync(
           `UPDATE faturas SET sync_status = ? WHERE id = ?`,
@@ -265,6 +309,7 @@ async function atualizarFatura(id, novaDescricao) {
     return false;
   }
 }
+
 
 
 

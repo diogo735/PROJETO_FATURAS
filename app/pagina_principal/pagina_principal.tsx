@@ -88,26 +88,28 @@ const Pagina_principal: React.FC = () => {
   const [nomeUsuario, setNomeUsuario] = useState('');
   const [fotoUsuario, setFotoUsuario] = useState<string | null>(null);
 
-const carregarDadosLocais = async () => {
-  try {
-    setDadosProntos(false);
+  const carregarDadosLocais = async () => {
+    try {
+      setDadosProntos(false);
 
-    const dados =
-      tipoSelecionado === 'despesas'
-        ? await obterSomaMovimentosPorCategoriaDespesa()
-        : await obterSomaMovimentosPorCategoriaReceita();
+      const dados =
+        tipoSelecionado === 'despesas'
+          ? await obterSomaMovimentosPorCategoriaDespesa()
+          : await obterSomaMovimentosPorCategoriaReceita();
 
-    setDadosGrafico(dados || []);
-    setTotalReceitas(await obterTotalReceitas());
-    setTotalDespesas(await obterTotalDespesas());
-    setMovimentosRecentes(await listarMovimentosUltimos30Dias());
-    setSaldoMensal(await obterSaldoMensalAtual());
-  } catch (err) {
-    console.error("❌ Erro ao carregar dados locais:", err);
-  } finally {
-    setDadosProntos(true);
-  }
-};
+      setDadosGrafico(dados || []);
+      setTotalReceitas(await obterTotalReceitas());
+      setTotalDespesas(await obterTotalDespesas());
+      setMovimentosRecentes(await listarMovimentosUltimos30Dias());
+      const saldo = await obterSaldoMensalAtual();
+      setSaldoMensal(typeof saldo === 'number' ? saldo : 0);
+      
+    } catch (err) {
+      console.error("❌ Erro ao carregar dados locais:", err);
+    } finally {
+      setDadosProntos(true);
+    }
+  };
 
 
   const [sincronizacoesPendentes, setSincronizacoesPendentes] = useState<number>(0);
@@ -175,11 +177,11 @@ const carregarDadosLocais = async () => {
     navigation.navigate('Notificacoes');
   };
 
-useFocusEffect(
-  useCallback(() => {
-    carregarDadosLocais();
-  }, [tipoSelecionado])
-);
+  useFocusEffect(
+    useCallback(() => {
+      carregarDadosLocais();
+    }, [tipoSelecionado])
+  );
 
 
 
@@ -187,7 +189,7 @@ useFocusEffect(
 
   useEffect(() => {
     if (route?.params) {
-      setSaldoMensal(route.params.saldoMensal || 0);
+      setSaldoMensal(route.params.saldoMensal);
       setTotalReceitas(route.params.totalReceitas || 0);
       setTotalDespesas(route.params.totalDespesas || 0);
       setMovimentosRecentes(route.params.movimentosRecentes || []);
@@ -206,19 +208,19 @@ useFocusEffect(
     }
   }, [route.params]);
 
-useEffect(() => {
-  if (route?.params?.updated) {
-    carregarDadosLocais();
-    navigation.setParams({ updated: undefined });
-  }
-}, [route?.params?.updated]);
+  useEffect(() => {
+    if (route?.params?.updated) {
+      carregarDadosLocais();
+      navigation.setParams({ updated: undefined });
+    }
+  }, [route?.params?.updated]);
 
 
- const onRefresh = async () => {
-  setRefreshing(true);
-  await carregarDadosLocais();
-  setRefreshing(false);
-};
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await carregarDadosLocais();
+    setRefreshing(false);
+  };
 
 
 

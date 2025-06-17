@@ -461,7 +461,6 @@ const App: React.FC = () => {
     iniciarApp();
   }, []);
 
-
   if (!telaInicial) return null;
 
 

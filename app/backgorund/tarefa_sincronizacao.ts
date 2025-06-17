@@ -3,13 +3,18 @@ import * as BackgroundFetch from 'expo-background-fetch';
 import NetInfo from '@react-native-community/netinfo';
 import { buscarUsuarioAtual, atualizarUltimaSincronizacao } from '../../BASEDEDADOS/user';
 import { sincronizarTudoAppParaApi, sincronizarTudoApiParaApp, listarSincronizacoesPendentes } from '../../BASEDEDADOS/sincronizacao';
-import { inserirNotificacao } from '../../BASEDEDADOS/notificacoes'; 
+import { inserirNotificacao } from '../../BASEDEDADOS/notificacoes';
 const TASK_NAME = 'sincronizacao_automatica';
 
 TaskManager.defineTask(TASK_NAME, async () => {
   try {
     const estado = await NetInfo.fetch();
     const user = await buscarUsuarioAtual();
+    const naoTemEmail = !user?.email || user.email.trim() === '';
+    if (naoTemEmail) {
+      console.warn('⛔ Usuário local (sem e-mail). Sincronização em background ignorada.');
+      return BackgroundFetch.BackgroundFetchResult.NoData;
+    }
 
     if (!estado.isConnected || !estado.isInternetReachable) {
       console.log('📡 Sem internet. Tarefa de sincronização cancelada.');
@@ -30,9 +35,9 @@ TaskManager.defineTask(TASK_NAME, async () => {
 
     const haviaPendentes = pendentes.length > 0;
 
-    await sincronizarTudoAppParaApi();      // ⚙️ envia pendentes
-    await sincronizarTudoApiParaApp();      // 📥 sincroniza da API
-    await atualizarUltimaSincronizacao();   // 🕒 salva última sync
+    await sincronizarTudoAppParaApi();
+    await sincronizarTudoApiParaApp();
+    await atualizarUltimaSincronizacao();
 
     if (haviaPendentes) {
       const agora = new Date();
@@ -43,7 +48,7 @@ TaskManager.defineTask(TASK_NAME, async () => {
         data
       );
     }
-    
+
     console.log('✅ Sincronização automática em background concluída!');
     return BackgroundFetch.BackgroundFetchResult.NewData;
 
@@ -52,9 +57,17 @@ TaskManager.defineTask(TASK_NAME, async () => {
     return BackgroundFetch.BackgroundFetchResult.Failed;
   }
 });
-export async function iniciarTarefaSincronizacao() {
-  const status = await BackgroundFetch.getStatusAsync();
 
+export async function iniciarTarefaSincronizacao() {
+  const user = await buscarUsuarioAtual();
+  const naoTemEmail = !user?.email || user.email.trim() === '';
+
+  if (naoTemEmail) {
+    console.warn('⛔ Usuário local (sem e-mail). Tarefa de sincronização não será registrada.');
+    return;
+  }
+
+  const status = await BackgroundFetch.getStatusAsync();
   if (
     status === BackgroundFetch.BackgroundFetchStatus.Restricted ||
     status === BackgroundFetch.BackgroundFetchStatus.Denied
@@ -66,12 +79,12 @@ export async function iniciarTarefaSincronizacao() {
   const isRegistered = await TaskManager.isTaskRegisteredAsync(TASK_NAME);
   if (!isRegistered) {
     await BackgroundFetch.registerTaskAsync(TASK_NAME, {
-      minimumInterval: 300, // 5 minutos em segundos
+      minimumInterval: 300, // 5 minutos
       stopOnTerminate: false,
       startOnBoot: true,
     });
     console.log('✅ Tarefa de sincronização automática registrada.');
   } else {
-    console.log('ℹ️ Tarefa de sincronização automática já estava registrada.');
+    console.log('ℹ️ Tarefa de sincronização já estava registrada.');
   }
 }

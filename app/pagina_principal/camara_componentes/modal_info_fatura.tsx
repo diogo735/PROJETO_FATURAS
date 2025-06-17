@@ -350,7 +350,7 @@ const Modal_Info_Fatura: React.FC<Props> = ({ visivel, uri, aoFechar, aoEliminar
 
     return (
         <Modal isVisible={visivel} onBackdropPress={aoFechar} style={{ justifyContent: 'flex-end', margin: 0 }}>
-            <View style={[styles.modalContainer, { minHeight: height * 0.75 }]}>
+            <View style={[styles.modalContainer, { minHeight: height * 0.70 }]}>
 
                 <View style={styles.backgroundSvg}>
                     <FundoSvg width="100%" height="100%" preserveAspectRatio="xMidYMid slice" />

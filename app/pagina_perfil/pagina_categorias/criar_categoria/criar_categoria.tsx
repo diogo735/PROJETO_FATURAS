@@ -136,14 +136,12 @@ const CriarCategoria: React.FC = () => {
         'cart-plus', 'check-square', 'child', 'leaf', 'lightbulb-o', 'lock', 'magic',
         'male', 'female', 'map-marker', 'paint-brush', 'pie-chart', 'road',
         'star', 'sun-o', 'tag', 'tags', 'ticket', 'tint', 'tree', 'wrench',
-        'bell', 'music', 'film', 'hospital-o', 'bank', 'gift', 'heart',
-        'camera', 'truck', 'phone', 'book', 'envelope', 'archive',
-        'tag', 'leaf', 'star', 'cutlery', 'credit-card', 'shopping-cart', 'paw',
-        'globe', 'suitcase',
+        'bell', 'music', 'film','shopping-basket','university','heartbeat','beer'
     ];
 
 
     const [iconeSelecionado, setIconeSelecionado] = useState<string | null>(null);
+    const larguraItem = (Dimensions.get('window').width - 30 - (5 * 10)) / 6;
 
 
 
@@ -212,7 +210,7 @@ const CriarCategoria: React.FC = () => {
                 ]).start();
             });
         } else if (mostrarModalAnimado) {
-          
+
             Animated.parallel([
                 Animated.timing(animOpacity, {
                     toValue: 0,
@@ -255,7 +253,9 @@ const CriarCategoria: React.FC = () => {
     }
 
     return (
+
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+
             <View style={styles.container}>
                 {/* Header */}
                 <View style={styles.header}>
@@ -273,147 +273,154 @@ const CriarCategoria: React.FC = () => {
 
 
                 </View>
+                <ScrollView
+                    contentContainerStyle={{ paddingBottom: 0 }} // espaço para o botão
+                    showsVerticalScrollIndicator={false}
+                >
+
+                    <View style={styles.card}>
+
+                        <View style={styles.inputRow}>
+                            <View style={[styles.iconCircle, { backgroundColor: corSelecionada }]}>
+                                {iconeSelecionado && (
+                                    <FontAwesome name={iconeSelecionado} size={30} color="#fff" />
+                                )}
+                            </View>
 
 
-                <View style={styles.card}>
+                            <View style={styles.inputWrapper}>
+                                {nomeCategoria.length > 0 && (
+                                    <Animated.Text
+                                        style={[
+                                            styles.floatingLabel,
+                                            {
+                                                transform: [
+                                                    {
+                                                        translateY: labelAnim.interpolate({
+                                                            inputRange: [0, 1],
+                                                            outputRange: [18, 0], // sobe quando input não está vazio
+                                                        }),
+                                                    },
+                                                ],
+                                                fontSize: labelAnim.interpolate({
+                                                    inputRange: [0, 1],
+                                                    outputRange: [16, 12], // diminui fonte ao subir
+                                                }),
+                                                color: labelAnim.interpolate({
+                                                    inputRange: [0, 1],
+                                                    outputRange: ['#999', '#164878'], // muda cor se quiser
+                                                }),
+                                            },
+                                        ]}
+                                    >
+                                        Nome da Categoria
+                                    </Animated.Text>
 
-                    <View style={styles.inputRow}>
-                        <View style={[styles.iconCircle, { backgroundColor: corSelecionada }]}>
-                            {iconeSelecionado && (
-                                <FontAwesome name={iconeSelecionado} size={30} color="#fff" />
-                            )}
+                                )}
+
+                                <TextInput
+                                    style={styles.nomeInput}
+                                    placeholder={nomeCategoria.length === 0 ? 'Nome da Categoria' : ''}
+                                    placeholderTextColor="#999"
+                                    value={nomeCategoria}
+                                    maxLength={20}
+                                    onChangeText={setNomeCategoria}
+                                    returnKeyType="done"
+                                    blurOnSubmit={true}
+                                    onSubmitEditing={Keyboard.dismiss}
+                                />
+                                <Text style={styles.contadorCaracteres}>
+                                    {nomeCategoria.length}/20
+                                </Text>
+
+                            </View>
                         </View>
 
 
-                        <View style={styles.inputWrapper}>
-                            {nomeCategoria.length > 0 && (
-                                <Animated.Text
-                                    style={[
-                                        styles.floatingLabel,
-                                        {
-                                            transform: [
-                                                {
-                                                    translateY: labelAnim.interpolate({
-                                                        inputRange: [0, 1],
-                                                        outputRange: [18, 0], // sobe quando input não está vazio
-                                                    }),
-                                                },
-                                            ],
-                                            fontSize: labelAnim.interpolate({
-                                                inputRange: [0, 1],
-                                                outputRange: [16, 12], // diminui fonte ao subir
-                                            }),
-                                            color: labelAnim.interpolate({
-                                                inputRange: [0, 1],
-                                                outputRange: ['#999', '#164878'], // muda cor se quiser
-                                            }),
-                                        },
-                                    ]}
-                                >
-                                    Nome da Categoria
-                                </Animated.Text>
+                        <View style={styles.bottomRow}>
+                            <View style={styles.labelWrapper}>
+                                <IconCategoriaPrincipal width={16} height={16} />
+                                <Text style={styles.label}>Categoria principal</Text>
+                            </View>
 
-                            )}
+                            <TouchableOpacity
+                                style={[
+                                    styles.botaoCategoria,
+                                    { backgroundColor: categoriaInfo?.cor_cat || '#5DADE2' }
+                                ]}
+                                onPress={() => setModalVisivel(true)}
+                            >
+                                {categoriaInfo && (
+                                    <Image
+                                        source={getImagemCategoria(categoriaInfo.img_cat)}
+                                        style={{ width: 18, height: 18 }}
+                                        resizeMode="contain"
+                                    />
+                                )}
 
-                            <TextInput
-                                style={styles.nomeInput}
-                                placeholder={nomeCategoria.length === 0 ? 'Nome da Categoria' : ''}
-                                placeholderTextColor="#999"
-                                value={nomeCategoria}
-                                maxLength={20}
-                                onChangeText={setNomeCategoria}
-                                returnKeyType="done"
-                                blurOnSubmit={true}
-                                onSubmitEditing={Keyboard.dismiss}
-                            />
-                            <Text style={styles.contadorCaracteres}>
-                                {nomeCategoria.length}/20
-                            </Text>
+                                <Text style={styles.textoBotao}>
+                                    {categoriaInfo?.nome_cat || 'Selecionar Categoria'}
+                                </Text>
+
+                                <Ionicons name="chevron-down" size={16} color="#fff" />
+                            </TouchableOpacity>
+
 
                         </View>
                     </View>
 
-
-                    <View style={styles.bottomRow}>
-                        <View style={styles.labelWrapper}>
-                            <IconCategoriaPrincipal width={16} height={16} />
-                            <Text style={styles.label}>Categoria principal</Text>
+                    <View style={styles.card}>
+                        <View style={styles.tituloCard}>
+                            <Image
+                                source={require('../../../../assets/icons/pagina_categorias/criar_categoria/palette.png')}
+                                style={styles.iconeTitulo}
+                                resizeMode="contain"
+                            />
+                            <Text style={styles.tituloTexto}>Cor da categoria</Text>
                         </View>
 
                         <TouchableOpacity
-                            style={[
-                                styles.botaoCategoria,
-                                { backgroundColor: categoriaInfo?.cor_cat || '#5DADE2' }
-                            ]}
-                            onPress={() => setModalVisivel(true)}
+                            style={[styles.botaoCorCategoria, { backgroundColor: corSelecionada }]}
+                            activeOpacity={0.7}
+                            onPress={() => setModalCorVisivel(true)}
                         >
-                            {categoriaInfo && (
-                                <Image
-                                    source={getImagemCategoria(categoriaInfo.img_cat)}
-                                    style={{ width: 18, height: 18 }}
-                                    resizeMode="contain"
-                                />
-                            )}
-
-                            <Text style={styles.textoBotao}>
-                                {categoriaInfo?.nome_cat || 'Selecionar Categoria'}
-                            </Text>
-
-                            <Ionicons name="chevron-down" size={16} color="#fff" />
+                            <Ionicons name="chevron-down" size={24} color="#fff" />
                         </TouchableOpacity>
-
-
-                    </View>
-                </View>
-
-                <View style={styles.card}>
-                    <View style={styles.tituloCard}>
-                        <Image
-                            source={require('../../../../assets/icons/pagina_categorias/criar_categoria/palette.png')}
-                            style={styles.iconeTitulo}
-                            resizeMode="contain"
-                        />
-                        <Text style={styles.tituloTexto}>Cor da categoria</Text>
                     </View>
 
-                    <TouchableOpacity
-                        style={[styles.botaoCorCategoria, { backgroundColor: corSelecionada }]}
-                        activeOpacity={0.7}
-                        onPress={() => setModalCorVisivel(true)}
-                    >
-                        <Ionicons name="chevron-down" size={24} color="#fff" />
-                    </TouchableOpacity>
-                </View>
 
+                    <View style={styles.card}>
+                        <View style={styles.tituloCard}>
+                            <Image
+                                source={require('../../../../assets/icons/pagina_categorias/criar_categoria/emoji.png')}
+                                style={styles.iconeTitulo}
+                                resizeMode="contain"
+                            />
+                            <Text style={styles.tituloTexto}>Ícone da categoria</Text>
+                        </View>
 
-                <View style={styles.card}>
-                    <View style={styles.tituloCard}>
-                        <Image
-                            source={require('../../../../assets/icons/pagina_categorias/criar_categoria/emoji.png')}
-                            style={styles.iconeTitulo}
-                            resizeMode="contain"
-                        />
-                        <Text style={styles.tituloTexto}>Ícone da categoria</Text>
+                        <View style={styles.gridPlaceholder}>
+                            <ScrollView contentContainerStyle={styles.iconeGrid}>
+                                {iconesCategoria.map((nome, index) => (
+                                    <TouchableOpacity
+                                        key={index}
+                                        style={[
+                                            styles.iconeItem,
+                                            iconeSelecionado === nome && styles.iconeSelecionado,
+                                            { width: larguraItem, height: larguraItem, borderRadius: larguraItem / 2 }
+                                        ]}
+                                        onPress={() => setIconeSelecionado(nome)}
+                                    >
+
+                                        <FontAwesome name={nome} size={18} color={iconeSelecionado === nome ? '#fff' : '#555'} />
+                                    </TouchableOpacity>
+                                ))}
+                            </ScrollView>
+                        </View>
+
                     </View>
+                </ScrollView>
 
-                    <View style={styles.gridPlaceholder}>
-                        <ScrollView contentContainerStyle={styles.iconeGrid}>
-                            {iconesCategoria.map((nome, index) => (
-                                <TouchableOpacity
-                                    key={index}
-                                    style={[
-                                        styles.iconeItem,
-                                        iconeSelecionado === nome && styles.iconeSelecionado,
-                                    ]}
-                                    onPress={() => setIconeSelecionado(nome)}
-                                >
-                                    <FontAwesome name={nome} size={18} color={iconeSelecionado === nome ? '#fff' : '#555'} />
-                                </TouchableOpacity>
-                            ))}
-                        </ScrollView>
-                    </View>
-
-                </View>
                 <View style={styles.footer}>
                     <TouchableOpacity
                         style={[
@@ -481,7 +488,7 @@ const CriarCategoria: React.FC = () => {
                                         })
                                     ]).start(() => {
                                         setMostrarModalAnimado(false);
-                                        navigation.goBack(); 
+                                        navigation.goBack();
                                     });
                                 }} style={styles.botaoConfirmar}>
                                     <Text style={styles.txtConfirmar}>Sim</Text>
@@ -503,6 +510,7 @@ const CriarCategoria: React.FC = () => {
                 />
 
             </View>
+
         </TouchableWithoutFeedback >
     );
 };
@@ -650,13 +658,15 @@ const styles = StyleSheet.create({
     gridPlaceholder: {
         backgroundColor: '#F4F6F8',
         borderRadius: 12,
-        height: height * 0.29, // altura fixa para o scroll funcionar
+        height: height * 0.31, // altura fixa para o scroll funcionar
         paddingHorizontal: 12,
         paddingTop: 1,
     },
     footer: {
-        marginTop: 5,
-        paddingHorizontal: 15,
+        position: 'absolute',
+        bottom: 20,
+        left: 15,
+        right: 15,
     },
 
     botaoFinal: {

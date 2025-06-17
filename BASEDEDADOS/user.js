@@ -103,6 +103,8 @@ async function atualizarUsuario(nome, imagem, pass) {
     const db = await CRIARBD();
     const updated_at = new Date().toISOString();
 
+    const user = await buscarUsuarioAtual();
+    const naoTemEmail = !user?.email || user.email.trim() === '';
     // Atualiza localmente
     await db.runAsync(
       `UPDATE user SET nome = ?, imagem = ?, pass = ? WHERE id = (SELECT id FROM user LIMIT 1)`,
@@ -119,10 +121,15 @@ async function atualizarUsuario(nome, imagem, pass) {
     );
     await AsyncStorage.setItem('hasNotificacoesNovas', 'true');
 
+// ✅ Se usuário é local, apenas retorna após salvar localmente
+    if (naoTemEmail) {
+      console.warn('⚠️ Usuário sem email. Atualização feita apenas localmente.');
+      return true;
+    }
+
     // Verifica condições de sincronização
     const estado = await NetInfo.fetch();
-    const user = await buscarUsuarioAtual();
-
+  
     const podeSincronizarAgora =
       user?.sincronizacao_automatica === 1 &&
       estado.isConnected &&

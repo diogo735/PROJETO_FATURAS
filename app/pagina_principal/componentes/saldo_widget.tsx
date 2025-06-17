@@ -11,7 +11,7 @@ const SaldoWidget = ({ saldoTotal, mesAtual }: { saldoTotal: number; mesAtual: s
 
   const [mostrarSaldo, setMostrarSaldo] = useState(true);
   const { moeda } = useMoeda();
- 
+
   return (
     <LinearGradient
       colors={['#164878', '#1F67AB', '#2985DE']}
@@ -30,7 +30,9 @@ const SaldoWidget = ({ saldoTotal, mesAtual }: { saldoTotal: number; mesAtual: s
 
       <View style={styles.saldoRow}>
         <Text style={styles.saldo}>
-          {mostrarSaldo ? `${saldoTotal.toFixed(2)} ${moeda.simbolo}` : '- - -'}
+          {mostrarSaldo && typeof saldoTotal === 'number'
+            ? `${saldoTotal.toFixed(2)} ${moeda.simbolo}`
+            : '- - -'}
         </Text>
 
 

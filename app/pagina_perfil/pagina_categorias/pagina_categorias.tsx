@@ -159,7 +159,7 @@ const PaginaCategorias = () => {
                     <Text style={styles.headerTitle}>As Minhas Categorias</Text>
                 </View>
 
-                <TouchableOpacity style={styles.botaoRedondo} onPress={girarSeta}>
+                <TouchableOpacity style={styles.botaoRedondo} onPress={girarSeta} hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}>
                     <Animated.View style={{ transform: [{ rotate }] }}>
                         <SetaBaixo width={14} height={14} stroke="white" />
                     </Animated.View>

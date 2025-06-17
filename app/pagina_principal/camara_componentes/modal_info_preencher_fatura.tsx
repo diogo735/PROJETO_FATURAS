@@ -326,7 +326,7 @@ const Modal_Info_Fatura_Preencher: React.FC<Props> = ({ visivel, onAbrirCameraMa
         <Modal isVisible={visivel} onBackdropPress={aoFechar} style={{ justifyContent: 'flex-end', margin: 0 }}>
             <View style={[
                 styles.modalContainer,
-                { minHeight: numLinhasNumeroFatura > 1 ? height * 0.94 : height * 0.91 }
+                { minHeight: numLinhasNumeroFatura > 1 ? height * 0.90 : height * 0.87 }
             ]}>
 
 
@@ -671,7 +671,7 @@ const Modal_Info_Fatura_Preencher: React.FC<Props> = ({ visivel, onAbrirCameraMa
 
 
                                 </View>
-                                <View style={[styles.caixaNotas, { height: width * 0.15 }]}>
+                                <View style={[styles.caixaNotas, { height: width * 0.20 }]}>
 
                                     <View style={styles.iconeNota}>
                                         <NotasIcon width={22} height={22} />
@@ -1288,7 +1288,6 @@ const styles = StyleSheet.create({
     botoesContainer: {
         flexDirection: 'row',
         justifyContent: 'space-around',
-
         marginTop: 0,
         marginBottom: 10,
 

@@ -55,6 +55,13 @@ async function inserirMovimento(valor, data_movimento, categoria_id, sub_categor
   try {
     // 🎯 Preferências do usuário
     const user = await buscarUsuarioAtual();
+    const naoTemEmail = !user?.email || user.email.trim() === '';
+
+    if (naoTemEmail) {
+      console.warn('⚠️ Usuário sem email. Salvando movimento localmente (modo offline).');
+      return await salvarMovimentoOffline(movimentoLocal, db);
+    }
+
     const syncAuto = user?.sincronizacao_automatica === 1;
     const wifiOnly = user?.sincronizacao_wifi === 1;
 
@@ -116,11 +123,47 @@ async function salvarMovimentoLocalEPendencia(movimento, db) {
   return result.lastInsertRowId;
 }
 
+async function salvarMovimentoOffline(movimento, db) {
+  const { valor, data_movimento, categoria_id, sub_categoria_id, nota, updated_at } = movimento;
+
+  const result = await db.runAsync(
+    `INSERT INTO movimentos (
+      valor, data_movimento, categoria_id, sub_categoria_id, nota, updated_at, sync_status
+    ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [valor, data_movimento, categoria_id, sub_categoria_id, nota, updated_at, 'local']
+  );
+
+  await atualizarMeta(valor, categoria_id, data_movimento, db);
+
+  return result.lastInsertRowId;
+}
+
 async function atualizarMovimento(id, { nota, categoria_id, sub_categoria_id }) {
   try {
-
     const db = await CRIARBD();
     const updated_at = new Date().toISOString();
+
+    // 🎯 Verifica se o usuário está em modo offline
+    const user = await buscarUsuarioAtual();
+    const naoTemEmail = !user?.email || user.email.trim() === '';
+
+    if (naoTemEmail) {
+      console.warn('⚠️ Usuário sem email. Atualizando movimento apenas localmente.');
+
+      await db.runAsync(
+        `UPDATE movimentos SET nota = ?, categoria_id = ?, sub_categoria_id = ?, updated_at = ?, sync_status = ? WHERE id = ?`,
+        [
+          nota,
+          categoria_id,
+          sub_categoria_id ?? null,
+          updated_at,
+          'local', 
+          id
+        ]
+      );
+
+      return true;
+    }
 
     // 1. Atualiza localmente e marca como 'pending'
     await db.runAsync(
@@ -149,10 +192,7 @@ async function atualizarMovimento(id, { nota, categoria_id, sub_categoria_id }) 
       return true;
     }
 
-
-
     // 4. Verifica preferências do usuário
-    const user = await buscarUsuarioAtual();
     const syncAuto = user?.sincronizacao_automatica === 1;
     const wifiOnly = user?.sincronizacao_wifi === 1;
 
@@ -184,7 +224,6 @@ async function atualizarMovimento(id, { nota, categoria_id, sub_categoria_id }) 
           updated_at
         });
 
-
         if (!result?.id) {
           throw new Error('❌ API não retornou o movimento atualizado corretamente');
         }
@@ -206,7 +245,6 @@ async function atualizarMovimento(id, { nota, categoria_id, sub_categoria_id }) 
         }, movimento.remote_id);
       }
 
-
     } else {
       // 7. Está offline, adiciona à fila
       await adicionarNaFila('movimentos', 'update', {
@@ -224,6 +262,7 @@ async function atualizarMovimento(id, { nota, categoria_id, sub_categoria_id }) 
     return false;
   }
 }
+
 
 async function atualizarMeta(valor, categoria_id, data_movimento, db) {
   try {

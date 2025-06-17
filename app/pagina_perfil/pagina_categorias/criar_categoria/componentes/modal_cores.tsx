@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, FlatList } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, FlatList, Dimensions } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Modal from 'react-native-modal';
 
@@ -35,7 +35,10 @@ const coresDisponiveis: string[] = [
 
 const ModalCores: React.FC<Props> = ({ visivel, aoFechar, corSelecionada, aoSelecionarCor }) => {
     //console.log('🎨 ModalCores recebeu corSelecionada:', corSelecionada);
-
+    const screenWidth = Dimensions.get('window').width;
+    const spacing = 12; // margem entre as bolinhas
+    const numColunas = 6;
+    const tamanhoBolinha = (screenWidth - spacing * (numColunas + 1)) / numColunas;
     return (
         <Modal
             isVisible={visivel}
@@ -57,13 +60,25 @@ const ModalCores: React.FC<Props> = ({ visivel, aoFechar, corSelecionada, aoSele
                         data={coresDisponiveis}
                         keyExtractor={(item) => item}
                         numColumns={6}
+                        contentContainerStyle={{
+                            paddingHorizontal: spacing / 2,
+                        }}
+                        columnWrapperStyle={{
+                            justifyContent: 'space-between',
+                            marginBottom: spacing / 1.5,
+                        }}
                         renderItem={({ item }) => (
                             <TouchableOpacity
                                 style={[
-                                    styles.bolinha,
-                                    { backgroundColor: item },
-                                    corSelecionada.toLowerCase() === item.toLowerCase() && styles.selecionada
-
+                                    {
+                                        width: tamanhoBolinha,
+                                        height: tamanhoBolinha,
+                                        borderRadius: tamanhoBolinha / 2,
+                                        justifyContent: 'center',
+                                        alignItems: 'center',
+                                        backgroundColor: item,
+                                    },
+                                    corSelecionada.toLowerCase() === item.toLowerCase() && styles.selecionada,
                                 ]}
                                 onPress={() => {
                                     aoSelecionarCor(item);
@@ -73,10 +88,10 @@ const ModalCores: React.FC<Props> = ({ visivel, aoFechar, corSelecionada, aoSele
                                 {corSelecionada.toLowerCase() === item.toLowerCase() && (
                                     <Ionicons name="checkmark" size={20} color="#fff" />
                                 )}
-
                             </TouchableOpacity>
                         )}
                     />
+
                 </View>
             </View>
         </Modal>
@@ -120,7 +135,6 @@ const styles = StyleSheet.create({
         width: 42,
         height: 42,
         borderRadius: 21,
-        margin: 6,
         justifyContent: 'center',
         alignItems: 'center',
     },
