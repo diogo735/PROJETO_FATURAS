@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 import { CRIARBD } from './databaseInstance';
-import { buscarUsuarioAtual } from './BASEDEDADOS/user';
+import { buscarUsuarioAtual } from './user';
 
 const API_BASE_URL = 'https://faturas-backend.onrender.com/api';
 
