@@ -13,8 +13,7 @@
     "production-apk": {
       "android": {
         "buildType": "apk",
-        "gradleCommand": ":app:assembleRelease",
-        "clearCache": true
+        "gradleCommand": ":app:assembleRelease"
       }
     },
     "preview": {
