@@ -58,7 +58,7 @@ import PaginaSincronizacao from './app/pagina_perfil/pagina_sincronizacao/pagina
 import { iniciarTarefaSincronizacao } from './app/backgorund/tarefa_sincronizacao';
 import PaginaBasededados from './app/pagina_perfil/pagina_basededados/pagina_basededados';
 import PaginaSobre from './app/pagina_perfil/pagina_sobre/pagina_sobre';
-
+import PaginaTuturial from './app/pagina_perfil/pagina_passoapasso/pagina_tuturial';
 
 
 Notify.setNotificationHandler({
@@ -156,6 +156,7 @@ export type RootStackParamList = {
   PaginaSincronizacao: undefined;
   PaginaBasededados:undefined;
   PaginaSobre:undefined;
+  PaginaTuturial:undefined;
 };
 
 
@@ -422,6 +423,13 @@ const PaginaSobreScreen = (props: any) => (
   <View style={styles.defaultContainer}>
     <StatusBar translucent backgroundColor="transparent" style="dark" />
     <PaginaSobre {...props} />
+  </View>
+);
+
+const PaginaTuturialScreen = (props: any) => (
+  <View style={styles.defaultContainer}>
+    <StatusBar translucent backgroundColor="transparent" style="dark" />
+    <PaginaTuturial {...props} />
   </View>
 );
 //////////////////////////////////////////////////////////////////
@@ -763,6 +771,18 @@ const App: React.FC = () => {
            <Stack.Screen
             name="PaginaSobre"
             component={PaginaSobreScreen}
+            options={{
+              animation: 'fade',
+              transitionSpec: {
+                open: { animation: 'timing', config: { duration: 350 } },
+                close: { animation: 'timing', config: { duration: 250 } },
+              },
+            }}
+          />
+
+          <Stack.Screen
+            name="PaginaTuturial"
+            component={PaginaTuturialScreen}
             options={{
               animation: 'fade',
               transitionSpec: {

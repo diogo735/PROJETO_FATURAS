@@ -26,6 +26,7 @@ import { listarSincronizacoesPendentes } from '../../BASEDEDADOS/sincronizacao';
 
 import IconServer from '../../assets/pagina_perfil/server.png';
 import IconSupport from '../../assets/pagina_perfil/support.png';
+import IconTuturial from '../../assets/pagina_perfil/tuturial.png';
 import { buscarUsuarioAtual } from '../../BASEDEDADOS/user';
 import { limparTabelaMovimentos as limparMovimentosBD } from '../../BASEDEDADOS/movimentos';
 import ModalLogout from './modal_logout';
@@ -200,10 +201,10 @@ const Pagina_perfil: React.FC = () => {
           </TouchableOpacity>
 
 
-          <TouchableOpacity style={styles.botaoItem} onPress={() => Alert.alert("Editar perfil")}>
+          <TouchableOpacity style={styles.botaoItem} onPress={() => navigation.navigate('PaginaTuturial')}>
             <View style={styles.itemEsquerda}>
               <Image
-                source={IconLike}
+                source={IconTuturial}
                 style={styles.iconePNG}
               />
               <Text style={styles.textoItem}>Passo a passo</Text>
